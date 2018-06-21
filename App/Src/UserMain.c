@@ -5,9 +5,7 @@
 #include "bsp_eeprom_24xx.h"
 
 uint8_t bsp_TestExtSRAM(void);
-void UserMainFunc(int i)
-{
-}
+
 void UserMainFunc(void)
 {
     uint8_t Buf[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};

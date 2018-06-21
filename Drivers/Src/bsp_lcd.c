@@ -1,23 +1,41 @@
+/**
+ ******************************************************************************
+ * @file      bsp_lcd.c
+ * @author    门禁开发小组
+ * @version   V1.0.3
+ * @date      2018-01-26
+ * @brief     这个文件是液晶初始化文件，在此文件内进行液晶的配置还有一些基本的操作
+              液晶的驱动芯片为R61529驱动芯片
+ * @History
+ * Date           Author    version    		Notes
+ * 2017-10-31       ZSY     V1.0.0      first version.
+ * 2017-11-27       ZSY     V1.0.1      增加LCD的操作方法，完善LCD驱动
+ * 2018-01-16       ZSY     V1.0.2      排版格式化，增强可视化
+ * 2018-01-26       ZSY     V1.0.3      整理部分定义，添加私有和公有宏定义
+ */
+	
+/* Includes ------------------------------------------------------------------*/
 #include "bsp_lcd.h"
 
 /* Private macro Definition --------------------------------------------------*/
 
-/** 娴ｅ潡鏁撻弬銈嗗NOR/SRAM闁跨喐鏋婚幏锟� Bank1.sector1,闁跨喐鏋婚幏宄版絻娴ｅ埠ADDR[27,26]=11 A16闁跨喐鏋婚幏铚傝礋闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹凤拷
- * @note:闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归弮绂═M32闁跨喕濡拠褎瀚归柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喐鏋婚幏铚傜娴ｅ秹鏁撻弬銈嗗闁跨喐鏋婚幏锟�! 0001 1111 1111 1111 1110=0x0001fffe	
- */    
+/** 使用NOR/SRAM的 Bank1.sector4,地址位HADDR[27,26]=11 A6作为数据命令区分线
+ * @note:设置时STM32内部会右移一位对其! 111 1110=0X7E	
+ */   
 #define LCD_BASE_ADDRESS        ((uint32_t)(0x6C000000 | 0x0000007E))
-#define LCD_OPERATION         	((BspLCD_t *)LCD_BASE_ADDRESS)
 
 /* End private macro Definition ----------------------------------------------*/
 
 /* global variable Declaration -----------------------------------------------*/
 
-/* 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚瑰☉鏌ユ晸閺傘倖瀚归柨鐔告灮閹烽濮搁幀渚€鏁撻弬銈嗗闁跨喓瀚涚紒鎾寸€柨鐔告灮閹凤拷 */
+/* LCD参数对象 */
 BspLCD_Dev_t BspLCD_Dev;
 
-/* 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚瑰☉鏌ユ晸閺傘倖瀚归柨鐔告灮閹风PI闁跨喐甯撮崠鈩冨闁跨喎褰ㄩ幉瀣瀹勪胶娅㈤幏鐑芥晸閿燂拷 */
+/* LCD操作对象 */
 BspLCD_Func_t BspLCD;
 
+/* LCD寄存器对象 */
+static BspLCD_t* BspLCD_RW = ((BspLCD_t *)LCD_BASE_ADDRESS);
 /* User function Declaration --------------------------------------------------*/
 static uint32_t BspLCD_ReadId(void);
 
@@ -28,79 +46,79 @@ void BspLCD_ClrScr(uint16_t pColor);
 
 /**
  * @func    BspLCD_WriteComm
- * @brief   LCD閸愭瑩鏁撻弬銈嗗闁跨喓鐡旈崚浼存晸娓氥儴鎻幏鐑芥晸閺傘倖瀚�
- * @param   RegVal 閹稿洭鏁撻弬銈嗗闁跨喍鑼庣€靛嫯鎻幏鐑芥晸閺傘倖瀚归柨鐔告灮閹峰嘲娼�
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   lcd写命令到寄存器
+ * @param   RegVal 指定的寄存器地址
+ * @retval  无
  */
 static void BspLCD_WriteComm(__IO uint16_t RegVal)
 {   
-    LCD_OPERATION->REG = RegVal;			/* 閸愭瑩鏁撻弬銈嗗鐟曚礁鍟撻柨鐔惰寧鐎靛嫯鎻幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻敓锟� */
+    BspLCD_RW->REG = RegVal;     /* 写入要写的寄存器序号 */
 }
 
 /**
  * @func    BspLCD_WriteData
- * @brief   LCD閸愭瑩鏁撻弬銈嗗闁跨喐鏋婚幏锟�
- * @param   Data 鐟曚礁鍟撻柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喐鏋婚幏鐑芥晸閿燂拷
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   lcd写数据
+ * @param   Data 要写入的数据
+ * @retval  无
  */
 static void BspLCD_WriteData(__IO uint16_t  Data)
 {	  
-    LCD_OPERATION->RAM = Data;		 
+    BspLCD_RW->RAM = Data;		 
 }		
 
 /**
  * @func    BspLCD_WR_Reg
- * @brief   闁跨喐鏋婚幏閿嬪瘹闁跨喐鏋婚幏鐑芥晸娓氥儱鐦庢潏鐐闁跨喐鏋婚幏宄板晸闁跨喐鏋婚幏鐑芥晸閺傘倖瀚�
- * @param   Index 闁跨喍鑼庢潏鐐闁跨喐鏋婚幏锟�
- * @param   CongfigTemp 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚�
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   往指定的寄存器写数据
+ * @param   Index 寄存器
+ * @param   congfig_temp 数据
+ * @retval  无
  */
 static void BspLCD_WR_Reg(uint16_t Index, uint16_t CongfigTemp)
 {
-    LCD_OPERATION->REG = Index;
-    LCD_OPERATION->RAM = CongfigTemp;
+    BspLCD_RW->REG = Index;
+    BspLCD_RW->RAM = CongfigTemp;
 }
 
 /**
  * @func    BspLCD_ReadData
- * @brief   LCD闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹凤拷
- * @retval  闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喐鏋婚幏锟�
+ * @brief   lcd读数据
+ * @retval  读到的数据
  */
 static uint16_t BspLCD_ReadData(void)
 {
-    __IO uint16_t Ram;                   //闁跨喐鏋婚幏閿嬵剾闁跨喐鏋婚幏鐑芥晸閼存矮绱幏锟�
-    Ram = LCD_OPERATION->RAM;	
+    __IO uint16_t Ram;                   //防止被优化
+    Ram = BspLCD_RW->RAM;	
     return Ram;	 
 }	
 
 /**
  * @func    BspLCD_ReadReg
- * @brief   LCD闁跨喐鏋婚幏鐑芥晸娓氥儴鎻幏鐑芥晸閺傘倖瀚�
- * @param   Reg:闁跨喍鑼庢潏鐐闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归崸鈧�
- * @retval  闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喐鏋婚幏锟�
+ * @brief   lcd读寄存器
+ * @param   reg:寄存器地址
+ * @retval  读到的数据
  */
 static uint16_t BspLCD_ReadReg(uint16_t Reg)
 {										   
-    BspLCD_WriteComm(Reg);              //閸愭瑩鏁撻弬銈嗗鐟曚線鏁撻弬銈嗗闁跨喍鑼庣€靛嫯鎻幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻敓锟�
-    return BspLCD_ReadData();           //闁跨喐鏋婚幏鐑芥晸閹搭亣顔愰幏鐑芥晸閺傘倖瀚归柨鐔告灮閹峰嘲鈧拷
+    BspLCD_WriteComm(Reg);              //写入要读的寄存器序号
+    return BspLCD_ReadData();           //返回读到的值
 }  
 
 /**
  * @func    BspLCD_WR_RamPrepare
- * @brief   lcd闁跨喐鏋婚幏宄邦潗閸愭瑩鏁撻弬銈嗗闁跨喐鏋婚幏鐑芥晸閿燂拷
- * @note    娑撯偓闁跨喐鏋婚幏鐑芥晸閼哄倽顕滈幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻弬銈嗗閺冨爼鏁撻弬銈嗗闁跨喐鏋婚幏锟�
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   lcd开始写入操作
+ * @note    一般在操作结束时调用
+ * @retval  无
  */
 static void BspLCD_WR_RamPrepare(void)
 {
-    LCD_OPERATION->REG = BspLCD_Dev.WramCmd;
+    BspLCD_RW->REG = BspLCD_Dev.WramCmd;
 }
 
 /**
  * @func    BspLCD_Delay
- * @brief   LCD闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归弮鍫曟晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻懞鍌滎劜閹峰嘲顫愰柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喐鏋婚幏锟�
- * @param   nCount 闁跨喐鏋婚幏閿嬫闁跨喍鑼庢潏鐐鐏忥拷
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   lcd启动延时，用于初始化过程
+ * @param   nCount 延时的大小
+ * @retval  无
  */
 static void BspLCD_Delay(__IO uint32_t nCount)
 {	
@@ -112,9 +130,9 @@ static void BspLCD_Delay(__IO uint32_t nCount)
 
 ///**
 // * @func    LCDReset
-// * @brief   LCD闁跨喐鏋婚幏铚傜秴闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喕濡棃鈺傚娴ｅ硛CD闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔峰建鐎靛嫯鎻幏鐑芥晸閺傘倖瀚�
-// * @note    鐟曚線鏁撻弬銈嗗閺冨爼鏁撴慨鎰檮闁跨喐鏋婚幏閿嬫闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撶徊鍍€D闁跨喐鏋婚幏铚傜秴
-// * @retval  闁跨喐鏋婚幏锟�
+// * @brief   lcd复位操作，用于复位lcd的所有寄存器
+// * @note    要延时足够的时间才能让lcd复位
+// * @retval  无
 // */
 //static void LCDReset(void)
 //{		
@@ -135,8 +153,8 @@ static void BspLCD_Delay(__IO uint32_t nCount)
 
 /**
  * @func    BspLCD_ConfigLocal
- * @brief   闁跨喐鏋婚幏鐑芥晸閹圭柉顕滈幏宄版倱闁跨喐鏋婚幏绋珻D闁跨喐鏋婚幏鐑芥晸閹搭亣顕滈幏宄版倱闁跨喍鑼庣拠褎瀚归柨鐔告灮閹凤拷
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   根据不同的LCD加载不同的参数
+ * @retval  无
  */
 static void BspLCD_ConfigLocal(void)
 {
@@ -154,15 +172,15 @@ static void BspLCD_ConfigLocal(void)
     BspLCD_Dev.DispOnCmd  = 0x29;
     BspLCD_Dev.DispOffCmd = 0x28;
     
-    /* 姒涙﹢鏁撻弬銈嗗娴ｅ潡鏁撻惌顐ゅ皑閹风兘鏁撻弬銈嗗 */
+    /* 默认使用横屏 */
     BspLCD_Dev.Height = BspLCD_Dev.pWidth;
     BspLCD_Dev.Width  = BspLCD_Dev.pHeight;
 }
 
 /**
  * @func    BspLCD_Init
- * @brief   闁跨喐鏋婚幏绋珻D闁跨喐鏋婚幏鐑芥晸閸欘偆顒查幏宄邦潗闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹凤拷
- * @retva   闁跨喐鏋婚幏锟�
+ * @brief   对lcd进行初始化配置
+ * @retva   无
  */
 void BspLCD_Init(void)
 {
@@ -201,21 +219,21 @@ void BspLCD_Init(void)
     BspLCD_WriteComm(0xF7);  
     BspLCD_WriteData(0x20); 
     
-    BspLCD_WriteComm(0xC0);    //Power control 
-    BspLCD_WriteData(0x23);   //VRH[5:0] 
+    BspLCD_WriteComm(0xC0);     //Power control 
+    BspLCD_WriteData(0x23);     //VRH[5:0] 
     
-    BspLCD_WriteComm(0xC1);    //Power control 
-    BspLCD_WriteData(0x10);   //SAP[2:0];BT[3:0] 
+    BspLCD_WriteComm(0xC1);     //Power control 
+    BspLCD_WriteData(0x10);     //SAP[2:0];BT[3:0] 
     
-    BspLCD_WriteComm(0xC5);    //VCM control 
-    BspLCD_WriteData(0x3e); //闁跨喓娈曞В鏂垮绾板瀚归柨鐔告灮閹凤拷
+    BspLCD_WriteComm(0xC5);     //VCM control 
+    BspLCD_WriteData(0x3e);     //对比度调节
     BspLCD_WriteData(0x28); 
     
-    BspLCD_WriteComm(0xC7);    //VCM control2 
-    BspLCD_WriteData(0x86);  //--
+    BspLCD_WriteComm(0xC7);     //VCM control2 
+    BspLCD_WriteData(0x86);     //--
     
-    BspLCD_WriteComm(0x36);    // Memory Access Control 
-    BspLCD_WriteData(0xE8); //	   //48 68闁跨喐鏋婚幏鐑芥晸閺傘倖瀚�//28 E8 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚�
+    BspLCD_WriteComm(0x36);     // Memory Access Control 
+    BspLCD_WriteData(0xE8);     //48 68竖屏//28 E8 横屏
     
     BspLCD_WriteComm(0x3A);    
     BspLCD_WriteData(0x55); 
@@ -286,36 +304,36 @@ void BspLCD_Init(void)
     BspLCD_WriteComm(0x29);    //Display on 
     BspLCD_WriteComm(0x2c); 
     
-    /* 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚瑰☉鏌ユ晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻弬銈嗗缁€娲晸閺傘倖瀚归柨鐔告灮閹凤拷 */
+    /* 默认情况下为横屏，设置横屏 */
     BspLCD_SetDispDir(DIR_HORIZONTAL_NORMAL);
     
-    /* 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚� */
+    /* 清屏 */
     BspLCD_ClrScr(0x0000);
 }
 
 /**
  * @func    BspLCD_ReadId
- * @brief   闁跨喐鏋婚幏宄板絿LCD闁跨喐鏋婚幏绋〥
- * @retval  LCD闁跨喐鏋婚幏绋〥
+ * @brief   读取LCD的ID
+ * @retval  LCD的ID
  */
 __attribute__((unused)) static uint32_t BspLCD_ReadId(void)
 {
     uint16_t Buf[4];
     
-    LCD_OPERATION->REG = 0x04;
-    Buf[0] = LCD_OPERATION->RAM;
-    Buf[1] = LCD_OPERATION->RAM;
-    Buf[2] = LCD_OPERATION->RAM;
-    Buf[3] = LCD_OPERATION->RAM;
+    BspLCD_RW->REG = 0x04;
+    Buf[0] = BspLCD_RW->RAM;
+    Buf[1] = BspLCD_RW->RAM;
+    Buf[2] = BspLCD_RW->RAM;
+    Buf[3] = BspLCD_RW->RAM;
     
     return (Buf[1] << 16) + (Buf[2] << 8) + Buf[3];
 }
 
 /**
  * @func    BspLCD_SetDispDir
- * @brief   闁跨喐鏋婚幏鐑芥晸閺傘倖瀚筁CD闁跨喐鏋婚幏閿嬪闁跨喎鈧喐鏌熼柨鐔告灮閹凤拷
- * @param   Dir 闁跨喐鏋婚幏鐤洣闁跨喐鏋婚幏鐑芥晸閻偆娈戦崙銈嗗闁跨喐鏋婚幏锟�
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   设置LCD的扫描方向
+ * @param   Dir 需要设置的方向
+ * @retval  无
  */
 void BspLCD_SetDispDir(uint8_t Dir)
 {
@@ -350,37 +368,43 @@ void BspLCD_SetDispDir(uint8_t Dir)
 
 /**
  * @func    BspLCD_SetDispWin
- * @brief   闁鏁撻弬銈嗗LCD闁跨喐鏋婚幏閿嬪瘹闁跨喐鏋婚幏鐑芥晸娓氥儲鎷濋幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撳ú銉礉绾攱瀚归柨鐔告灮閹风兘鏁撻弬銈嗗娑撯偓闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹凤拷
- * @param   xCur x闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撶紒鐐点€嬮幏鐑芥晸閿燂拷
- * @param   yCur y闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撶紒鐐点€嬮幏鐑芥晸閿燂拷
- * @param   Width  闁跨喐鏋婚幏鐑芥晸閼哄倻娈戦崠鈩冨闁跨噦鎷�
- * @param   Height 闁跨喐鏋婚幏鐑芥晸閼哄倻娈戞妯款啇閹凤拷
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   选定LCD上指定的矩形区域，即设置一个窗口
+ * @param   xCur x方向的起始点
+ * @param   yCur y方向的起始点
+ * @param   Width  窗口的宽度
+ * @param   Height 窗口的高度
+ * @retval  无
  */
 void BspLCD_SetDispWin(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height)
 {
-    /* 闁跨喎鈧喎鐣綳闁跨喐鏋婚幏鐑芥晸閺傘倖瀚� */
+    BspLCD_Pos_t StartPos, EndPos;
+
+    StartPos.xyPos = xCur;
+    EndPos.xyPos = xCur + Width - 1;
+    /* 设定X坐标 */
     BspLCD_WriteComm(BspLCD_Dev.SetXCmd);
-    BspLCD_WriteData(xCur >> 8);
-    BspLCD_WriteData(0xFF & xCur);                  
-    BspLCD_WriteData((xCur + Width - 1) >> 8);
-    BspLCD_WriteData(0xFF & (xCur + Width - 1));
+    BspLCD_WriteData(StartPos.Pos.hBit);
+    BspLCD_WriteData(StartPos.Pos.lBit);                  
+    BspLCD_WriteData(EndPos.Pos.hBit);
+    BspLCD_WriteData(EndPos.Pos.lBit);
     
-    /* 闁跨喎鈧喎鐣綴闁跨喐鏋婚幏鐑芥晸閺傘倖瀚� */
+    StartPos.xyPos = yCur;
+    EndPos.xyPos = yCur + Height - 1;
+    /* 设定Y坐标 */
     BspLCD_WriteComm(BspLCD_Dev.SetYCmd);
-    BspLCD_WriteData(yCur >> 8);
-    BspLCD_WriteData(0xFF & yCur);
-    BspLCD_WriteData((yCur + Height - 1) >> 8);
-    BspLCD_WriteData(0xFF & (yCur + Height - 1));
+    BspLCD_WriteData(StartPos.Pos.hBit);
+    BspLCD_WriteData(StartPos.Pos.hBit);
+    BspLCD_WriteData(EndPos.Pos.hBit);
+    BspLCD_WriteData(EndPos.Pos.hBit);
     
-    /* 闁跨喐鏋婚幏鐑芥晸閻ㄥ棜鎻幏锟� */
+    /* 开显存 */
     BspLCD_WR_RamPrepare();
 }
 
 /**
  * @func    BspLCD_GetXSize
- * @brief   闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹峰嘲绠烽柨鐔惰寧閸栤剝瀚归柨鐕傛嫹
- * @retval  闁跨喐鏋婚幏宄扮闁跨喍鑼庨崠鈩冨闁跨噦鎷�
+ * @brief   获取屏幕的宽度
+ * @retval  返回屏幕的宽度
  */
 uint16_t BspLCD_GetXSize(void)
 {
@@ -389,8 +413,8 @@ uint16_t BspLCD_GetXSize(void)
 
 /**
  * @func    BspLCD_GetYSize
- * @brief   闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹峰嘲绠烽柨鐔惰寧妤傛ǹ顔愰幏锟�
- * @retval  闁跨喐鏋婚幏宄扮闁跨喍鑼庢妯款啇閹凤拷
+ * @brief   获取屏幕的高度
+ * @retval  返回屏幕的高度
  */
 uint16_t BspLCD_GetYSize(void)
 {
@@ -398,10 +422,10 @@ uint16_t BspLCD_GetYSize(void)
 }
 /**
  * @func    BspLCD_SetDispCur
- * @brief   闁跨喐鏋婚幏绋珻D闁跨喐鏋婚幏閿嬪瘹闁跨喐鏋婚幏鐑芥晸閺傘倖瀚规担宥夋晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻惌顐ゆ閹风兘鏁撻敓锟�
- * @param   xPos x闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撶紒鐐点€嬮幏鐑芥晸閿燂拷
- * @param   yPos y闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撶紒鐐点€嬮幏鐑芥晸閿燂拷
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   在LCD上指定的位置设置光标
+ * @param   xPos x方向的起始点
+ * @param   yPos y方向的起始点
+ * @retval  无
  */
 void BspLCD_SetDispCur(uint16_t xPos, uint16_t yPos)
 {
@@ -409,49 +433,49 @@ void BspLCD_SetDispCur(uint16_t xPos, uint16_t yPos)
     
     xyInput.xyPos = xPos;
     
-    /* 闁跨喎鈧喎鐣綳闁跨喐鏋婚幏鐑芥晸閺傘倖瀚� */
-    LCD_OPERATION->REG = BspLCD_Dev.SetXCmd;
-    LCD_OPERATION->RAM = xyInput.Pos.hBit;
-    LCD_OPERATION->RAM = xyInput.Pos.lBit;
-    LCD_OPERATION->RAM = 0x01;
-    LCD_OPERATION->RAM = 0xDF;
+    /* 设定X坐标 */
+    BspLCD_RW->REG = BspLCD_Dev.SetXCmd;
+    BspLCD_RW->RAM = xyInput.Pos.hBit;
+    BspLCD_RW->RAM = xyInput.Pos.lBit;
+    BspLCD_RW->RAM = 0x01;
+    BspLCD_RW->RAM = 0xDF;
     
     xyInput.xyPos = yPos;
     
-    /* 闁跨喎鈧喎鐣綴闁跨喐鏋婚幏鐑芥晸閺傘倖瀚� */
-    LCD_OPERATION->REG = BspLCD_Dev.SetYCmd;
-    LCD_OPERATION->RAM = xyInput.Pos.hBit;
-    LCD_OPERATION->RAM = xyInput.Pos.lBit;
-    LCD_OPERATION->RAM = 0x01;
-    LCD_OPERATION->RAM = 0x3F;
+    /* 设定Y坐标 */
+    BspLCD_RW->REG = BspLCD_Dev.SetYCmd;
+    BspLCD_RW->RAM = xyInput.Pos.hBit;
+    BspLCD_RW->RAM = xyInput.Pos.lBit;
+    BspLCD_RW->RAM = 0x01;
+    BspLCD_RW->RAM = 0x3F;
     
-    /* 闁跨喐鏋婚幏鐑芥晸閻ㄥ棜鎻幏锟� */
-    LCD_OPERATION->REG = BspLCD_Dev.WramCmd;
+    /* 开显存 */
+    BspLCD_RW->REG = BspLCD_Dev.WramCmd;
 }
 
 /**
  * @func    BspLCD_BGR_ToRGB
- * @brief   闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔稿焻闂堚晜瀚瑰蹇涙晸閺傘倖瀚归柨鐔告灮閹风柉娴嗛柨鐔告灮閹凤拷
- * @param   Color 鐟曚焦澧介柨鐔告灮閹风柉娴嗛柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喐鏋婚幏鐑芥晸閺傘倖瀚�
- * @retval  RGB 鏉烆剟鏁撻弬銈嗗闁跨喐鏋婚幏宄板仸闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐕傛嫹
+ * @brief   将像素格式进行转换
+ * @param   Color 要执行转换的像素
+ * @retval  RGB 转换完成的像素
  */
-__attribute__((unused)) uint16_t BspLCD_BGR_ToRGB(uint16_t Color)
+__attribute__((unused)) uint16_t BspLCD_BGR2RGB(uint16_t Color)
 {
-    uint16_t  r,g,b,RGB;   
+    uint16_t  r,g,b,RGB;  
+    RGB_t RGB_Data, BGR_Data; 
     
-    b = (Color >> 0) & 0x1f;
-    g = (Color >> 5) & 0x3f;
-    r = (Color >> 11) & 0x1f;
+    BGR_Data.Value = Color;
+    RGB_Data.RGB.R = BGR_Data.RGB.B;
+    RGB_Data.RGB.G = BGR_Data.RGB.G;
+    RGB_Data.RGB.B = BGR_Data.RGB.R;	 
     
-    RGB = (b << 11) + (g << 5) + (r << 0);		 
-    
-    return(RGB);
+    return RGB_Data.Value;
 } 
 
 /**
  * @func    BspLCD_QuitWinMode
- * @brief   闁跨喎澹欑粵瑙勫闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹烽銇氬Ο鈥崇础闁跨喐鏋婚幏鐑芥晸閺傘倖瀚规稉鍝勫弿闁跨喐鏋婚幏鐑芥晸閺傘倖瀚圭粈鐑樐佸锟�
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   退出窗口显示模式，变为全屏显示模式
+ * @retval  无
  */
 __attribute__((unused)) static void BspLCD_QuitWinMode(void)
 {
@@ -460,8 +484,8 @@ __attribute__((unused)) static void BspLCD_QuitWinMode(void)
 
 /**
  * @func    BspLCD_DispOn
- * @brief   闁跨喐鏋婚幏鐑芥晸閺傘倖瀚圭粈锟�
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   打开显示
+ * @retval  无
  */
 void BspLCD_DispOn(void)
 {
@@ -470,8 +494,8 @@ void BspLCD_DispOn(void)
 
 /**
  * @func    BspLCD_DispOff
- * @brief   闁跨喐鍩呴幉瀣闁跨喐鏋婚幏椋庛仛
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   关闭显示
+ * @retval  无
  */
 void BspLCD_DispOff(void)
 {
@@ -480,9 +504,9 @@ void BspLCD_DispOff(void)
 
 /**
  * @func    BspLCD_ClrScr
- * @brief   闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喐鏋婚幏鐑芥晸缂傛惌鍊辩喊澶嬪闁跨喐鏋婚幏鐑芥晸閿燂拷
- * @param   pColor 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归懝锟�
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   根据输入的颜色值清屏
+ * @param   pColor 背景色
+ * @retval  无
  */
 void BspLCD_ClrScr(uint16_t pColor)
 {
@@ -491,79 +515,79 @@ void BspLCD_ClrScr(uint16_t pColor)
     
     BspLCD_SetDispWin(0, 0, BspLCD_Dev.Width, BspLCD_Dev.Height);
     
-#if 1		/* 闁跨喕鍓兼导娆愬闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归幍褔鏁撻弬銈嗗闁跨喎濮拋瑙勫 */
+#if 1		/* 优化代码执行速度 */
     n = (BspLCD_Dev.Width * BspLCD_Dev.Height) / 8;
     for (i = 0; i < n; i++)
     {
-        LCD_OPERATION->RAM = pColor;
-        LCD_OPERATION->RAM = pColor;
-        LCD_OPERATION->RAM = pColor;
-        LCD_OPERATION->RAM = pColor;
+        BspLCD_RW->RAM = pColor;
+        BspLCD_RW->RAM = pColor;
+        BspLCD_RW->RAM = pColor;
+        BspLCD_RW->RAM = pColor;
       
-        LCD_OPERATION->RAM = pColor;
-        LCD_OPERATION->RAM = pColor;
-        LCD_OPERATION->RAM = pColor;
-        LCD_OPERATION->RAM = pColor;
+        BspLCD_RW->RAM = pColor;
+        BspLCD_RW->RAM = pColor;
+        BspLCD_RW->RAM = pColor;
+        BspLCD_RW->RAM = pColor;
     }
 #else
     n = LCDDev.Width * LCDDev.Height;
     while (n--)
-        LCD_OPERATION->RAM = pColor;
+        BspLCD_RW->RAM = pColor;
 #endif
 }
 
 /**
  * @func	BspLCD_PutPixel
- * @brief 	闁跨喐鏋婚幏锟�1闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹凤拷
- * @param	xCur 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚箈闁跨喐鏋婚幏鐑芥晸閺傘倖瀚�
- * @param	yCur 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚箉闁跨喐鏋婚幏鐑芥晸閺傘倖瀚�
- * @param	pColor 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风柉澹�
- * @retval	闁跨喐鏋婚幏锟�
+ * @brief 	画1个像素
+ * @param	xCur 像素x坐标
+ * @param	yCur 像素y坐标
+ * @param	pColor 像素颜色
+ * @retval	无
  */
 void BspLCD_PutPixel(uint16_t xCur, uint16_t yCur, uint16_t pColor)
 {
-    BspLCD_SetDispCur(xCur, yCur);/* 闁跨喐鏋婚幏鐑芥晸閻偆娅㈤幏鐑芥晸鏉炲じ绱幏鐑芥晸閿燂拷 */
+    BspLCD_SetDispCur(xCur, yCur);/* 设置光标位置 */
 	
-	LCD_OPERATION->RAM = pColor;
+	BspLCD_RW->RAM = pColor;
 }
 
 /**
  * @func	BspLCD_PutPixelNoPos
- * @brief 	闁跨喐鏋婚幏锟�1闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹凤拷
- * @param	pColor 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风柉澹�
- * @retval	闁跨喐鏋婚幏锟�
+ * @brief 	画1个像素
+ * @param	pColor 像素颜色
+ * @retval	无
  */
 void BspLCD_PutPixelNoPos(uint16_t pColor)
 {
-	LCD_OPERATION->RAM = pColor;
+	BspLCD_RW->RAM = pColor;
 }
 
 /**
  * @func    BspLCD_GetPixel
- * @brief   闁跨喐鏋婚幏宄板絿1闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹凤拷
- * @param   xCur 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚箈闁跨喐鏋婚幏鐑芥晸閺傘倖瀚�
- * @param   yCur 闁跨喐鏋婚幏鐑芥晸閺傘倖瀚箉闁跨喐鏋婚幏鐑芥晸閺傘倖瀚�
- * @retval  闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹风兘鏁撻弬銈嗗闁跨喐鍩呯喊澶嬪闁跨喐鏋婚幏鐑芥晸缂傝揪鎷�
+ * @brief   读取1个像素
+ * @param   xCur 像素x坐标
+ * @param   yCur 像素y坐标
+ * @retval  读到的像素点的颜色
  */
 uint16_t BspLCD_GetPixel(uint16_t xCur, uint16_t yCur)
 {
-    uint16_t R = 0, G = 0, B = 0 ;
+    RGB_t ReadData;
     
-    BspLCD_SetDispCur(xCur, yCur);	/* 闁跨喐鏋婚幏鐑芥晸閻偆娅㈤幏鐑芥晸鏉炲じ绱幏鐑芥晸閿燂拷 */
+    BspLCD_SetDispCur(xCur, yCur);	/* 设置光标位置 */
     
-    LCD_OPERATION->REG = 0x2E;
-    R = LCD_OPERATION->RAM; 	/* 闁跨喐鏋婚幏锟�1闁跨喐鏋婚幏鐑芥晸閻櫬ゎ啇閹风兘鏁撻弬銈嗗闁跨喐鏋婚幏鐑芥晸閺傘倖瀚� */
-    R = LCD_OPERATION->RAM;
-    B = LCD_OPERATION->RAM;
-    G = LCD_OPERATION->RAM;
+    BspLCD_RW->REG = 0x2E;
+    ReadData.RGB.R = BspLCD_RW->RAM; 	/* 第1个哑读，丢弃 */
+    ReadData.RGB.R = BspLCD_RW->RAM;
+    ReadData.RGB.G = BspLCD_RW->RAM;
+    ReadData.RGB.B = BspLCD_RW->RAM;
     
-    return (((R >> 11) << 11) | ((G >> 10 ) << 5) | (B >> 11));
+    return ReadData.Value;
 }
 
 /**
  * @func    BspLCD_FuncInit
- * @brief   LCD闁跨喐鏋婚幏鐑芥晸閺傘倖瀚归柨鐔告灮閹峰嘲鎲抽柨鐔告灮閹峰嘲顫愰柨鐔告灮閹凤拷
- * @retval  闁跨喐鏋婚幏锟�
+ * @brief   LCD方法成员初始化
+ * @retval  无
  */
 void BspLCD_FuncInit(void)
 {
@@ -572,7 +596,7 @@ void BspLCD_FuncInit(void)
     BspLCD.DispOn = &BspLCD_DispOn;
     BspLCD.GetXSize = &BspLCD_GetXSize;
     BspLCD.GetYSize = &BspLCD_GetYSize;
-    BspLCD.BGRToRGB = &BspLCD_BGR_ToRGB;
+    BspLCD.BGR2RGB = &BspLCD_BGR2RGB;
     BspLCD.GetPixel = &BspLCD_GetPixel;
     BspLCD.Init = &BspLCD_Init;
     BspLCD.PutPixel = &BspLCD_PutPixel;

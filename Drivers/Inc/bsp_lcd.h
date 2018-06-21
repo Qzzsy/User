@@ -2,7 +2,9 @@
 #define _DRV_LCD_H_
 
 /* Includes ------------------------------------------------------------------*/
-#ifdef STM32F4
+#if defined STM32F1
+#include "stm32f10x.h"
+#elif STM32F4
 #include "stm32f4xx.h"	 
 #endif
 /* Public macro Definition ---------------------------------------------------*/
@@ -22,8 +24,13 @@
 #define LCD_LIGHT_PORT          LCD_BL_GPIO_Port
 #define LCD_LIGHT_RCC           RCC_APB2Periph_GPIOA
 
+#if defined USE_FULL_LL_DRIVER
 #define LCD_LIGHT_ON    LL_GPIO_SetOutputPin(LCD_LIGHT_PORT, LCD_LIGHT_GPIO);
 #define LCD_LIGHT_OFF   LL_GPIO_ResetOutputPin(LCD_LIGHT_PORT, LCD_LIGHT_GPIO)
+#elif defined USE_HAL_DRIVER
+#define LCD_LIGHT_ON    HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_GPIO, GPIO_PIN_SET);
+#define LCD_LIGHT_OFF   HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_GPIO, GPIO_PIN_RESET)
+#endif
 
 /* 定义是否使用手动输入LCD_ID */
 #define USING_LCD_ID
@@ -44,12 +51,26 @@ typedef struct
 typedef union
 {
     __IO uint16_t xyPos;
+
     struct
     {
         __IO uint8_t lBit;
         __IO uint8_t hBit;
     }Pos;
 }BspLCD_Pos_t;
+
+typedef union
+{
+    __IO uint16_t Value;
+    
+    struct
+    {
+        __IO uint16_t B : 5;
+        __IO uint16_t G : 6;
+        __IO uint16_t R : 5;
+    }RGB;
+    
+}RGB_t;
 
 
 /* LCD重要参数集 */
@@ -86,7 +107,7 @@ typedef struct
     
     void (*SetDispCur)(uint16_t xPos, uint16_t yPos);
     
-    uint16_t (*BGRToRGB)(uint16_t c);
+    uint16_t (*BGR2RGB)(uint16_t c);
     
     void (*DispOn)(void);
     
@@ -109,6 +130,13 @@ typedef struct
 
 extern BspLCD_Dev_t BspLCD_Dev;
 extern BspLCD_Func_t BspLCD;
+
+#define BLUE                0x001f
+#define RED                 0xf800
+#define GREEN               0x07e0
+#define WHITE               0xffff
+#define BLACK               0x0000
+
 void BspLCD_FuncInit(void);
 /* End Member Method APIs ---------------------------------------------------*/
 /* UserCode end -------------------------------------------------------------*/
