@@ -1,20 +1,18 @@
-/*
-*********************************************************************************************************
-*
-*	模块名称 : 串行EEPROM 24xx02驱动模块
-*	文件名称 : bsp_eeprom_24xx.h
-*	版    本 : V1.0
-*	说    明 : 头文件
-*
-*	修改记录 :
-*		版本号  日期       作者    说明
-*		v1.0    2012-10-12 armfly  ST固件库版本 V2.1.0
-*
-*	Copyright (C), 2012-2013, 安富莱电子 www.armfly.com
-*
-*********************************************************************************************************
-*/
-
+/**
+ ******************************************************************************
+ * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
+ * @filename      bsp_eeprom_24xx.h
+ * @author        门禁开发小组
+ * @version       V1.0.0
+ * @date          2018-06-21
+ * @Description   串行EEPROM 24xx02驱动模块
+ * @Others
+ * @History
+ * Date           Author    version    		Notes
+ * 2018-06-21     ZSY       V1.0.0      first version.
+ */
+	
+/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef _BSP_EEPROM_24XX_H
 #define _BSP_EEPROM_24XX_H
 
@@ -52,4 +50,4 @@ uint8_t Bsp_eeWriteBytes(uint8_t *_pWriteBuf, uint16_t _usAddress, uint16_t _usS
 
 #endif
 
-/***************************** 安富莱电子 www.armfly.com (END OF FILE) *********************************/
+
