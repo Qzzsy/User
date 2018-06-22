@@ -1,10 +1,26 @@
+/**
+ ******************************************************************************
+ * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
+ * @filename      GUIDr.h
+ * @author        ZSY
+ * @version       V1.0.0
+ * @date          2018-06-22
+ * @Description   集成了液晶的基本操作，实现汉字、英文和中英文混合显示，实现各类基本的
+ *                2D图像绘制。
+ * @Others
+ * @History
+ * Date           Author    version    		Notes
+ * 2018-06-22      ZSY      V1.0.0      first version.
+ */
+	
+/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef _GUIDR_H_
 #define _GUIDR_H_
 
 #include "Font.h"
 
-#define LCD_WIDTH           480
-#define LCD_HEIGHT          320
+#define LCD_WIDTH           320
+#define LCD_HEIGHT          240
 
 /* 点阵数据缓存, 必须大于等于单个字模需要的存储空间*/ 
 #define BYTES_PER_FONT      512 
@@ -57,31 +73,32 @@ typedef union _GUI_RGB565Color
         uint16_t  G : 6;
         uint16_t  R : 5;
     }RGB;
-}GUI_RGB565ColorTypedef;
+}GUI_RGB565Color_t;
 
 /* 扩展字体类型 */
 #ifdef USING_CN_16_CHAR
-extern const paCharInfoTypedef FontCn16;
+extern const paCharInfo_t FontCn16;
 #endif
 #ifdef USING_CN_16_CHAR
-extern const paCharInfoTypedef FontCn24;
+extern const paCharInfo_t FontCn24;
 #endif
 #ifdef USING_CN_16_CHAR
-extern const paCharInfoTypedef FontCn32;
+extern const paCharInfo_t FontCn32;
 #endif
 #ifdef USING_CN_16_CHAR
-extern const paCharInfoTypedef FontCn40;
+extern const paCharInfo_t FontCn40;
 #endif
 #ifdef USING_CN_16_CHAR
-extern const paCharInfoTypedef FontCn48;
+extern const paCharInfo_t FontCn48;
 #endif
 
 /* API 接口 */
-void GuiSetTextFont(const paCharInfoTypedef * CharInfo);
+void GuiSetTextFont(const paCharInfo_t * CharInfo);
 void GuiSetTextColor(uint16_t WordColor, uint16_t BackColor);
-void GuiSetDeviceAPI(void (* LCDPutPixelNoPos)(uint16_t pColor),
-                     void (* LCDPutPixel)(uint16_t xCur, uint16_t yCur, uint16_t pColor),
-                     void (* LCDSetDispWin)(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height));
+void GuiSetDeviceAPI(void (* PutPixelNoPos)(uint16_t pColor),
+                     void (* PutPixel)(uint16_t xCur, uint16_t yCur, uint16_t pColor),
+                     void (* SetDispWin)(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height)
+                     );
 void GuiClrScr(uint16_t pColor);
 void GuiDrawStringAt(const char * Cn, uint16_t x, uint16_t y);
 void GuiDrawTranStringAt(const char * Cn, uint16_t x, uint16_t y);

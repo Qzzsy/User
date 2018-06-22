@@ -10,8 +10,8 @@
 /* Public macro Definition ---------------------------------------------------*/
 
 /* 定义LCD的大小 */
-#define LCD_HEIGHT          480
-#define LCD_WDITH           320
+#define LCD_HEIGHT          320
+#define LCD_WDITH           240
 
 /* 宏定义LCD的扫描方向 */
 #define DIR_HORIZONTAL_NORMAL           0x01
@@ -137,6 +137,11 @@ extern BspLCD_Func_t BspLCD;
 #define WHITE               0xffff
 #define BLACK               0x0000
 
+static inline void BspLCD_PutPixelNoXY(uint16_t pColor)
+{
+    extern BspLCD_t * BspLCD_RW;
+    BspLCD_RW->RAM = pColor;
+}
 void BspLCD_FuncInit(void);
 /* End Member Method APIs ---------------------------------------------------*/
 /* UserCode end -------------------------------------------------------------*/

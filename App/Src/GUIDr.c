@@ -1,9 +1,16 @@
-/* 
- ******************************************
- * 本文件实现LCD的一些绘制文字，图形等操作
- * 移植本文件不需要更改本文件的内容    
+/**
+ ******************************************************************************
+ * @file      GUIDr.c
+ * @author    ZSY
+ * @version   V1.0.0
+ * @date      2018-06-22
+ * @brief     本文件实现LCD的一些绘制文字，图形等操作，移植本文件不需要更改本文件的内容 
+ * @History
+ * Date           Author    version    		   Notes
+ * 2018-06-22      ZSY      V1.0.0          first version.
  */
 
+/* Includes ------------------------------------------------------------------*/
 #include "GUIDr.h"
 #include "string.h"
 #include "stdio.h"
@@ -11,17 +18,23 @@
 #include "stdlib.h"
 #include "string.h"
 
+/* Private macro Definition --------------------------------------------------*/
 /* 定义两个控制变量 */
 #define CHAR_TRANS          0x00
 #define CHAR_NO_TRANS       0x01
 
+typedef struct _LCD_Info
+{
+    uint16_t Width;
+    uint16_t Hight;
+}LCD_Info_t;
 
 /* 控制字体颜色的结构体 */
 typedef struct _GUI_TextColor
 {
     uint16_t WordColor;
     uint16_t BackColor;
-}GUI_TextColorTypedef;
+}GUI_TextColor_t;
 
 /* 控制显示的文字内容的信息结构体 */
 typedef struct _GUI_CnInfo
@@ -35,45 +48,45 @@ typedef struct _GUI_CnInfo
     uint16_t Hight;
     uint16_t Width;
     uint8_t TransFlag;
-}GUI_CnInfoTypedef;
+}GUI_CnInfo_t;
 
 /* 底层应该提供的4个API接口 */
-typedef struct _GUI_DeviceAPI
+typedef struct
 {
     void (* PutPixelNoPos)(uint16_t pColor);
     void (* PutPixel)(uint16_t xCur, uint16_t yCur, uint16_t pColor);
     void (* SetDispWin)(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height);
-}GUI_DeviceAPITypedef;
+}GUI_DeviceAPI_t;
 
 /* 外部声明，引用变量 */
 #ifdef USING_CN_16_CHAR
-extern const CnCharTypedef HanZi16Index[];
-extern const Cn16DataTypeDef HanZi16Data[];
+extern const CnChar_t HanZi16Index[];
+extern const Cn16Data_t HanZi16Data[];
 extern const unsigned char ASCII08x16[];
 #endif
 #ifdef USING_CN_24_CHAR
-extern const CnCharTypedef HanZi24Index[];
-extern const Cn24DataTypeDef HanZi24Data[];
+extern const CnChar_t HanZi24Index[];
+extern const Cn24Data_t HanZi24Data[];
 extern const unsigned char ASCII12x24[];
 #endif
 #ifdef USING_CN_32_CHAR
-extern const CnCharTypedef HanZi32Index[];
-extern const Cn32DataTypeDef HanZi32Data[];
+extern const CnChar_t HanZi32Index[];
+extern const Cn32Data_t HanZi32Data[];
 extern const unsigned char ASCII16x32[];
 #endif
 #ifdef USING_CN_40_CHAR
-extern const CnCharTypedef HanZi40Index[];
-extern const Cn40DataTypeDef HanZi40Data[];
+extern const CnChar_t HanZi40Index[];
+extern const Cn40Data_t HanZi40Data[];
 extern const unsigned char ASCII20x40[];
 #endif
 #ifdef USING_CN_48_CHAR
-extern const CnCharTypedef HanZi48Index[];
-extern const Cn48DataTypeDef HanZi48Data[];
+extern const CnChar_t HanZi48Index[];
+extern const Cn48Data_t HanZi48Data[];
 extern const unsigned char ASCII24x48[];
 #endif
 
 /* 定义控制字体颜色的变量，并设置为默认值 */
-static GUI_TextColorTypedef _GUI_TextColor = GUI_TextDefaultColor;
+static GUI_TextColor_t _GUI_TextColor = GUI_TextDefaultColor;
 
 /* 默认字体内容缓存区，防止因找不到字体使显示错乱 */
 static uint8_t _GUI_FontDefaultDataBuf[BYTES_PER_FONT] = {'\0'};
@@ -82,10 +95,10 @@ static uint8_t _GUI_FontDefaultDataBuf[BYTES_PER_FONT] = {'\0'};
 static uint8_t * _GUI_FontDataBuf;
 
 /* 定义控制字体的一些信息的变量，并设置为默认值 */
-static paCharInfoTypedef _paCharInfo = GUI_TextDefaultFont;
+static paCharInfo_t _paCharInfo = GUI_TextDefaultFont;
 
 /* 定义底层驱动的API接口变量 */
-static GUI_DeviceAPITypedef _GUI_DeviceAPI;
+static GUI_DeviceAPI_t _GUI_DeviceAPI;
 
 /* 定义一个缓存区，取屏幕宽或高的最大值作为集合的大小，用于临时储存色条数据 */
 #if (LCD_HEIGHT > LCD_WIDTH)
@@ -101,7 +114,7 @@ static uint16_t _GUI_BarColorItems[LCD_WIDTH] = {'\0'};
  * @note
  * @retval  无
  */
-static inline void _GetDataFromMemory(GUI_CnInfoTypedef GUI_CnInfo)
+static inline void _GetDataFromMemory(GUI_CnInfo_t GUI_CnInfo)
 {
     uint16_t BytesPerFont, i = 0;
     uint8_t WordNun; 
@@ -268,7 +281,7 @@ static inline void _GetDataFromMemory(GUI_CnInfoTypedef GUI_CnInfo)
  * @note
  * @retval  无
  */
-static inline void _DispChar(GUI_CnInfoTypedef GUI_CnInfo)
+static inline void _DispChar(GUI_CnInfo_t GUI_CnInfo)
 {
     uint16_t i, Cnt, Color;
     
@@ -344,10 +357,10 @@ static inline void _DispChar(GUI_CnInfoTypedef GUI_CnInfo)
  * @note
  * @retval  无
  */
-static inline void _GuiDrawString(const char * Cn, uint16_t xCur, uint16_t yCur, GUI_CnInfoTypedef GUI_CnInfoIn)
+static inline void _GuiDrawString(const char * Cn, uint16_t xCur, uint16_t yCur, GUI_CnInfo_t GUI_CnInfoIn)
 {
     uint16_t Ch;
-    GUI_CnInfoTypedef GUI_CnInfo;
+    GUI_CnInfo_t GUI_CnInfo;
     
     /* 获取信息 */
     GUI_CnInfo.TransFlag = GUI_CnInfoIn.TransFlag;
@@ -426,8 +439,8 @@ static inline void _GuiGetColorBarData(uint16_t ColorNum,
     double R_Coefficient, G_Coefficient, B_Coefficient;
     uint16_t i;
     uint8_t R, G, B;
-    GUI_RGB565ColorTypedef RGB_FirstColor;
-    GUI_RGB565ColorTypedef RGB_SecondColor;
+    GUI_RGB565Color_t RGB_FirstColor;
+    GUI_RGB565Color_t RGB_SecondColor;
     
     /* 拆解像素 */
     RGB_FirstColor.Color = FirstColor;
@@ -1043,7 +1056,7 @@ static inline void _GuiDrawBmp(uint16_t xCur, uint16_t yCur, uint16_t dWidth, ui
  * @note
  * @retval  无
  */
-void GuiSetTextFont(const paCharInfoTypedef * CharInfo)
+void GuiSetTextFont(const paCharInfo_t* CharInfo)
 {
     /* 结构体直接复制，此处是允许这样操作的 */
     _paCharInfo = *CharInfo;
@@ -1073,14 +1086,14 @@ void GuiSetTextColor(uint16_t WordColor, uint16_t BackColor)
  * @note
  * @retval  无
  */
-void GuiSetDeviceAPI(void (* LCDPutPixelNoPos)(uint16_t pColor),
-                     void (* LCDPutPixel)(uint16_t xCur, uint16_t yCur, uint16_t pColor),
-                     void (* LCDSetDispWin)(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height))
+void GuiSetDeviceAPI(void (* PutPixelNoPos)(uint16_t pColor),
+                     void (* PutPixel)(uint16_t xCur, uint16_t yCur, uint16_t pColor),
+                     void (* SetDispWin)(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height))
 {
     /* 逐一复制 */
-    _GUI_DeviceAPI.PutPixelNoPos = LCDPutPixelNoPos;
-    _GUI_DeviceAPI.PutPixel = LCDPutPixel;
-    _GUI_DeviceAPI.SetDispWin = LCDSetDispWin;
+    _GUI_DeviceAPI.PutPixelNoPos = PutPixelNoPos;
+    _GUI_DeviceAPI.PutPixel = PutPixel;
+    _GUI_DeviceAPI.SetDispWin = SetDispWin;
 }
 
 /**
@@ -1118,7 +1131,7 @@ void GuiClrScr(uint16_t pColor)
  */
 void GuiDrawStringAt(const char * Cn, uint16_t xCur, uint16_t yCur)
 {
-    GUI_CnInfoTypedef GUI_CnInfo;
+    GUI_CnInfo_t GUI_CnInfo;
     
     /* 背景不透明标识 */
     GUI_CnInfo.TransFlag = CHAR_NO_TRANS;
@@ -1138,7 +1151,7 @@ void GuiDrawStringAt(const char * Cn, uint16_t xCur, uint16_t yCur)
  */
 void GuiDrawTranStringAt(const char * Cn, uint16_t xCur, uint16_t yCur)
 {    
-    GUI_CnInfoTypedef GUI_CnInfo;
+    GUI_CnInfo_t GUI_CnInfo;
     
     /* 背景透明标识 */
     GUI_CnInfo.TransFlag = CHAR_TRANS;
@@ -1955,7 +1968,7 @@ void GuiDrawBMP(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight,
  */
 void GuiGetWarmColdColor(uint16_t SrcColor, uint16_t * WarmColor, uint16_t * ColdColor)
 {
-    GUI_RGB565ColorTypedef SrcColorData, WarmColorData, ColdColorData;
+    GUI_RGB565Color_t SrcColorData, WarmColorData, ColdColorData;
     
     /* 利用结构体和共用体拆分颜色 */
     SrcColorData.Color = SrcColor;

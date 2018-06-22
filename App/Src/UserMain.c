@@ -3,6 +3,7 @@
 #include "bsp_lcd.h"
 #include "bsp_rtp_touch.h"
 #include "bsp_eeprom_24xx.h"
+#include "GUIDr.h"
 
 uint8_t bsp_TestExtSRAM(void);
 
@@ -12,13 +13,20 @@ void UserMainFunc(void)
     uint16_t ta, tb, x, y;
     BspLCD_FuncInit();
     BspLCD.Init();
-    BspLCD.ClrScr(0xf800);
+
+    GuiSetDeviceAPI(BspLCD_PutPixelNoXY, BspLCD.PutPixel, BspLCD.SetDispWin);
+
+    GuiClrScr(0x0000);
     
     if (Bsp_eeCheckOk() == AT24XX_OK)
     {
-        BspLCD.ClrScr(0x03e0);
+        GuiClrScr(0xf800);
     }
+    
+    GuiSetTextColor(BLACK, WHITE);
 
+    RTP_Adjust();
+        
     Bsp_eeWriteBytes(Buf, 0, 10);
 
     for (int i = 0; i < 10; i++)

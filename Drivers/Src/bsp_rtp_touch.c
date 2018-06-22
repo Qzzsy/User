@@ -41,12 +41,44 @@
 #endif
 
 //默认为touchtype=0的数据.
-#define CMD_RDX 0xD0
-#define CMD_RDY 0x90
-#define READ_TIMES 5 //读取次数
-#define LOST_VAL 1   //丢弃值
-#define ERR_RANGE 50 //误差范围
+#define CMD_RDX     0xD0
+#define CMD_RDY     0x90
+#define READ_TIMES  5       //读取次数
+#define LOST_VAL    1       //丢弃值
+#define ERR_RANGE   50      //误差范围
 
+#define SAVE_ADJ_DATA_BASE_ADDR         0X20
+
+#pragma pack(1)
+struct _RTP_Param
+{
+    float xFac;			//触摸屏校准参数		
+    float yFac;
+    short xOff;
+    short yOff;	   
+    uint8_t TouchType;
+    uint8_t AdjFlag;
+};
+#pragma pack()
+
+struct _RTP_Pos
+{
+    uint16_t x;
+    uint16_t y;
+};
+
+//触摸屏控制器
+typedef struct
+{
+    struct _RTP_Pos CurPos;
+    struct _RTP_Pos PrePos;
+    uint8_t xCmd;
+    uint8_t yCmd;
+    uint8_t  Sta;							
+    struct _RTP_Param RTP_Param;
+}RTP_Dev_t;
+
+RTP_Dev_t RTP_Dev;
 /**
  * @func    BspRTP_Delay
  * @brief   BspRTP延时，用于初始化过程
@@ -96,7 +128,7 @@ static void RTP_WriteByte(uint8_t Data)
  * @param   Cmd 延时的大小
  * @retval  读到的数据
  */
-static uint16_t RTP_Read_AD(uint8_t Cmd)
+static uint16_t RTP_ReadAD(uint8_t Cmd)
 {
     uint8_t count = 0;
     uint16_t Data = 0;
@@ -132,7 +164,7 @@ static uint16_t RTP_Read_AD(uint8_t Cmd)
  * @param   xy 选择读取的值
  * @retval  返回读取到的值
  */
-static uint16_t RTP_Read_XOY(uint8_t xy)
+static uint16_t RTP_ReadXOY(uint8_t xy)
 {
     uint16_t i, j;
     uint16_t buf[READ_TIMES];
@@ -140,7 +172,7 @@ static uint16_t RTP_Read_XOY(uint8_t xy)
     uint16_t temp;
     for (i = 0; i < READ_TIMES; i++)
     {
-        buf[i] = RTP_Read_AD(xy);
+        buf[i] = RTP_ReadAD(xy);
     }
     for (i = 0; i < READ_TIMES - 1; i++) //排序
     {
@@ -170,16 +202,16 @@ static uint16_t RTP_Read_XOY(uint8_t xy)
  * @param   x,y:读取到的坐标值
  * @retval  0,失败;1,成功
  */
-static uint8_t RTP_Read_XY(uint16_t *x, uint16_t *y)
+static uint8_t RTP_Read_xyValue(uint16_t *x, uint16_t *y)
 {
     uint16_t xtemp, ytemp;
-    xtemp = RTP_Read_XOY(CMD_RDX);
-    ytemp = RTP_Read_XOY(CMD_RDY);
-    //	if (xtemp < 100 || ytemp < 100)
-    //        return 0;//读数失败
+    xtemp = RTP_ReadXOY(RTP_Dev.xCmd);
+    ytemp = RTP_ReadXOY(RTP_Dev.yCmd);
+    if (xtemp < 100 || ytemp < 100)
+        return RTP_FAULT;//读数失败
     *x = xtemp;
     *y = ytemp;
-    return 1; //读数成功
+    return RTP_OK; //读数成功
 }
 
 /**
@@ -188,44 +220,57 @@ static uint8_t RTP_Read_XY(uint16_t *x, uint16_t *y)
  * @param   x,y:读取到的坐标值
  * @retval  0,失败;1,成功
  */
-uint8_t RTP_Read_XY2(uint16_t *x, uint16_t *y)
+uint8_t RTP_ReadXY(uint16_t *x, uint16_t *y)
 {
     uint16_t x1, y1;
     uint16_t x2, y2;
-    uint8_t flag;
-    flag = RTP_Read_XY(&x1, &y1);
-    if (flag == 0)
-    {
-        return (0);
-    }
-    flag = RTP_Read_XY(&x2, &y2);
 
-    if (flag == 0)
+    if (RTP_Read_xyValue(&x1, &y1) != RTP_OK)
     {
-        return (0);
+        return RTP_FAULT;
+    }
+
+    if (RTP_Read_xyValue(&x2, &y2) != RTP_OK)
+    {
+        return RTP_FAULT;
     }
     if (((x2 <= x1 && x1 < x2 + ERR_RANGE) || (x1 <= x2 && x2 < x1 + ERR_RANGE)) //前后两次采样在+-50内
         && ((y2 <= y1 && y1 < y2 + ERR_RANGE) || (y1 <= y2 && y2 < y1 + ERR_RANGE)))
     {
         *x = (x1 + x2) / 2;
         *y = (y1 + y2) / 2;
-        return 1;
+        return RTP_OK;
     }
     else
     {
-        return 0;
+        return RTP_FAULT;
     }
 }
 
-uint16_t ta, tb;
 uint8_t RTP_Scan(void)
 {
+    uint16_t ta, tb;
     if (T_PEN_READ == 0) //有按键按下
     {
-        RTP_Read_XY2(&ta, &tb); //读取物理坐标
+        if (RTP_ReadXY(&ta, &tb) != RTP_OK && (RTP_Dev.Sta & RTP_LIFT_UP)) //读取物理坐标
+        {
+            return RTP_FAULT;
+        }
+        RTP_Dev.Sta &= ~RTP_LIFT_UP;
+        RTP_Dev.Sta |= RTP_PRESS;
+        RTP_Dev.PrePos.x = RTP_Dev.CurPos.x;
+        RTP_Dev.PrePos.y = RTP_Dev.CurPos.y;
+        RTP_Dev.CurPos.x = RTP_Dev.RTP_Param.xFac * ta + RTP_Dev.RTP_Param.xOff;
+        RTP_Dev.CurPos.y = RTP_Dev.RTP_Param.yFac * tb + RTP_Dev.RTP_Param.yOff;
     }
-
-    return true;
+    else if((T_PEN_READ == 1) && (RTP_Dev.Sta & RTP_PRESS))
+    {
+        RTP_Dev.Sta &= ~RTP_PRESS;
+        RTP_Dev.Sta |= RTP_LIFT_UP;
+        RTP_Dev.CurPos.x = UINT16_MAX;
+        RTP_Dev.CurPos.y = UINT16_MAX;
+    }
+    return RTP_OK;
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -234,124 +279,111 @@ uint8_t RTP_Scan(void)
 //用来校准用的
 //x,y:坐标
 //color:颜色
-static void RTP_DrowTouchPoint(uint16_t x, uint16_t y, uint16_t Color)
+static void RTP_DrawTouchPoint(uint16_t x, uint16_t y, uint16_t Color)
 {
-    POINT_COLOR = color;
-    LCD_DrawLine(x - 12, y, x + 13, y); //横线
-    LCD_DrawLine(x, y - 12, x, y + 13); //竖线
-    LCD_DrawPoint(x + 1, y + 1);
-    LCD_DrawPoint(x - 1, y + 1);
-    LCD_DrawPoint(x + 1, y - 1);
-    LCD_DrawPoint(x - 1, y - 1);
-    LCD_Draw_Circle(x, y, 6); //画中心圈
+    GuiDrawLine(x - 12, y, x + 13, y, Color);  //横线
+    GuiDrawLine(x, y - 12, x, y + 13, Color);  //竖线
+    // LCD_DrawPoint(x + 1, y + 1);
+    // LCD_DrawPoint(x - 1, y + 1);
+    // LCD_DrawPoint(x + 1, y - 1);
+    // LCD_DrawPoint(x - 1, y - 1);
+    GuiDrawCircle(x, y, 6, Color); //画中心圈
 }
 
 //保存校准参数
 void RTP_SaveAdjdata(void)
 {
-    uint32_t temp;
-    //保存校正结果!
-    temp = tp_dev.xfac * 100000000; //保存x校正因素
-    AT24CXX_WriteLenByte(SAVE_ADDR_BASE, temp, 4);
-    temp = tp_dev.yfac * 100000000; //保存y校正因素
-    AT24CXX_WriteLenByte(SAVE_ADDR_BASE + 4, temp, 4);
-    //保存x偏移量
-    AT24CXX_WriteLenByte(SAVE_ADDR_BASE + 8, tp_dev.xoff, 2);
-    //保存y偏移量
-    AT24CXX_WriteLenByte(SAVE_ADDR_BASE + 10, tp_dev.yoff, 2);
-    //保存触屏类型
-    AT24CXX_WriteOneByte(SAVE_ADDR_BASE + 12, tp_dev.touchtype);
-    temp = 0X0A; //标记校准过了
-    AT24CXX_WriteOneByte(SAVE_ADDR_BASE + 13, temp);
+    RTP_Dev.RTP_Param.AdjFlag = 0x0A;
+    Bsp_eeWriteBytes((uint8_t *)&RTP_Dev.RTP_Param, SAVE_ADJ_DATA_BASE_ADDR, sizeof(struct _RTP_Param));
 }
 //得到保存在EEPROM里面的校准值
 //返回值：1，成功获取数据
 //        0，获取失败，要重新校准
 uint8_t RTP_GetAdjdata(void)
 {
-    uint32_t tempfac;
-    tempfac = AT24CXX_ReadOneByte(SAVE_ADDR_BASE + 13); //读取标记字,看是否校准过！
-    if (tempfac == 0X0A)                                //触摸屏已经校准过了
+    struct _RTP_Param TempParam;
+
+    Bsp_eeReadBytes((uint8_t *)&TempParam, SAVE_ADJ_DATA_BASE_ADDR, sizeof(struct _RTP_Param));
+
+    if (TempParam.AdjFlag == 0x0A)              //触摸屏已经校准过了
     {
-        tempfac = AT24CXX_ReadLenByte(SAVE_ADDR_BASE, 4);
-        tp_dev.xfac = (float)tempfac / 100000000; //得到x校准参数
-        tempfac = AT24CXX_ReadLenByte(SAVE_ADDR_BASE + 4, 4);
-        tp_dev.yfac = (float)tempfac / 100000000; //得到y校准参数
-                                                  //得到x偏移量
-        tp_dev.xoff = AT24CXX_ReadLenByte(SAVE_ADDR_BASE + 8, 2);
-        //得到y偏移量
-        tp_dev.yoff = AT24CXX_ReadLenByte(SAVE_ADDR_BASE + 10, 2);
-        tp_dev.touchtype = AT24CXX_ReadOneByte(SAVE_ADDR_BASE + 12); //读取触屏类型标记
-        if (tp_dev.touchtype)                                        //X,Y方向与屏幕相反
+        RTP_Dev.RTP_Param = TempParam;
+
+        if (RTP_Dev.RTP_Param.TouchType)        //X,Y方向与屏幕相反
         {
-            CMD_RDX = 0X90;
-            CMD_RDY = 0XD0;
+            RTP_Dev.xCmd = CMD_RDY;
+            RTP_Dev.yCmd = CMD_RDX;
         }
         else //X,Y方向与屏幕相同
         {
-            CMD_RDX = 0XD0;
-            CMD_RDY = 0X90;
+            RTP_Dev.xCmd = CMD_RDX;
+            RTP_Dev.yCmd = CMD_RDY;
         }
-        return 1;
+        return RTP_OK;
     }
-    return 0;
+    return RTP_FAULT;
 }
 //触摸屏校准代码
 //得到四个校准参数
 void RTP_Adjust(void)
 {
-    uint16_t posTemp[4][2]; //坐标缓存值
+    uint16_t PosTemp[4][2]; //坐标缓存值
     uint8_t cnt = 0;
     uint16_t d1, d2;
     uint32_t tem1, tem2;
     double fac;
     uint16_t OutTime = 0;
     cnt = 0;
-    POINT_COLOR = BLUE;
-    BACK_COLOR = WHITE;
-    BspLCD.ClrScr(WHITE); //清屏
-    POINT_COLOR = RED;    //红色
-    LCD_Clear(WHITE);     //清屏
-    POINT_COLOR = BLACK;
-    LCD_ShowString(40, 40, 160, 100, 16, (u8 *)TP_REMIND_MSG_TBL); //显示提示信息
-    TP_Drow_Touch_Point(20, 20, RED);                              //画点1
-    tp_dev.sta = 0;                                                //消除触发信号
-    tp_dev.xfac = 0;                                               //xfac用来标记是否校准过,所以校准之前必须清掉!以免错误
-    while (1)                                                      //如果连续10秒钟没有按下,则自动退出
-    {
-        tp_dev.scan(1);                          //扫描物理坐标
-        if ((tp_dev.sta & 0xc0) == TP_CATH_PRES) //按键按下了一次(此时按键松开了.)
-        {
-            outtime = 0;
-            tp_dev.sta &= ~(1 << 6); //标记按键已经被处理过了.
 
-            pos_temp[cnt][0] = tp_dev.x[0];
-            pos_temp[cnt][1] = tp_dev.y[0];
+    GuiClrScr(WHITE);
+
+    GuiDrawStringAt("Please calibration screen!", 0, 40);
+    
+    RTP_DrawTouchPoint(20, 20, RED);     //画点1
+    RTP_Dev.RTP_Param.xFac = 0;         //xfac用来标记是否校准过,所以校准之前必须清掉!以免错误
+    RTP_Dev.xCmd = CMD_RDX;
+    RTP_Dev.yCmd = CMD_RDY;
+    RTP_Dev.Sta |= RTP_LIFT_UP;
+    RTP_ReadXY(&d1,&d1);//第一次读取初始化
+    
+    while (1)                           //如果连续10秒钟没有按下,则自动退出
+    {
+        if (RTP_Scan() != RTP_OK)       //扫描物理坐标
+        {
+            continue;
+        }
+
+        if (RTP_Dev.Sta & RTP_PRESS)    //按键按下了一次(此时按键松开了.)
+        {
+            OutTime = 0;
+
+            PosTemp[cnt][0] = RTP_Dev.CurPos.x;
+            PosTemp[cnt][1] = RTP_Dev.CurPos.y;
             cnt++;
             switch (cnt)
             {
             case 1:
-                TP_Drow_Touch_Point(20, 20, WHITE);              //清除点1
-                TP_Drow_Touch_Point(lcddev.width - 20, 20, RED); //画点2
+                RTP_DrawTouchPoint(20, 20, WHITE);              //清除点1
+                RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, 20, RED); //画点2
                 break;
             case 2:
-                TP_Drow_Touch_Point(lcddev.width - 20, 20, WHITE); //清除点2
-                TP_Drow_Touch_Point(20, lcddev.height - 20, RED);  //画点3
+                RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, 20, WHITE); //清除点2
+                RTP_DrawTouchPoint(20, BspLCD_Dev.Height - 20, RED);  //画点3
                 break;
             case 3:
-                TP_Drow_Touch_Point(20, lcddev.height - 20, WHITE);              //清除点3
-                TP_Drow_Touch_Point(lcddev.width - 20, lcddev.height - 20, RED); //画点4
+                RTP_DrawTouchPoint(20, BspLCD_Dev.Height - 20, WHITE);              //清除点3
+                RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, RED); //画点4
                 break;
             case 4:                                          //全部四个点已经得到
                                                              //对边相等
-                tem1 = abs(pos_temp[0][0] - pos_temp[1][0]); //x1-x2
-                tem2 = abs(pos_temp[0][1] - pos_temp[1][1]); //y1-y2
+                tem1 = abs(PosTemp[0][0] - PosTemp[1][0]); //x1-x2
+                tem2 = abs(PosTemp[0][1] - PosTemp[1][1]); //y1-y2
                 tem1 *= tem1;
                 tem2 *= tem2;
                 d1 = sqrt(tem1 + tem2); //得到1,2的距离
 
-                tem1 = abs(pos_temp[2][0] - pos_temp[3][0]); //x3-x4
-                tem2 = abs(pos_temp[2][1] - pos_temp[3][1]); //y3-y4
+                tem1 = abs(PosTemp[2][0] - PosTemp[3][0]); //x3-x4
+                tem2 = abs(PosTemp[2][1] - PosTemp[3][1]); //y3-y4
                 tem1 *= tem1;
                 tem2 *= tem2;
                 d2 = sqrt(tem1 + tem2); //得到3,4的距离
@@ -359,20 +391,20 @@ void RTP_Adjust(void)
                 if (fac < 0.95 || fac > 1.05 || d1 == 0 || d2 == 0) //不合格
                 {
                     cnt = 0;
-                    TP_Drow_Touch_Point(lcddev.width - 20, lcddev.height - 20, WHITE);                                                                                           //清除点4
-                    TP_Drow_Touch_Point(20, 20, RED);                                                                                                                            //画点1
-                    TP_Adj_Info_Show(pos_temp[0][0], pos_temp[0][1], pos_temp[1][0], pos_temp[1][1],
-                                     pos_temp[2][0], pos_temp[2][1], pos_temp[3][0], pos_temp[3][1], fac * 100); //显示数据
+                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE);                                                                                           //清除点4
+                    RTP_DrawTouchPoint(20, 20, RED);                                                                                                                            //画点1
+                    // TP_Adj_Info_Show(PosTemp[0][0], PosTemp[0][1], PosTemp[1][0], PosTemp[1][1],
+                    //                  PosTemp[2][0], PosTemp[2][1], PosTemp[3][0], PosTemp[3][1], fac * 100); //显示数据
                     continue;
                 }
-                tem1 = abs(pos_temp[0][0] - pos_temp[2][0]); //x1-x3
-                tem2 = abs(pos_temp[0][1] - pos_temp[2][1]); //y1-y3
+                tem1 = abs(PosTemp[0][0] - PosTemp[2][0]); //x1-x3
+                tem2 = abs(PosTemp[0][1] - PosTemp[2][1]); //y1-y3
                 tem1 *= tem1;
                 tem2 *= tem2;
                 d1 = sqrt(tem1 + tem2); //得到1,3的距离
 
-                tem1 = abs(pos_temp[1][0] - pos_temp[3][0]); //x2-x4
-                tem2 = abs(pos_temp[1][1] - pos_temp[3][1]); //y2-y4
+                tem1 = abs(PosTemp[1][0] - PosTemp[3][0]); //x2-x4
+                tem2 = abs(PosTemp[1][1] - PosTemp[3][1]); //y2-y4
                 tem1 *= tem1;
                 tem2 *= tem2;
                 d2 = sqrt(tem1 + tem2); //得到2,4的距离
@@ -380,22 +412,22 @@ void RTP_Adjust(void)
                 if (fac < 0.95 || fac > 1.05) //不合格
                 {
                     cnt = 0;
-                    TP_Drow_Touch_Point(lcddev.width - 20, lcddev.height - 20, WHITE);                                                                                           //清除点4
-                    TP_Drow_Touch_Point(20, 20, RED);                                                                                                                            //画点1
-                    TP_Adj_Info_Show(pos_temp[0][0], pos_temp[0][1], pos_temp[1][0], pos_temp[1][1],
-                                     pos_temp[2][0], pos_temp[2][1], pos_temp[3][0], pos_temp[3][1], fac * 100); //显示数据
+                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE);                                                                                           //清除点4
+                    RTP_DrawTouchPoint(20, 20, RED);                                                                                                                            //画点1
+                    // TP_Adj_Info_Show(PosTemp[0][0], PosTemp[0][1], PosTemp[1][0], PosTemp[1][1],
+                    //                  PosTemp[2][0], PosTemp[2][1], PosTemp[3][0], PosTemp[3][1], fac * 100); //显示数据
                     continue;
                 } //正确了
 
                 //对角线相等
-                tem1 = abs(pos_temp[1][0] - pos_temp[2][0]); //x1-x3
-                tem2 = abs(pos_temp[1][1] - pos_temp[2][1]); //y1-y3
+                tem1 = abs(PosTemp[1][0] - PosTemp[2][0]); //x1-x3
+                tem2 = abs(PosTemp[1][1] - PosTemp[2][1]); //y1-y3
                 tem1 *= tem1;
                 tem2 *= tem2;
                 d1 = sqrt(tem1 + tem2); //得到1,4的距离
 
-                tem1 = abs(pos_temp[0][0] - pos_temp[3][0]); //x2-x4
-                tem2 = abs(pos_temp[0][1] - pos_temp[3][1]); //y2-y4
+                tem1 = abs(PosTemp[0][0] - PosTemp[3][0]); //x2-x4
+                tem2 = abs(PosTemp[0][1] - PosTemp[3][1]); //y2-y4
                 tem1 *= tem1;
                 tem2 *= tem2;
                 d2 = sqrt(tem1 + tem2); //得到2,3的距离
@@ -403,51 +435,50 @@ void RTP_Adjust(void)
                 if (fac < 0.95 || fac > 1.05) //不合格
                 {
                     cnt = 0;
-                    TP_Drow_Touch_Point(lcddev.width - 20, lcddev.height - 20, WHITE);                                                                                           //清除点4
-                    TP_Drow_Touch_Point(20, 20, RED);                                                                                                                            //画点1
-                    TP_Adj_Info_Show(pos_temp[0][0], pos_temp[0][1], pos_temp[1][0], pos_temp[1][1],
-                                     pos_temp[2][0], pos_temp[2][1], pos_temp[3][0], pos_temp[3][1], fac * 100); //显示数据
+                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE);                                                                                           //清除点4
+                    RTP_DrawTouchPoint(20, 20, RED);                                                                                                                            //画点1
+                    // TP_Adj_Info_Show(PosTemp[0][0], PosTemp[0][1], PosTemp[1][0], PosTemp[1][1],
+                    //                  PosTemp[2][0], PosTemp[2][1], PosTemp[3][0], PosTemp[3][1], fac * 100); //显示数据
                     continue;
                 } //正确了
                 //计算结果
-                tp_dev.xfac = (float)(lcddev.width - 40) / (pos_temp[1][0] - pos_temp[0][0]);       //得到xfac
-                tp_dev.xoff = (lcddev.width - tp_dev.xfac * (pos_temp[1][0] + pos_temp[0][0])) / 2; //得到xoff
+                RTP_Dev.RTP_Param.xFac = (float)(BspLCD_Dev.Width - 40) / (PosTemp[1][0] - PosTemp[0][0]);       //得到xfac
+                RTP_Dev.RTP_Param.xOff = (BspLCD_Dev.Width - RTP_Dev.RTP_Param.xFac * (PosTemp[1][0] + PosTemp[0][0])) / 2; //得到xoff
 
-                tp_dev.yfac = (float)(lcddev.height - 40) / (pos_temp[2][1] - pos_temp[0][1]);       //得到yfac
-                tp_dev.yoff = (lcddev.height - tp_dev.yfac * (pos_temp[2][1] + pos_temp[0][1])) / 2; //得到yoff
-                if (abs(tp_dev.xfac) > 2 || abs(tp_dev.yfac) > 2)                                    //触屏和预设的相反了.
+                RTP_Dev.RTP_Param.yFac = (float)(BspLCD_Dev.Height - 40) / (PosTemp[2][1] - PosTemp[0][1]);       //得到yfac
+                RTP_Dev.RTP_Param.yOff = (BspLCD_Dev.Height - RTP_Dev.RTP_Param.yFac * (PosTemp[2][1] + PosTemp[0][1])) / 2; //得到yoff
+                if (abs(RTP_Dev.RTP_Param.yFac) > 2)                                    //触屏和预设的相反了.
                 {
                     cnt = 0;
-                    TP_Drow_Touch_Point(lcddev.width - 20, lcddev.height - 20, WHITE); //清除点4
-                    TP_Drow_Touch_Point(20, 20, RED);                                  //画点1
-                    LCD_ShowString(40, 26, lcddev.width, lcddev.height, 16, "TP Need readjust!");
-                    tp_dev.touchtype = !tp_dev.touchtype; //修改触屏类型.
-                    if (tp_dev.touchtype)                 //X,Y方向与屏幕相反
+                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE); //清除点4
+                    RTP_DrawTouchPoint(20, 20, RED);                                  //画点1
+                    GuiDrawStringAt("TP Need readjust!", 40, 26);
+                    RTP_Dev.RTP_Param.TouchType = !RTP_Dev.RTP_Param.TouchType; //修改触屏类型.
+                    if (RTP_Dev.RTP_Param.TouchType)                 //X,Y方向与屏幕相反
                     {
-                        CMD_RDX = 0X90;
-                        CMD_RDY = 0XD0;
+                        RTP_Dev.xCmd = CMD_RDY;
+                        RTP_Dev.yCmd = CMD_RDX;
                     }
                     else //X,Y方向与屏幕相同
                     {
-                        CMD_RDX = 0XD0;
-                        CMD_RDY = 0X90;
+                        RTP_Dev.xCmd = CMD_RDX;
+                        RTP_Dev.yCmd = CMD_RDY;
                     }
                     continue;
                 }
-                POINT_COLOR = BLUE;
-                LCD_Clear(WHITE);                                                                    //清屏
-                LCD_ShowString(35, 110, lcddev.width, lcddev.height, 16, "Touch Screen Adjust OK!"); //校正完成
-                delay_ms(1000);
-                TP_Save_Adjdata();
-                LCD_Clear(WHITE); //清屏
+                GuiClrScr(WHITE);       
+                GuiDrawStringAt("Touch Screen Adjust OK!", 35, 110) ;            
+                HAL_Delay(1000);
+                RTP_SaveAdjdata();
+                GuiClrScr(WHITE); //清屏
                 return;           //校正完成
             }
         }
-        delay_ms(10);
-        outtime++;
-        if (outtime > 1000)
+        HAL_Delay(10);
+        OutTime++;
+        if (OutTime > 1000)
         {
-            TP_Get_Adjdata();
+            RTP_GetAdjdata();
             break;
         }
     }

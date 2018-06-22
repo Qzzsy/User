@@ -35,7 +35,7 @@ BspLCD_Dev_t BspLCD_Dev;
 BspLCD_Func_t BspLCD;
 
 /* LCD寄存器对象 */
-static BspLCD_t* BspLCD_RW = ((BspLCD_t *)LCD_BASE_ADDRESS);
+BspLCD_t* BspLCD_RW = ((BspLCD_t *)LCD_BASE_ADDRESS);
 /* User function Declaration --------------------------------------------------*/
 static uint32_t BspLCD_ReadId(void);
 
@@ -160,17 +160,21 @@ static void BspLCD_ConfigLocal(void)
 {
     BspLCD_Dev.pHeight = LCD_HEIGHT;
     BspLCD_Dev.pWidth  = LCD_WDITH;
-    BspLCD_Dev.WramCmd  = 0x2C;
-    BspLCD_Dev.SetXCmd  = 0x2A;
-    BspLCD_Dev.SetYCmd  = 0x2B;
-    BspLCD_Dev.MemoryAccContCmd  = 0x36;
-    BspLCD_Dev.DirHorNormalData  = 0xa8;
-    BspLCD_Dev.DirHorReverseData = 0x68;
-    BspLCD_Dev.DirVerNormalData  = 0xc8;
-    BspLCD_Dev.DirVerReverseData = 0x08;
     
-    BspLCD_Dev.DispOnCmd  = 0x29;
-    BspLCD_Dev.DispOffCmd = 0x28;
+    if (LCD_ID == 0x9341)
+    {
+        BspLCD_Dev.WramCmd  = 0x2C;
+        BspLCD_Dev.SetXCmd  = 0x2A;
+        BspLCD_Dev.SetYCmd  = 0x2B;
+        BspLCD_Dev.MemoryAccContCmd  = 0x36;
+        BspLCD_Dev.DirHorNormalData  = 0xe8;
+        BspLCD_Dev.DirHorReverseData = 0x28;
+        BspLCD_Dev.DirVerNormalData  = 0x88;
+        BspLCD_Dev.DirVerReverseData = 0x48;
+        
+        BspLCD_Dev.DispOnCmd  = 0x29;
+        BspLCD_Dev.DispOffCmd = 0x28;
+    }
     
     /* 默认使用横屏 */
     BspLCD_Dev.Height = BspLCD_Dev.pWidth;
@@ -377,7 +381,7 @@ void BspLCD_SetDispDir(uint8_t Dir)
  */
 void BspLCD_SetDispWin(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height)
 {
-    BspLCD_Pos_t StartPos, EndPos;
+    __IO BspLCD_Pos_t StartPos, EndPos;
 
     StartPos.xyPos = xCur;
     EndPos.xyPos = xCur + Width - 1;
@@ -393,9 +397,9 @@ void BspLCD_SetDispWin(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t He
     /* 设定Y坐标 */
     BspLCD_WriteComm(BspLCD_Dev.SetYCmd);
     BspLCD_WriteData(StartPos.Pos.hBit);
-    BspLCD_WriteData(StartPos.Pos.hBit);
+    BspLCD_WriteData(StartPos.Pos.lBit);
     BspLCD_WriteData(EndPos.Pos.hBit);
-    BspLCD_WriteData(EndPos.Pos.hBit);
+    BspLCD_WriteData(EndPos.Pos.lBit);
     
     /* 开显存 */
     BspLCD_WR_RamPrepare();

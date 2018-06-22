@@ -1,31 +1,41 @@
-/* 
- **********************************************************
- * 点阵字库文件
- * 取模方式为：
- *            点阵格式：阴码
- *            取模走向：顺向（高位在前）
- *            取模方式：逐行式
- *            输出数制：十六进制
-*/
+/**
+ ******************************************************************************
+ * @file      Font.c
+ * @author    ZSY
+ * @version   V1.0.0
+ * @date      2018-06-22
+ * @brief     本文件用于存放字库内容。新加文字按照已有的格式进行添加即可，本文件的内容
+ *            放于芯片内部的FLASH，芯片FLASH太小的话慎用，以防FLASH不足。
+ *            取模方式为：
+ *              点阵格式：阴码
+ *              取模走向：顺向（高位在前）
+ *              取模方式：逐行式
+ *              输出数制：十六进制  
+ * @History
+ * Date           Author    version    		   Notes
+ * 2018-06-22      ZSY      V1.0.0          first version.
+ */
+
+/* Includes ------------------------------------------------------------------*/
 #include "Font.h"
 
 #ifdef USING_CN_16_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfoTypedef FontCn16 = 
+const paCharInfo_t FontCn16 = 
 {
     {8,  16, 8,  "A16"},
     {16, 16, 16, "H16"},
 };
 
 /* 需要添加字模请在这个添加汉字，然后在下面对应的地方添加字模 */
-const CnCharTypedef HanZi16Index[] = 
+const CnChar_t HanZi16Index[] = 
 {
     "测",
     "试",
 };
 
 /* 在这里面添加字模，需要跟上面汉字的位置对应上 */
-const Cn16DataTypeDef HanZi16Data[] =
+const Cn16Data_t HanZi16Data[] =
 {
     0x00,0x04,0x27,0xC4,0x14,0x44,0x14,0x54,0x85,0x54,0x45,0x54,0x45,0x54,0x15,0x54,
     0x15,0x54,0x25,0x54,0xE5,0x54,0x21,0x04,0x22,0x84,0x22,0x44,0x24,0x14,0x08,0x08,/*"测",0*/
@@ -37,14 +47,14 @@ const Cn16DataTypeDef HanZi16Data[] =
 
 #ifdef USING_CN_24_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfoTypedef FontCn24 = 
+const paCharInfo_t FontCn24 = 
 {
     {16, 24, 12, "A24"},
     {24, 24, 24, "H24"},
 };
 
 /* 需要添加字模请在这个添加汉字，然后在下面对应的地方添加字模 */
-const CnCharTypedef HanZi24Index[] = 
+const CnChar_t HanZi24Index[] = 
 {   
     "菜",
     "单",
@@ -61,7 +71,7 @@ const CnCharTypedef HanZi24Index[] =
 };
 
 /* 在这里面添加字模，需要跟上面汉字的位置对应上 */
-const Cn24DataTypeDef HanZi24Data[] =
+const Cn24Data_t HanZi24Data[] =
 {
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xC3,0x00,0x00,0xC3,0x00,0x00,0x4F,0xF0,0x1F,
     0xF2,0x00,0x00,0x44,0x00,0x00,0x0C,0x00,0x00,0x38,0x00,0x01,0xC1,0x80,0x04,0x33,
@@ -128,14 +138,14 @@ const Cn24DataTypeDef HanZi24Data[] =
 
 #ifdef USING_CN_32_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfoTypedef FontCn32 = 
+const paCharInfo_t FontCn32 = 
 {
     {16, 32, 16, "A32"},
     {32, 32, 32, "H32"},
 };
 
 /* 需要添加字模请在这个添加汉字，然后在下面对应的地方添加字模 */
-const CnCharTypedef HanZi32Index[] = 
+const CnChar_t HanZi32Index[] = 
 {   
     "手",
     "动",
@@ -164,7 +174,7 @@ const CnCharTypedef HanZi32Index[] =
 };
 
 /* 在这里面添加字模，需要跟上面汉字的位置对应上 */
-const Cn32DataTypeDef HanZi32Data[] =
+const Cn32Data_t HanZi32Data[] =
 {
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10,0x00,
     0x00,0x00,0x7C,0x00,0x00,0x01,0xF8,0x00,0x00,0x07,0x80,0x00,0x00,0x3E,0x00,0x00,
@@ -363,14 +373,14 @@ const Cn32DataTypeDef HanZi32Data[] =
 
 #ifdef USING_CN_40_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfoTypedef FontCn40 = 
+const paCharInfo_t FontCn40 = 
 {
     {24, 40, 20, "A40"},
     {40, 40, 40, "H40"},
 };
 
 /* 需要添加字模请在这个添加汉字，然后在下面对应的地方添加字模 */
-const CnCharTypedef HanZi40Index[] = 
+const CnChar_t HanZi40Index[] = 
 {   
     "无",
     "线",
@@ -383,7 +393,7 @@ const CnCharTypedef HanZi40Index[] =
 };
 
 /* 在这里面添加字模，需要跟上面汉字的位置对应上 */
-const Cn40DataTypeDef HanZi40Data[] =
+const Cn40Data_t HanZi40Data[] =
 {
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x3C,0x00,0x00,0x00,0x3F,0xFE,0x00,0x00,0x7F,
@@ -495,19 +505,19 @@ const Cn40DataTypeDef HanZi40Data[] =
 
 #ifdef USING_CN_48_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfoTypedef FontCn48 = 
+const paCharInfo_t FontCn48 = 
 {
     {24, 48, 24, "A48"},
     {48, 48, 48, "H48"},
 };
 
-const CnCharTypedef HanZi48Index[] = 
+const CnChar_t HanZi48Index[] = 
 {   
     '\0'
 };
 
 /* 在这里面添加字模，需要跟上面汉字的位置对应上 */
-const Cn48DataTypeDef HanZi48Data[] =
+const Cn48Data_t HanZi48Data[] =
 {
     '\0'
 };
