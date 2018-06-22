@@ -191,122 +191,124 @@ void BspLCD_Init(void)
     BspLCD_ConfigLocal();
     
 //    LCDReset();
-    
-    BspLCD_Delay(50); // delay 50 ms
-    BspLCD_WriteComm(0xCB);  
-    BspLCD_WriteData(0x39); 
-    BspLCD_WriteData(0x2C); 
-    BspLCD_WriteData(0x00); 
-    BspLCD_WriteData(0x34); 
-    BspLCD_WriteData(0x02); 
-    
-    BspLCD_WriteComm(0xCF);  
-    BspLCD_WriteData(0x00); 
-    BspLCD_WriteData(0XC1); 
-    BspLCD_WriteData(0X30); 
-    
-    BspLCD_WriteComm(0xE8);  
-    BspLCD_WriteData(0x85); 
-    BspLCD_WriteData(0x00); 
-    BspLCD_WriteData(0x78); 
-    
-    BspLCD_WriteComm(0xEA);  
-    BspLCD_WriteData(0x00); 
-    BspLCD_WriteData(0x00); 
-    
-    BspLCD_WriteComm(0xED);  
-    BspLCD_WriteData(0x64); 
-    BspLCD_WriteData(0x03); 
-    BspLCD_WriteData(0X12); 
-    BspLCD_WriteData(0X81); 
-    
-    BspLCD_WriteComm(0xF7);  
-    BspLCD_WriteData(0x20); 
-    
-    BspLCD_WriteComm(0xC0);     //Power control 
-    BspLCD_WriteData(0x23);     //VRH[5:0] 
-    
-    BspLCD_WriteComm(0xC1);     //Power control 
-    BspLCD_WriteData(0x10);     //SAP[2:0];BT[3:0] 
-    
-    BspLCD_WriteComm(0xC5);     //VCM control 
-    BspLCD_WriteData(0x3e);     //对比度调节
-    BspLCD_WriteData(0x28); 
-    
-    BspLCD_WriteComm(0xC7);     //VCM control2 
-    BspLCD_WriteData(0x86);     //--
-    
-    BspLCD_WriteComm(0x36);     // Memory Access Control 
-    BspLCD_WriteData(0xE8);     //48 68竖屏//28 E8 横屏
-    
-    BspLCD_WriteComm(0x3A);    
-    BspLCD_WriteData(0x55); 
-    
-    BspLCD_WriteComm(0xB1);    
-    BspLCD_WriteData(0x00);  
-    BspLCD_WriteData(0x18); 
-    
-    BspLCD_WriteComm(0xB6);    // Display Function Control 
-    BspLCD_WriteData(0x08); 
-    BspLCD_WriteData(0x82);
-    BspLCD_WriteData(0x27);  
-    
-    BspLCD_WriteComm(0xF2);    // 3Gamma Function Disable 
-    BspLCD_WriteData(0x00); 
-    
-    BspLCD_WriteComm(0x26);    //Gamma curve selected 
-    BspLCD_WriteData(0x01); 
-    
-    BspLCD_WriteComm(0xE0);    //Set Gamma 
-    BspLCD_WriteData(0x0F); 
-    BspLCD_WriteData(0x31); 
-    BspLCD_WriteData(0x2B); 
-    BspLCD_WriteData(0x0C); 
-    BspLCD_WriteData(0x0E); 
-    BspLCD_WriteData(0x08); 
-    BspLCD_WriteData(0x4E); 
-    BspLCD_WriteData(0xF1); 
-    BspLCD_WriteData(0x37); 
-    BspLCD_WriteData(0x07); 
-    BspLCD_WriteData(0x10); 
-    BspLCD_WriteData(0x03); 
-    BspLCD_WriteData(0x0E); 
-    BspLCD_WriteData(0x09); 
-    BspLCD_WriteData(0x00); 
-    
-    BspLCD_WriteComm(0XE1);    //Set Gamma 
-    BspLCD_WriteData(0x00); 
-    BspLCD_WriteData(0x0E); 
-    BspLCD_WriteData(0x14); 
-    BspLCD_WriteData(0x03); 
-    BspLCD_WriteData(0x11); 
-    BspLCD_WriteData(0x07); 
-    BspLCD_WriteData(0x31); 
-    BspLCD_WriteData(0xC1); 
-    BspLCD_WriteData(0x48); 
-    BspLCD_WriteData(0x08); 
-    BspLCD_WriteData(0x0F); 
-    BspLCD_WriteData(0x0C); 
-    BspLCD_WriteData(0x31); 
-    BspLCD_WriteData(0x36); 
-    BspLCD_WriteData(0x0F); 
-    
-    BspLCD_WriteComm(0x2A);
-    BspLCD_WriteData(0x00);
-    BspLCD_WriteData(0x00);
-    BspLCD_WriteData(0x00);
-    BspLCD_WriteData(0xEF);
-    
-    BspLCD_WriteComm(0x2B);
-    BspLCD_WriteData(0x00);
-    BspLCD_WriteData(0x00);
-    BspLCD_WriteData(0x01);
-    BspLCD_WriteData(0x3F);
-    BspLCD_WriteComm(0x11);    //Exit Sleep 
-    BspLCD_Delay(100); 
-            
-    BspLCD_WriteComm(0x29);    //Display on 
-    BspLCD_WriteComm(0x2c); 
+    if (LCD_ID == 0x9341)
+    {
+        BspLCD_Delay(50); // delay 50 ms
+        BspLCD_WriteComm(0xCB);  
+        BspLCD_WriteData(0x39); 
+        BspLCD_WriteData(0x2C); 
+        BspLCD_WriteData(0x00); 
+        BspLCD_WriteData(0x34); 
+        BspLCD_WriteData(0x02); 
+        
+        BspLCD_WriteComm(0xCF);  
+        BspLCD_WriteData(0x00); 
+        BspLCD_WriteData(0XC1); 
+        BspLCD_WriteData(0X30); 
+        
+        BspLCD_WriteComm(0xE8);  
+        BspLCD_WriteData(0x85); 
+        BspLCD_WriteData(0x00); 
+        BspLCD_WriteData(0x78); 
+        
+        BspLCD_WriteComm(0xEA);  
+        BspLCD_WriteData(0x00); 
+        BspLCD_WriteData(0x00); 
+        
+        BspLCD_WriteComm(0xED);  
+        BspLCD_WriteData(0x64); 
+        BspLCD_WriteData(0x03); 
+        BspLCD_WriteData(0X12); 
+        BspLCD_WriteData(0X81); 
+        
+        BspLCD_WriteComm(0xF7);  
+        BspLCD_WriteData(0x20); 
+        
+        BspLCD_WriteComm(0xC0);     //Power control 
+        BspLCD_WriteData(0x23);     //VRH[5:0] 
+        
+        BspLCD_WriteComm(0xC1);     //Power control 
+        BspLCD_WriteData(0x10);     //SAP[2:0];BT[3:0] 
+        
+        BspLCD_WriteComm(0xC5);     //VCM control 
+        BspLCD_WriteData(0x3e);     //对比度调节
+        BspLCD_WriteData(0x28); 
+        
+        BspLCD_WriteComm(0xC7);     //VCM control2 
+        BspLCD_WriteData(0x86);     //--
+        
+        BspLCD_WriteComm(0x36);     // Memory Access Control 
+        BspLCD_WriteData(0xE8);     //48 68竖屏//28 E8 横屏
+        
+        BspLCD_WriteComm(0x3A);    
+        BspLCD_WriteData(0x55); 
+        
+        BspLCD_WriteComm(0xB1);    
+        BspLCD_WriteData(0x00);  
+        BspLCD_WriteData(0x18); 
+        
+        BspLCD_WriteComm(0xB6);    // Display Function Control 
+        BspLCD_WriteData(0x08); 
+        BspLCD_WriteData(0x82);
+        BspLCD_WriteData(0x27);  
+        
+        BspLCD_WriteComm(0xF2);    // 3Gamma Function Disable 
+        BspLCD_WriteData(0x00); 
+        
+        BspLCD_WriteComm(0x26);    //Gamma curve selected 
+        BspLCD_WriteData(0x01); 
+        
+        BspLCD_WriteComm(0xE0);    //Set Gamma 
+        BspLCD_WriteData(0x0F); 
+        BspLCD_WriteData(0x31); 
+        BspLCD_WriteData(0x2B); 
+        BspLCD_WriteData(0x0C); 
+        BspLCD_WriteData(0x0E); 
+        BspLCD_WriteData(0x08); 
+        BspLCD_WriteData(0x4E); 
+        BspLCD_WriteData(0xF1); 
+        BspLCD_WriteData(0x37); 
+        BspLCD_WriteData(0x07); 
+        BspLCD_WriteData(0x10); 
+        BspLCD_WriteData(0x03); 
+        BspLCD_WriteData(0x0E); 
+        BspLCD_WriteData(0x09); 
+        BspLCD_WriteData(0x00); 
+        
+        BspLCD_WriteComm(0XE1);    //Set Gamma 
+        BspLCD_WriteData(0x00); 
+        BspLCD_WriteData(0x0E); 
+        BspLCD_WriteData(0x14); 
+        BspLCD_WriteData(0x03); 
+        BspLCD_WriteData(0x11); 
+        BspLCD_WriteData(0x07); 
+        BspLCD_WriteData(0x31); 
+        BspLCD_WriteData(0xC1); 
+        BspLCD_WriteData(0x48); 
+        BspLCD_WriteData(0x08); 
+        BspLCD_WriteData(0x0F); 
+        BspLCD_WriteData(0x0C); 
+        BspLCD_WriteData(0x31); 
+        BspLCD_WriteData(0x36); 
+        BspLCD_WriteData(0x0F); 
+        
+        BspLCD_WriteComm(0x2A);
+        BspLCD_WriteData(0x00);
+        BspLCD_WriteData(0x00);
+        BspLCD_WriteData(0x00);
+        BspLCD_WriteData(0xEF);
+        
+        BspLCD_WriteComm(0x2B);
+        BspLCD_WriteData(0x00);
+        BspLCD_WriteData(0x00);
+        BspLCD_WriteData(0x01);
+        BspLCD_WriteData(0x3F);
+        BspLCD_WriteComm(0x11);    //Exit Sleep 
+        BspLCD_Delay(100); 
+                
+        BspLCD_WriteComm(0x29);    //Display on 
+        BspLCD_WriteComm(0x2c); 
+    }
     
     /* 默认情况下为横屏，设置横屏 */
     BspLCD_SetDispDir(DIR_HORIZONTAL_NORMAL);

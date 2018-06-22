@@ -2,20 +2,20 @@
  ******************************************************************************
  * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
  * @filename      bsp_iic.h
- * @author        é—¨ç¦å¼€å‘å°ç»„
+ * @author        ÃÅ½û¿ª·¢Ğ¡×é
  * @version       V1.0.4
  * @date          2018-06-20
- * @Description   bsp_iicæ–‡ä»¶ï¼Œåœ¨æ­¤æ–‡ä»¶å†…å®šä¹‰äº†ä¸€äº›iicçš„å¼•è„šå®å®šä¹‰ï¼Œéœ€è¦æ›´æ¢iicçš„æ—¶
-                  åºå¼•è„šæ—¶åœ¨æ­¤æ–‡ä»¶å†…è¿›è¡Œå¼•è„šä¿®æ”¹å³å¯ï¼Œæ­¤å¤–æ­¤æ–‡ä»¶åŒ…å«iicå¯¹å¤–å¼€æ”¾çš„API
+ * @Description   bsp_iicÎÄ¼ş£¬ÔÚ´ËÎÄ¼şÄÚ¶¨ÒåÁËÒ»Ğ©iicµÄÒı½Åºê¶¨Òå£¬ĞèÒª¸ü»»iicµÄÊ±
+                  ĞòÒı½ÅÊ±ÔÚ´ËÎÄ¼şÄÚ½øĞĞÒı½ÅĞŞ¸Ä¼´¿É£¬´ËÍâ´ËÎÄ¼ş°üº¬iic¶ÔÍâ¿ª·ÅµÄAPI
  * @Others
  * @History
  * Date           Author    version    		Notes
  * 2017-11-01     ZSY       V1.0.0      first version.
- * 2017-11-02     ZSY       V1.0.1      å¢åŠ äº†å®IIC_ACK_TIMEOUTã€IIC_OPER_OKå’Œ
+ * 2017-11-02     ZSY       V1.0.1      Ôö¼ÓÁËºêIIC_ACK_TIMEOUT¡¢IIC_OPER_OKºÍ
                                         IIC_OPER_FAILT
- * 2018-01-09     ZSY       V1.0.2      æ’ç‰ˆæ ¼å¼åŒ–æ“ä½œ.
- * 2018-01-26     ZSY       V1.0.3      æ·»åŠ ç§æœ‰å’Œå…¬æœ‰å®å®šä¹‰.
- * 2018-06-20     ZSY       V1.0.4          æé«˜å…¼å®¹æ€§.
+ * 2018-01-09     ZSY       V1.0.2      ÅÅ°æ¸ñÊ½»¯²Ù×÷.
+ * 2018-01-26     ZSY       V1.0.3      Ìí¼ÓË½ÓĞºÍ¹«ÓĞºê¶¨Òå.
+ * 2018-06-20     ZSY       V1.0.4          Ìá¸ß¼æÈİĞÔ.
  */
 	
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -31,15 +31,15 @@
 
 /* Public macro Definition ---------------------------------------------------*/
 
-/* å®šä¹‰é”™è¯¯ä»£ç  */
-#define IIC_OPER_OK         (0)		//æ“ä½œæˆåŠŸ
-#define IIC_OPER_FAILT      (1)		//æ“ä½œå¤±è´¥
+/* ¶¨Òå´íÎó´úÂë */
+#define IIC_OPER_OK         (0)		//²Ù×÷³É¹¦
+#define IIC_OPER_FAILT      (1)		//²Ù×÷Ê§°Ü
 
 #define IIC_NEED_ACK        (1)
 #define IIC_NEEDNT_ACK      (0)
 
-#define IIC_DRV_WR          (0)     //IICå†™å‘½ä»¤
-#define IIC_DRV_R           (1)     //IICè¯»å‘½ä»¤
+#define IIC_DRV_WR          (0)     //IICĞ´ÃüÁî
+#define IIC_DRV_R           (1)     //IIC¶ÁÃüÁî
 /* End public macro Definition -----------------------------------------------*/
 
 /* UserCode start ------------------------------------------------------------*/

@@ -9,17 +9,17 @@
 #endif
 /* Public macro Definition ---------------------------------------------------*/
 
-/* å®šä¹‰LCDçš„å¤§å° */
+/* ¶¨ÒåLCDµÄ´óĞ¡ */
 #define LCD_HEIGHT          320
 #define LCD_WDITH           240
 
-/* å®å®šä¹‰LCDçš„æ‰«ææ–¹å‘ */
+/* ºê¶¨ÒåLCDµÄÉ¨Ãè·½Ïò */
 #define DIR_HORIZONTAL_NORMAL           0x01
 #define DIR_HORIZONTAL_REVERSE          0x02
 #define DIR_VERTICAL_NORMAL             0x03
 #define DIR_VERTICAL_REVERSE            0x04
 
-/* å®šä¹‰LCDèƒŒå…‰æ“ä½œçš„å®å®šä¹‰ */
+/* ¶¨ÒåLCD±³¹â²Ù×÷µÄºê¶¨Òå */
 #define LCD_LIGHT_GPIO          LCD_BL_Pin
 #define LCD_LIGHT_PORT          LCD_BL_GPIO_Port
 #define LCD_LIGHT_RCC           RCC_APB2Periph_GPIOA
@@ -32,7 +32,7 @@
 #define LCD_LIGHT_OFF   HAL_GPIO_WritePin(LCD_LIGHT_PORT, LCD_LIGHT_GPIO, GPIO_PIN_RESET)
 #endif
 
-/* å®šä¹‰æ˜¯å¦ä½¿ç”¨æ‰‹åŠ¨è¾“å…¥LCD_ID */
+/* ¶¨ÒåÊÇ·ñÊ¹ÓÃÊÖ¶¯ÊäÈëLCD_ID */
 #define USING_LCD_ID
 #ifdef USING_LCD_ID
 #define LCD_ID      0x9341
@@ -41,7 +41,7 @@
 
 /* UserCode start ------------------------------------------------------------*/
 
-/* LCDåœ°å€ç»“æ„ä½“ */    
+/* LCDµØÖ·½á¹¹Ìå */    
 typedef struct
 {
     __IO uint16_t REG;
@@ -73,18 +73,18 @@ typedef union
 }RGB_t;
 
 
-/* LCDé‡è¦å‚æ•°é›† */
+/* LCDÖØÒª²ÎÊı¼¯ */
 typedef struct
 {					    
-	uint16_t pWidth;               //LCD å®½åº¦ï¼Œä¸éšå±å¹•æ–¹å‘æ”¹å˜
-	uint16_t pHeight;              //LCD é«˜åº¦ï¼Œä¸éšå±å¹•æ–¹å‘æ”¹å˜				    
-	uint16_t Width;                 //LCD å®½åº¦
-	uint16_t Height;                //LCD é«˜åº¦
+	uint16_t pWidth;               //LCD ¿í¶È£¬²»ËæÆÁÄ»·½Ïò¸Ä±ä
+	uint16_t pHeight;              //LCD ¸ß¶È£¬²»ËæÆÁÄ»·½Ïò¸Ä±ä				    
+	uint16_t Width;                 //LCD ¿í¶È
+	uint16_t Height;                //LCD ¸ß¶È
 	uint32_t Id;                    //LCD ID
-	uint8_t  Dir;                   //æ¨ªå±è¿˜æ˜¯ç«–å±æ§åˆ¶ï¼š0ï¼Œç«–å±ï¼›1ï¼Œæ¨ªå±ã€‚	
-	uint16_t WramCmd;               //å¼€å§‹å†™gramæŒ‡ä»¤
-	uint16_t SetXCmd;               //è®¾ç½®xåæ ‡æŒ‡ä»¤
-	uint16_t SetYCmd;               //è®¾ç½®yåæ ‡æŒ‡ä»¤ 
+	uint8_t  Dir;                   //ºáÆÁ»¹ÊÇÊúÆÁ¿ØÖÆ£º0£¬ÊúÆÁ£»1£¬ºáÆÁ¡£	
+	uint16_t WramCmd;               //¿ªÊ¼Ğ´gramÖ¸Áî
+	uint16_t SetXCmd;               //ÉèÖÃx×ø±êÖ¸Áî
+	uint16_t SetYCmd;               //ÉèÖÃy×ø±êÖ¸Áî 
 	uint16_t MemoryAccContCmd;		
 	uint16_t DirHorNormalData;
 	uint16_t DirHorReverseData;
@@ -95,7 +95,7 @@ typedef struct
 }BspLCD_Dev_t; 
 
 /* Member method APIs --------------------------------------------------------*/
-/* è®¿é—®LCDçš„æ–¹æ³•æˆå‘˜ */
+/* ·ÃÎÊLCDµÄ·½·¨³ÉÔ± */
 typedef struct
 {
     void (*Init)(void);

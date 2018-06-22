@@ -1,5 +1,5 @@
-#ifndef _STRING_H_
-#define _STRING_H_
+#ifndef _MY_STRING_H_
+#define _MY_STRING_H_
 
 #ifndef NULL
 #define NULL        0

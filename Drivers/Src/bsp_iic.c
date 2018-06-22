@@ -1,19 +1,19 @@
 /**
  ******************************************************************************
  * @file      iic.c
- * @author    é—¨ç¦å¼€å‘å°ç»„
+ * @author    ÃÅ½û¿ª·¢Ğ¡×é
  * @version   V1.0.4
  * @date      2018-06-20
- * @brief     æ–‡ä»¶å†…åŒ…å«ä¸€äº›iicçš„å¼•è„šé…ç½®ï¼Œiicçš„åŸºæœ¬è¯»å†™æ“ä½œä»¥åŠé€šä¿¡æ—¶åº
+ * @brief     ÎÄ¼şÄÚ°üº¬Ò»Ğ©iicµÄÒı½ÅÅäÖÃ£¬iicµÄ»ù±¾¶ÁĞ´²Ù×÷ÒÔ¼°Í¨ĞÅÊ±Ğò
  * @History
  * Date           Author    version    		Notes
  * 2017-11-01     ZSY       V1.0.0          first version.
- * 2017-11-02     ZSY       V1.0.1          ä¿®æ”¹äº†åº”ç­”ä¿¡å·çš„åé¦ˆå½¢å¼ï¼Œå¢åŠ äº†å¯¹åº”çš„å®
-                                            å®šä¹‰ï¼Œå¯¹iic_ackå’Œiic_no_ackæ·»åŠ äº†static
-                                            çš„ä¿®é¥°ç¬¦ï¼Œä»…é™äºæœ¬æ–‡ä»¶å†…ä½¿ç”¨
- * 2018-01-09     ZSY       V1.0.2          æ’ç‰ˆæ ¼å¼åŒ–æ“ä½œ.
- * 2018-01-26     ZSY       V1.0.3          æ·»åŠ ç§æœ‰å’Œå…¬æœ‰å®å®šä¹‰.
- * 2018-06-20     ZSY       V1.0.4          æé«˜å…¼å®¹æ€§.
+ * 2017-11-02     ZSY       V1.0.1          ĞŞ¸ÄÁËÓ¦´ğĞÅºÅµÄ·´À¡ĞÎÊ½£¬Ôö¼ÓÁË¶ÔÓ¦µÄºê
+                                            ¶¨Òå£¬¶Ôiic_ackºÍiic_no_ackÌí¼ÓÁËstatic
+                                            µÄĞŞÊÎ·û£¬½öÏŞÓÚ±¾ÎÄ¼şÄÚÊ¹ÓÃ
+ * 2018-01-09     ZSY       V1.0.2          ÅÅ°æ¸ñÊ½»¯²Ù×÷.
+ * 2018-01-26     ZSY       V1.0.3          Ìí¼ÓË½ÓĞºÍ¹«ÓĞºê¶¨Òå.
+ * 2018-06-20     ZSY       V1.0.4          Ìá¸ß¼æÈİĞÔ.
  */
 	
 /* Includes ------------------------------------------------------------------*/
@@ -21,7 +21,7 @@
 
 /* Private macro Definition --------------------------------------------------*/
 		   
-/* å®å®šä¹‰i2cçš„ç¡¬ä»¶æ¥å£ */
+/* ºê¶¨Òåi2cµÄÓ²¼ş½Ó¿Ú */
 #define IIC_SCL_PIN   IIC_SCL_Pin
 #define IIC_SDA_PIN   IIC_SDA_Pin   
 
@@ -29,25 +29,25 @@
 #define IIC_SDA_PORT	IIC_SDA_GPIO_Port
 
 #ifdef STM32F1
-/* IOæ–¹å‘è®¾ç½® */
+/* IO·½ÏòÉèÖÃ */
 #define SET_IIC_SDA_IN()  {GPIOB->CRH &= 0XFFFF0FFF; GPIOB->CRH |= (uint32_t)8 << 12;}
 #define SET_IIC_SDA_OUT() {GPIOB->CRH &= 0XFFFF0FFF; GPIOB->CRH |= (uint32_t)3 << 12;}
 #elif defined STM32F4
-/* IOæ–¹å‘è®¾ç½® */
+/* IO·½ÏòÉèÖÃ */
 #define SET_IIC_SDA_IN()  {IIC_SDA_PORT->MODER &= ~(3 << (9 * 2)); IIC_SDA_PORT->MODER |= (0 << (9 * 2));}	//PB12??????
 #define SET_IIC_SDA_OUT() {IIC_SDA_PORT->MODER &= ~(3 << (9 * 2)); IIC_SDA_PORT->MODER |= (1 << (9 * 2));} 
 #endif
-/* è®¾ç½®iicæ¥å£çš„é«˜ä½é€»è¾‘ç”µå¹³è¾“å‡º */
+/* ÉèÖÃiic½Ó¿ÚµÄ¸ßµÍÂß¼­µçÆ½Êä³ö */
 #define IIC_SCL_WRITE_H   LL_GPIO_SetOutputPin(IIC_SCL_PORT, IIC_SCL_PIN)
 #define IIC_SCL_WRITE_L   LL_GPIO_ResetOutputPin(IIC_SCL_PORT, IIC_SCL_PIN)
 						
 #define IIC_SDA_WRITE_H   LL_GPIO_SetOutputPin(IIC_SDA_PORT, IIC_SDA_PIN)
 #define IIC_SDA_WRITE_L   LL_GPIO_ResetOutputPin(IIC_SDA_PORT, IIC_SDA_PIN)
 
-/* è®¾ç½®iicçš„sdaçº¿çš„è¯»å…¥åŠŸèƒ½	*/
+/* ÉèÖÃiicµÄsdaÏßµÄ¶ÁÈë¹¦ÄÜ	*/
 #define	IIC_SDA_READ      LL_GPIO_IsInputPinSet(IIC_SDA_PORT, IIC_SDA_PIN)
 
-/* åº”ç­”ä¿¡å·ACKç­‰å¾…è¶…æ—¶æ—¶é—´	*/
+/* Ó¦´ğĞÅºÅACKµÈ´ı³¬Ê±Ê±¼ä	*/
 #define IIC_ACK_TIMEOUT   200
 
 /* End private macro Definition ----------------------------------------------*/
@@ -64,9 +64,9 @@
 
 /**
  * @func    BspIIC_Delay
- * @brief   BspIICå»¶æ—¶æ–¹æ³•
- * @param   nCount æ—¶é—´
- * @retval  æ— 
+ * @brief   BspIICÑÓÊ±·½·¨
+ * @param   nCount Ê±¼ä
+ * @retval  ÎŞ
  */
 void BspIIC_Delay(__IO uint32_t Number)
 {
@@ -81,20 +81,20 @@ void BspIIC_Delay(__IO uint32_t Number)
 
 ///**
 // * @func    IIC_GPIO_Config
-// * @brief   è®¾ç½®è§¦å±çš„IICå¼•è„š,ç”¨è½¯ä»¶æ¨¡æ‹Ÿçš„æ–¹æ³•å®ç°IICåŠŸèƒ½
-// * @note    éœ€è¦å¼€å¯å¯¹åº”çš„æ—¶é’Ÿå’Œå¤ç”¨
-// * @retval  æ— 
+// * @brief   ÉèÖÃ´¥ÆÁµÄIICÒı½Å,ÓÃÈí¼şÄ£ÄâµÄ·½·¨ÊµÏÖIIC¹¦ÄÜ
+// * @note    ĞèÒª¿ªÆô¶ÔÓ¦µÄÊ±ÖÓºÍ¸´ÓÃ
+// * @retval  ÎŞ
 // */
 //void IIC_GPIO_Config(void) 
 //{
 //    GPIO_InitTypeDef GPIO_InitStructure;
 
-//    /* ä½¿èƒ½GPIOBå’ŒGPIOCçš„æ—¶é’Ÿ */
+//    /* Ê¹ÄÜGPIOBºÍGPIOCµÄÊ±ÖÓ */
 //    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 //    
 //    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;  
 //    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-//    GPIO_Init(GPIOA, &GPIO_InitStructure);//åˆå§‹åŒ–GPIO
+//    GPIO_Init(GPIOA, &GPIO_InitStructure);//³õÊ¼»¯GPIO
 //    /* config IIC scl line */
 //    GPIO_InitStructure.GPIO_Pin = IIC_SCL_PIN;  		//PC5  
 //    GPIO_Init(IIC_SCL_PORT, &GPIO_InitStructure);
@@ -103,7 +103,7 @@ void BspIIC_Delay(__IO uint32_t Number)
 //    GPIO_InitStructure.GPIO_Pin =  IIC_SDA_PIN; 		//PC4
 //    GPIO_Init(IIC_SDA_PORT, &GPIO_InitStructure);
 //    
-//    /* åˆå§‹åŒ–å®Œæˆåè®¾ç½®ä¸ºé«˜ */
+//    /* ³õÊ¼»¯Íê³ÉºóÉèÖÃÎª¸ß */
 //    IIC_SCL_WRITE_H;
 //    IIC_SDA_WRITE_H;
 //    
@@ -213,27 +213,27 @@ uint8_t IIC_WaitAck(void)
     {
         time++;
         
-        /* è¶…æ—¶æ£€æµ‹ï¼Œé˜²æ­¢å¡æ­» */
+        /* ³¬Ê±¼ì²â£¬·ÀÖ¹¿¨ËÀ */
         if (time > IIC_ACK_TIMEOUT)
         {
             IIC_Stop();
             
-            /* è¶…æ—¶æ„å‘³ç€å¤±è´¥ */
+            /* ³¬Ê±ÒâÎ¶×ÅÊ§°Ü */
             return IIC_OPER_FAILT;
         }	
     }
     
     IIC_SCL_WRITE_L;
     
-    /* æœ‰åº”ç­”ä¿¡å·è¯´æ˜æˆåŠŸ */
+    /* ÓĞÓ¦´ğĞÅºÅËµÃ÷³É¹¦ */
     return IIC_OPER_OK; 
 }
 
 /**
  * @func    IIC_SendByte
- * @brief   IIC å‘é€ä¸€ä¸ªå­—èŠ‚çš„æ•°æ®
- * @param   Data å°†è¦å‘é€çš„æ•°æ®					
- * @retval  æ— 
+ * @brief   IIC ·¢ËÍÒ»¸ö×Ö½ÚµÄÊı¾İ
+ * @param   Data ½«Òª·¢ËÍµÄÊı¾İ					
+ * @retval  ÎŞ
  */
 void IIC_SendByte(uint8_t Data)
 {
@@ -244,7 +244,7 @@ void IIC_SendByte(uint8_t Data)
     
     IIC_SCL_WRITE_L;
     
-    /* å¾ªç¯å‘é€ä¸€ä¸ªå­—èŠ‚çš„æ•°æ® */
+    /* Ñ­»··¢ËÍÒ»¸ö×Ö½ÚµÄÊı¾İ */
     for (i = 0; i < 8; i++)
     {		
         if (Data & 0x80)
@@ -267,11 +267,11 @@ void IIC_SendByte(uint8_t Data)
 
 /**
  * @func    IIC_ReadByte
- * @brief   i2c ä»è®¾å¤‡è¯»å–ä¸€ä¸ªå­—èŠ‚çš„æ•°æ®
- * @param   ack ä¸»æœºåº”ç­”çš„ç±»å‹
-                I2C_NEED_ACK è¯´æ˜å½“å‰è¿˜ä¸æ˜¯æœ€åä¸€ä¸ªå­—èŠ‚ï¼Œæ­¤æ—¶å‘é€ ack
-                I2C_NEEDNT_ACK è¯´æ˜å½“å‰çš„ä¼ è¾“æ˜¯æœ€åä¸€ä¸ªå­—èŠ‚çš„æ•°æ®ï¼Œæ­¤æ—¶å‘é€nack
- * @retval	receive è¯»å–åˆ°çš„æ•°æ®
+ * @brief   i2c ´ÓÉè±¸¶ÁÈ¡Ò»¸ö×Ö½ÚµÄÊı¾İ
+ * @param   ack Ö÷»úÓ¦´ğµÄÀàĞÍ
+                I2C_NEED_ACK ËµÃ÷µ±Ç°»¹²»ÊÇ×îºóÒ»¸ö×Ö½Ú£¬´ËÊ±·¢ËÍ ack
+                I2C_NEEDNT_ACK ËµÃ÷µ±Ç°µÄ´«ÊäÊÇ×îºóÒ»¸ö×Ö½ÚµÄÊı¾İ£¬´ËÊ±·¢ËÍnack
+ * @retval	receive ¶ÁÈ¡µ½µÄÊı¾İ
  */
 uint8_t IIC_ReadByte(uint8_t Ack)
 {
@@ -282,7 +282,7 @@ uint8_t IIC_ReadByte(uint8_t Ack)
     
     IIC_SDA_WRITE_H;
     
-    /* å¾ªç¯è¯»å–ä¸€ä¸ªå­—èŠ‚çš„æ•°æ® */
+    /* Ñ­»·¶ÁÈ¡Ò»¸ö×Ö½ÚµÄÊı¾İ */
     for (i = 0; i < 8; i++)
     {
         IIC_SCL_WRITE_L; 
@@ -298,11 +298,11 @@ uint8_t IIC_ReadByte(uint8_t Ack)
     
     if (Ack == IIC_NEEDNT_ACK) 
     {	   
-        IIC_NoAck();	//å‘é€nACK
+        IIC_NoAck();	//·¢ËÍnACK
     }
     else       
     {
-        IIC_Ack(); 		//å‘é€ACK   
+        IIC_Ack(); 		//·¢ËÍACK   
     }
       
     return Receive;
@@ -310,25 +310,25 @@ uint8_t IIC_ReadByte(uint8_t Ack)
 
 /**
  * @func    IIC_CheckDevice
- * @brief   æ£€éªŒä»è®¾å¤‡æ˜¯å¦å­˜åœ¨
- * @param   _Address ä»è®¾å¤‡åœ°å€
- * @retval	receive è¯»å–åˆ°çš„æ•°æ®
+ * @brief   ¼ìÑé´ÓÉè±¸ÊÇ·ñ´æÔÚ
+ * @param   _Address ´ÓÉè±¸µØÖ·
+ * @retval	receive ¶ÁÈ¡µ½µÄÊı¾İ
  */
 uint8_t IIC_CheckDevice(uint8_t _Address)
 {
 	if (IIC_SDA_READ)
 	{
-		IIC_Start();		/* å‘é€å¯åŠ¨ä¿¡å· */
+		IIC_Start();		/* ·¢ËÍÆô¶¯ĞÅºÅ */
 
-		/* å‘é€è®¾å¤‡åœ°å€+è¯»å†™æ§åˆ¶bitï¼ˆ0 = wï¼Œ 1 = r) bit7 å…ˆä¼  */
+		/* ·¢ËÍÉè±¸µØÖ·+¶ÁĞ´¿ØÖÆbit£¨0 = w£¬ 1 = r) bit7 ÏÈ´« */
 		IIC_SendByte(_Address | IIC_DRV_WR);
-		if (IIC_WaitAck() == IIC_OPER_OK)	/* æ£€æµ‹è®¾å¤‡çš„ACKåº”ç­” */
+		if (IIC_WaitAck() == IIC_OPER_OK)	/* ¼ì²âÉè±¸µÄACKÓ¦´ğ */
         {
-            IIC_Stop();			/* å‘é€åœæ­¢ä¿¡å· */
+            IIC_Stop();			/* ·¢ËÍÍ£Ö¹ĞÅºÅ */
             return IIC_OPER_OK;
         }
 	}
-	return IIC_OPER_FAILT;	/* IICæ€»çº¿å¼‚å¸¸ */
+	return IIC_OPER_FAILT;	/* IIC×ÜÏßÒì³£ */
 }
 
 

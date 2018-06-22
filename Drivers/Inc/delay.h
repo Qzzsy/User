@@ -2,20 +2,20 @@
 ******************************************************************************
  * @Copyright       (C) 2017 - 2018 guet-sctc-hardwarepart Team
  * @filename        delay.h
- * @author          门禁开发小组
+ * @author          �Ž�����С��
  * @version         V1.1.2
  * @date            2018-06-19
- * @Description     delay文件，包含了是否使用系统的宏定义选择以及使用系统的类型
+ * @Description     delay�ļ����������Ƿ�ʹ��ϵͳ�ĺ궨��ѡ���Լ�ʹ��ϵͳ������
  * @Others
  * @History
  * Date           	Author    	version                 Notes
  * 2017-11-05     	ZSY       	V1.0.0              first version.
- * 2017-11-13       ZSY         V1.0.1              调整结构
- * 2018-01-11       ZSY         V1.0.2              排版格式化操作，增强在不同缩进情况下的可读性，增加HAL库的支持
- * 2018-01-11       ZSY         V1.0.3              修改部分变量的声明
- * 2018-06-07       ZSY         V1.1.0              修改结构，全采用寄存器的方式编写，兼容寄存器以及各类库函数
- * 2018-06-12       ZSY         V1.1.1              修改部分变量名称，完善对全系列芯片的支持
- * 2018-06-19       ZSY         V1.1.2              修复在不分频的情况下ms级延时不准的BUG
+ * 2017-11-13       ZSY         V1.0.1              �����ṹ
+ * 2018-01-11       ZSY         V1.0.2              �Ű��ʽ����������ǿ�ڲ�ͬ��������µĿɶ��ԣ�����HAL���֧��
+ * 2018-01-11       ZSY         V1.0.3              �޸Ĳ��ֱ���������
+ * 2018-06-07       ZSY         V1.1.0              �޸Ľṹ��ȫ���üĴ����ķ�ʽ��д�����ݼĴ����Լ�����⺯��
+ * 2018-06-12       ZSY         V1.1.1              �޸Ĳ��ֱ������ƣ����ƶ�ȫϵ��оƬ��֧��
+ * 2018-06-19       ZSY         V1.1.2              �޸��ڲ���Ƶ�������ms����ʱ��׼��BUG
  * @verbatim  
  */
 	
@@ -53,7 +53,7 @@
 #endif
 #endif
 
-/* 根据芯片的内核频率更改 */
+/* ����оƬ���ں�Ƶ�ʸ��� */
 #ifdef STM32F1
 #define DEFAULT_SYSTEM_FREQUENCY            72000000U
 #elif defined STM32F4
@@ -68,7 +68,7 @@
 
 #define USE_CUBEMX_CREAT_CODE       0
 
-/* 根据分频要求更改 */
+/* ���ݷ�ƵҪ����� */
 #define SYSTICK_DIV8        0
 #if SYSTICK_DIV8 == 1
 #define SYSTICK_CLK  0x00000000U
@@ -78,56 +78,56 @@
 
 /* Public macro Definition ---------------------------------------------------*/
 /**
- * 当delay_us/delay_ms需要支持OS的时候需要三个与OS相关的宏定义和函数来支持		
- * 首先是3个宏定义:
- * SYSTEM_SUPPORT_OS            是否使用系统
+ * ��delay_us/delay_ms��Ҫ֧��OS��ʱ����Ҫ������OS��صĺ궨��ͺ�����֧��		
+ * ������3���궨��:
+ * SYSTEM_SUPPORT_OS            �Ƿ�ʹ��ϵͳ
 	
- * OS_USE_RTTHREAD              是否使用rt-thread
+ * OS_USE_RTTHREAD              �Ƿ�ʹ��rt-thread
 	
- * OS_CRITICAL_METHOD           是否使用uc/OS-II
+ * OS_CRITICAL_METHOD           �Ƿ�ʹ��uc/OS-II
 	
- * CPU_CFG_CRITICAL_METHOD      是否使用uc/OS-III
+ * CPU_CFG_CRITICAL_METHOD      �Ƿ�ʹ��uc/OS-III
 	
 	
- * DELAY_OS_RUNNING             用于表示OS当前是否正在运行,以决定是否可以使用相关函数
- * DELAY_OS_TICK_PERSEC         用于表示OS设定的时钟节拍,delay_init将根据这个参数来初始哈systick
- * DELAY_OS_INTNESTING          用于表示OS中断嵌套级别,因为中断里面不可以调度,delay_ms使用该参数来决定如何运行
+ * DELAY_OS_RUNNING             ���ڱ�ʾOS��ǰ�Ƿ���������,�Ծ����Ƿ����ʹ����غ���
+ * DELAY_OS_TICK_PERSEC         ���ڱ�ʾOS�趨��ʱ�ӽ���,delay_init�����������������ʼ��systick
+ * DELAY_OS_INTNESTING          ���ڱ�ʾOS�ж�Ƕ�׼���,��Ϊ�ж����治���Ե���,delay_msʹ�øò����������������
  */
 
-/* 0为不使用系统，1为使用系统 */
+/* 0Ϊ��ʹ��ϵͳ��1Ϊʹ��ϵͳ */
 #define SYSTEM_SUPPORT_OS       0					
 #if SYSTEM_SUPPORT_OS == 0
 #undef SYSTEM_SUPPORT_OS
 #else
 
-/* 0为不使用rt-thread系统，1为使用rt-thread系统 */
+/* 0Ϊ��ʹ��rt-threadϵͳ��1Ϊʹ��rt-threadϵͳ */
 #define OS_USE_RTTHREAD         1
 #if OS_USE_RTTHREAD == 0
 #undef OS_USE_RTTHREAD
 #else
 #define DELAY_OS_RUNNING rt_tick_get()
-#define DELAY_OS_TICK_PERSEC RT_TICK_PER_SECOND         //OS时钟节拍,即每秒调度次数
-#define DELAY_OS_INTNESTING rt_interrupt_get_nest()     //中断嵌套级别,即中断嵌套次数
+#define DELAY_OS_TICK_PERSEC RT_TICK_PER_SECOND         //OSʱ�ӽ���,��ÿ����ȴ���
+#define DELAY_OS_INTNESTING rt_interrupt_get_nest()     //�ж�Ƕ�׼���,���ж�Ƕ�״���
 #endif /* OS_USE_RTTHREAD */
 
-/* 0为不使用uc/OS-II系统，1为使用uc/OS-II系统 */
+/* 0Ϊ��ʹ��uc/OS-IIϵͳ��1Ϊʹ��uc/OS-IIϵͳ */
 #define OS_CRITICAL_METHOD      0
 #if OS_CRITICAL_METHOD == 0
 #undef OS_CRITICAL_METHOD
 #else
-#define DELAY_OS_RUNNING OSRunning                  //OS是否运行标记,0,不运行;1,在运行
-#define DELAY_OS_TICK_PERSEC OS_TICKS_PER_SEC       //OS时钟节拍,即每秒调度次数
-#define DELAY_OS_INTNESTING OSIntNesting            //中断嵌套级别,即中断嵌套次数
+#define DELAY_OS_RUNNING OSRunning                  //OS�Ƿ����б��,0,������;1,������
+#define DELAY_OS_TICK_PERSEC OS_TICKS_PER_SEC       //OSʱ�ӽ���,��ÿ����ȴ���
+#define DELAY_OS_INTNESTING OSIntNesting            //�ж�Ƕ�׼���,���ж�Ƕ�״���
 #endif /* OS_CRITICAL_METHOD */
 
-/* 0为不使用uc/OS-III系统，1为使用uc/OS-III系统 */
+/* 0Ϊ��ʹ��uc/OS-IIIϵͳ��1Ϊʹ��uc/OS-IIIϵͳ */
 #define CPU_CFG_CRITICAL_METHOD     0
 #if CPU_CFG_CRITICAL_METHOD == 0
 #undef CPU_CFG_CRITICAL_METHOD
 #else
-#define DELAY_OS_RUNNING OSRunning                  //OS是否运行标记,0,不运行;1,在运行
-#define DELAY_OS_TICK_PERSEC OSCfg_TickRate_Hz      //OS时钟节拍,即每秒调度次数
-#define DELAY_OS_INTNESTING OSIntNestingCtr         //中断嵌套级别,即中断嵌套次数
+#define DELAY_OS_RUNNING OSRunning                  //OS�Ƿ����б��,0,������;1,������
+#define DELAY_OS_TICK_PERSEC OSCfg_TickRate_Hz      //OSʱ�ӽ���,��ÿ����ȴ���
+#define DELAY_OS_INTNESTING OSIntNestingCtr         //�ж�Ƕ�׼���,���ж�Ƕ�״���
 #endif /* CPU_CFG_CRITICAL_METHOD */
 #endif /* SYSTEM_SUPPORT_OS */
 
@@ -135,11 +135,11 @@
 
 /* UserCode start ------------------------------------------------------------*/
 
-/* 延时属性的结构体 */
+/* ��ʱ���ԵĽṹ�� */
 typedef struct Delay
 {
-    uint16_t fac_us;            //us延时倍乘数			   
-    uint32_t fac_ms;            //ms延时倍乘数,在os下,代表每个节拍的ms数
+    uint16_t fac_us;            //us��ʱ������			   
+    uint32_t fac_ms;            //ms��ʱ������,��os��,����ÿ�����ĵ�ms��
 }Delay_t;
 
 /* Member method APIs --------------------------------------------------------*/

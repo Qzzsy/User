@@ -23,6 +23,13 @@
 #define USING_CN_40_CHAR
 #define USING_CN_48_CHAR
 
+/* 选择使用内部的字库还是外部字库 */
+#define USE_CN_INT_LIB
+#define USE_ASCII_INT_LIB
+
+// #define USE_CN_EXT_LIB
+// #define USE_ASCII_EXT_LIB
+
 /* 英文字符信息 */
 typedef struct _paAsciiData
 {

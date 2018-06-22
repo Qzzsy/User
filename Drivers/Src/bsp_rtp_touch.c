@@ -4,8 +4,8 @@
  * @author    ZSY
  * @version   V1.0.0
  * @date      2018-06-21
- * @brief     ç”µå®¹è§¦æ‘¸å±è§¦æ‘¸é¢æ¿çš„é©±åŠ¨ç¨‹åºï¼Œé›†æˆäº†æ•°æ®çš„è¯»å–ä¸å¤„ç†ï¼Œæ ¡å‡†è§¦æ‘¸å¹¶ä¿å­˜æ•°æ®
- *            ç›´æ¥è¾“å‡ºå¯¹åº”çš„åæ ‡
+ * @brief     µçÈİ´¥ÃşÆÁ´¥ÃşÃæ°åµÄÇı¶¯³ÌĞò£¬¼¯³ÉÁËÊı¾İµÄ¶ÁÈ¡Óë´¦Àí£¬Ğ£×¼´¥Ãş²¢±£´æÊı¾İ
+ *            Ö±½ÓÊä³ö¶ÔÓ¦µÄ×ø±ê
  * @History
  * Date           Author    version    		Notes
  * 2017-10-31       ZSY     V1.0.0      first version.
@@ -40,19 +40,19 @@
 #define T_PEN_READ HAL_GPIO_ReadPin(T_PEN_GPIO_Port, T_PEN_Pin)
 #endif
 
-//é»˜è®¤ä¸ºtouchtype=0çš„æ•°æ®.
+//Ä¬ÈÏÎªtouchtype=0µÄÊı¾İ.
 #define CMD_RDX     0xD0
 #define CMD_RDY     0x90
-#define READ_TIMES  5       //è¯»å–æ¬¡æ•°
-#define LOST_VAL    1       //ä¸¢å¼ƒå€¼
-#define ERR_RANGE   50      //è¯¯å·®èŒƒå›´
+#define READ_TIMES  5       //¶ÁÈ¡´ÎÊı
+#define LOST_VAL    1       //¶ªÆúÖµ
+#define ERR_RANGE   50      //Îó²î·¶Î§
 
 #define SAVE_ADJ_DATA_BASE_ADDR         0X20
 
 #pragma pack(1)
 struct _RTP_Param
 {
-    float xFac;			//è§¦æ‘¸å±æ ¡å‡†å‚æ•°		
+    float xFac;			//´¥ÃşÆÁĞ£×¼²ÎÊı		
     float yFac;
     short xOff;
     short yOff;	   
@@ -67,7 +67,7 @@ struct _RTP_Pos
     uint16_t y;
 };
 
-//è§¦æ‘¸å±æ§åˆ¶å™¨
+//´¥ÃşÆÁ¿ØÖÆÆ÷
 typedef struct
 {
     struct _RTP_Pos CurPos;
@@ -81,9 +81,9 @@ typedef struct
 RTP_Dev_t RTP_Dev;
 /**
  * @func    BspRTP_Delay
- * @brief   BspRTPå»¶æ—¶ï¼Œç”¨äºåˆå§‹åŒ–è¿‡ç¨‹
- * @param   nCount å»¶æ—¶çš„å¤§å°
- * @retval  æ— 
+ * @brief   BspRTPÑÓÊ±£¬ÓÃÓÚ³õÊ¼»¯¹ı³Ì
+ * @param   nCount ÑÓÊ±µÄ´óĞ¡
+ * @retval  ÎŞ
  */
 void BspRTP_Delay(__IO uint32_t Number)
 {
@@ -98,9 +98,9 @@ void BspRTP_Delay(__IO uint32_t Number)
 
 /**
  * @func    RTP_WriteByte
- * @brief   å‘è§¦æ‘¸å±ICå†™å…¥1byteæ•°æ®
- * @param   Data è¦å†™å…¥çš„æ•°æ®
- * @retval  æ— 
+ * @brief   Ïò´¥ÃşÆÁICĞ´Èë1byteÊı¾İ
+ * @param   Data ÒªĞ´ÈëµÄÊı¾İ
+ * @retval  ÎŞ
  */
 static void RTP_WriteByte(uint8_t Data)
 {
@@ -118,34 +118,34 @@ static void RTP_WriteByte(uint8_t Data)
         Data <<= 1;
         T_CLK_WRITE_L;
         BspRTP_Delay(1);
-        T_CLK_WRITE_H; //ä¸Šå‡æ²¿æœ‰æ•ˆ
+        T_CLK_WRITE_H; //ÉÏÉıÑØÓĞĞ§
     }
 }
 
 /**
  * @func    RTP_Read_AD
- * @brief   ä»è§¦æ‘¸å±ICè¯»å–adcå€¼
- * @param   Cmd å»¶æ—¶çš„å¤§å°
- * @retval  è¯»åˆ°çš„æ•°æ®
+ * @brief   ´Ó´¥ÃşÆÁIC¶ÁÈ¡adcÖµ
+ * @param   Cmd ÑÓÊ±µÄ´óĞ¡
+ * @retval  ¶Áµ½µÄÊı¾İ
  */
 static uint16_t RTP_ReadAD(uint8_t Cmd)
 {
     uint8_t count = 0;
     uint16_t Data = 0;
-    T_CLK_WRITE_L;      //å…ˆæ‹‰ä½æ—¶é’Ÿ
-    T_DIN_WRITE_L;      //æ‹‰ä½æ•°æ®çº¿
-    T_CS_WRITE_L;       //é€‰ä¸­è§¦æ‘¸å±IC
-    RTP_WriteByte(Cmd); //å‘é€å‘½ä»¤å­—
-    BspRTP_Delay(8);    //ADS7846çš„è½¬æ¢æ—¶é—´æœ€é•¿ä¸º6us
+    T_CLK_WRITE_L;      //ÏÈÀ­µÍÊ±ÖÓ
+    T_DIN_WRITE_L;      //À­µÍÊı¾İÏß
+    T_CS_WRITE_L;       //Ñ¡ÖĞ´¥ÃşÆÁIC
+    RTP_WriteByte(Cmd); //·¢ËÍÃüÁî×Ö
+    BspRTP_Delay(8);    //ADS7846µÄ×ª»»Ê±¼ä×î³¤Îª6us
     T_CLK_WRITE_L;
     BspRTP_Delay(1);
-    T_CLK_WRITE_H; //ç»™1ä¸ªæ—¶é’Ÿï¼Œæ¸…é™¤BUSY
+    T_CLK_WRITE_H; //¸ø1¸öÊ±ÖÓ£¬Çå³ıBUSY
     BspRTP_Delay(1);
     T_CLK_WRITE_L;
-    for (count = 0; count < 16; count++) //è¯»å‡º16ä½æ•°æ®,åªæœ‰é«˜12ä½æœ‰æ•ˆ
+    for (count = 0; count < 16; count++) //¶Á³ö16Î»Êı¾İ,Ö»ÓĞ¸ß12Î»ÓĞĞ§
     {
         Data <<= 1;
-        T_CLK_WRITE_L; //ä¸‹é™æ²¿æœ‰æ•ˆ
+        T_CLK_WRITE_L; //ÏÂ½µÑØÓĞĞ§
         BspRTP_Delay(1);
         T_CLK_WRITE_H;
         if (T_MISO_READ)
@@ -153,16 +153,16 @@ static uint16_t RTP_ReadAD(uint8_t Cmd)
             Data++;
         }
     }
-    Data >>= 4;   //åªæœ‰é«˜12ä½æœ‰æ•ˆ
-    T_CS_WRITE_H; //é‡Šæ”¾ç‰‡é€‰
+    Data >>= 4;   //Ö»ÓĞ¸ß12Î»ÓĞĞ§
+    T_CS_WRITE_H; //ÊÍ·ÅÆ¬Ñ¡
     return (Data);
 }
 
 /**
  * @func    RTP_Read_XOY
- * @brief   è¯»å–è§¦æ‘¸å±çš„Xæˆ–Yå€¼
- * @param   xy é€‰æ‹©è¯»å–çš„å€¼
- * @retval  è¿”å›è¯»å–åˆ°çš„å€¼
+ * @brief   ¶ÁÈ¡´¥ÃşÆÁµÄX»òYÖµ
+ * @param   xy Ñ¡Ôñ¶ÁÈ¡µÄÖµ
+ * @retval  ·µ»Ø¶ÁÈ¡µ½µÄÖµ
  */
 static uint16_t RTP_ReadXOY(uint8_t xy)
 {
@@ -174,11 +174,11 @@ static uint16_t RTP_ReadXOY(uint8_t xy)
     {
         buf[i] = RTP_ReadAD(xy);
     }
-    for (i = 0; i < READ_TIMES - 1; i++) //æ’åº
+    for (i = 0; i < READ_TIMES - 1; i++) //ÅÅĞò
     {
         for (j = i + 1; j < READ_TIMES; j++)
         {
-            if (buf[i] > buf[j]) //å‡åºæ’åˆ—
+            if (buf[i] > buf[j]) //ÉıĞòÅÅÁĞ
             {
                 temp = buf[i];
                 buf[i] = buf[j];
@@ -198,9 +198,9 @@ static uint16_t RTP_ReadXOY(uint8_t xy)
 
 /**
  * @func    BspRTP_Delay
- * @brief   è¯»å–x,yåæ ‡
- * @param   x,y:è¯»å–åˆ°çš„åæ ‡å€¼
- * @retval  0,å¤±è´¥;1,æˆåŠŸ
+ * @brief   ¶ÁÈ¡x,y×ø±ê
+ * @param   x,y:¶ÁÈ¡µ½µÄ×ø±êÖµ
+ * @retval  0,Ê§°Ü;1,³É¹¦
  */
 static uint8_t RTP_Read_xyValue(uint16_t *x, uint16_t *y)
 {
@@ -208,17 +208,17 @@ static uint8_t RTP_Read_xyValue(uint16_t *x, uint16_t *y)
     xtemp = RTP_ReadXOY(RTP_Dev.xCmd);
     ytemp = RTP_ReadXOY(RTP_Dev.yCmd);
     if (xtemp < 100 || ytemp < 100)
-        return RTP_FAULT;//è¯»æ•°å¤±è´¥
+        return RTP_FAULT;//¶ÁÊıÊ§°Ü
     *x = xtemp;
     *y = ytemp;
-    return RTP_OK; //è¯»æ•°æˆåŠŸ
+    return RTP_OK; //¶ÁÊı³É¹¦
 }
 
 /**
  * @func    RTP_Read_XY2
- * @brief   è¯»å–åˆ°XYå€¼
- * @param   x,y:è¯»å–åˆ°çš„åæ ‡å€¼
- * @retval  0,å¤±è´¥;1,æˆåŠŸ
+ * @brief   ¶ÁÈ¡µ½XYÖµ
+ * @param   x,y:¶ÁÈ¡µ½µÄ×ø±êÖµ
+ * @retval  0,Ê§°Ü;1,³É¹¦
  */
 uint8_t RTP_ReadXY(uint16_t *x, uint16_t *y)
 {
@@ -234,7 +234,7 @@ uint8_t RTP_ReadXY(uint16_t *x, uint16_t *y)
     {
         return RTP_FAULT;
     }
-    if (((x2 <= x1 && x1 < x2 + ERR_RANGE) || (x1 <= x2 && x2 < x1 + ERR_RANGE)) //å‰åä¸¤æ¬¡é‡‡æ ·åœ¨+-50å†…
+    if (((x2 <= x1 && x1 < x2 + ERR_RANGE) || (x1 <= x2 && x2 < x1 + ERR_RANGE)) //Ç°ºóÁ½´Î²ÉÑùÔÚ+-50ÄÚ
         && ((y2 <= y1 && y1 < y2 + ERR_RANGE) || (y1 <= y2 && y2 < y1 + ERR_RANGE)))
     {
         *x = (x1 + x2) / 2;
@@ -250,9 +250,9 @@ uint8_t RTP_ReadXY(uint16_t *x, uint16_t *y)
 uint8_t RTP_Scan(void)
 {
     uint16_t ta, tb;
-    if (T_PEN_READ == 0) //æœ‰æŒ‰é”®æŒ‰ä¸‹
+    if (T_PEN_READ == 0) //ÓĞ°´¼ü°´ÏÂ
     {
-        if (RTP_ReadXY(&ta, &tb) != RTP_OK && (RTP_Dev.Sta & RTP_LIFT_UP)) //è¯»å–ç‰©ç†åæ ‡
+        if (RTP_ReadXY(&ta, &tb) != RTP_OK && (RTP_Dev.Sta & RTP_LIFT_UP)) //¶ÁÈ¡ÎïÀí×ø±ê
         {
             return RTP_FAULT;
         }
@@ -274,47 +274,47 @@ uint8_t RTP_Scan(void)
 }
 
 //////////////////////////////////////////////////////////////////////////////////
-//ä¸LCDéƒ¨åˆ†æœ‰å…³çš„å‡½æ•°
-//ç”»ä¸€ä¸ªè§¦æ‘¸ç‚¹
-//ç”¨æ¥æ ¡å‡†ç”¨çš„
-//x,y:åæ ‡
-//color:é¢œè‰²
+//ÓëLCD²¿·ÖÓĞ¹ØµÄº¯Êı
+//»­Ò»¸ö´¥Ãşµã
+//ÓÃÀ´Ğ£×¼ÓÃµÄ
+//x,y:×ø±ê
+//color:ÑÕÉ«
 static void RTP_DrawTouchPoint(uint16_t x, uint16_t y, uint16_t Color)
 {
-    GuiDrawLine(x - 12, y, x + 13, y, Color);  //æ¨ªçº¿
-    GuiDrawLine(x, y - 12, x, y + 13, Color);  //ç«–çº¿
+    GuiDrawLine(x - 12, y, x + 13, y, Color);  //ºáÏß
+    GuiDrawLine(x, y - 12, x, y + 13, Color);  //ÊúÏß
     // LCD_DrawPoint(x + 1, y + 1);
     // LCD_DrawPoint(x - 1, y + 1);
     // LCD_DrawPoint(x + 1, y - 1);
     // LCD_DrawPoint(x - 1, y - 1);
-    GuiDrawCircle(x, y, 6, Color); //ç”»ä¸­å¿ƒåœˆ
+    GuiDrawCircle(x, y, 6, Color); //»­ÖĞĞÄÈ¦
 }
 
-//ä¿å­˜æ ¡å‡†å‚æ•°
+//±£´æĞ£×¼²ÎÊı
 void RTP_SaveAdjdata(void)
 {
     RTP_Dev.RTP_Param.AdjFlag = 0x0A;
     Bsp_eeWriteBytes((uint8_t *)&RTP_Dev.RTP_Param, SAVE_ADJ_DATA_BASE_ADDR, sizeof(struct _RTP_Param));
 }
-//å¾—åˆ°ä¿å­˜åœ¨EEPROMé‡Œé¢çš„æ ¡å‡†å€¼
-//è¿”å›å€¼ï¼š1ï¼ŒæˆåŠŸè·å–æ•°æ®
-//        0ï¼Œè·å–å¤±è´¥ï¼Œè¦é‡æ–°æ ¡å‡†
+//µÃµ½±£´æÔÚEEPROMÀïÃæµÄĞ£×¼Öµ
+//·µ»ØÖµ£º1£¬³É¹¦»ñÈ¡Êı¾İ
+//        0£¬»ñÈ¡Ê§°Ü£¬ÒªÖØĞÂĞ£×¼
 uint8_t RTP_GetAdjdata(void)
 {
     struct _RTP_Param TempParam;
 
     Bsp_eeReadBytes((uint8_t *)&TempParam, SAVE_ADJ_DATA_BASE_ADDR, sizeof(struct _RTP_Param));
 
-    if (TempParam.AdjFlag == 0x0A)              //è§¦æ‘¸å±å·²ç»æ ¡å‡†è¿‡äº†
+    if (TempParam.AdjFlag == 0x0A)              //´¥ÃşÆÁÒÑ¾­Ğ£×¼¹ıÁË
     {
         RTP_Dev.RTP_Param = TempParam;
 
-        if (RTP_Dev.RTP_Param.TouchType)        //X,Yæ–¹å‘ä¸å±å¹•ç›¸å
+        if (RTP_Dev.RTP_Param.TouchType)        //X,Y·½ÏòÓëÆÁÄ»Ïà·´
         {
             RTP_Dev.xCmd = CMD_RDY;
             RTP_Dev.yCmd = CMD_RDX;
         }
-        else //X,Yæ–¹å‘ä¸å±å¹•ç›¸åŒ
+        else //X,Y·½ÏòÓëÆÁÄ»ÏàÍ¬
         {
             RTP_Dev.xCmd = CMD_RDX;
             RTP_Dev.yCmd = CMD_RDY;
@@ -323,11 +323,11 @@ uint8_t RTP_GetAdjdata(void)
     }
     return RTP_FAULT;
 }
-//è§¦æ‘¸å±æ ¡å‡†ä»£ç 
-//å¾—åˆ°å››ä¸ªæ ¡å‡†å‚æ•°
+//´¥ÃşÆÁĞ£×¼´úÂë
+//µÃµ½ËÄ¸öĞ£×¼²ÎÊı
 void RTP_Adjust(void)
 {
-    uint16_t PosTemp[4][2]; //åæ ‡ç¼“å­˜å€¼
+    uint16_t PosTemp[4][2]; //×ø±ê»º´æÖµ
     uint8_t cnt = 0;
     uint16_t d1, d2;
     uint32_t tem1, tem2;
@@ -339,21 +339,21 @@ void RTP_Adjust(void)
 
     GuiDrawStringAt("Please calibration screen!", 0, 40);
     
-    RTP_DrawTouchPoint(20, 20, RED);     //ç”»ç‚¹1
-    RTP_Dev.RTP_Param.xFac = 0;         //xfacç”¨æ¥æ ‡è®°æ˜¯å¦æ ¡å‡†è¿‡,æ‰€ä»¥æ ¡å‡†ä¹‹å‰å¿…é¡»æ¸…æ‰!ä»¥å…é”™è¯¯
+    RTP_DrawTouchPoint(20, 20, RED);     //»­µã1
+    RTP_Dev.RTP_Param.xFac = 0;         //xfacÓÃÀ´±ê¼ÇÊÇ·ñĞ£×¼¹ı,ËùÒÔĞ£×¼Ö®Ç°±ØĞëÇåµô!ÒÔÃâ´íÎó
     RTP_Dev.xCmd = CMD_RDX;
     RTP_Dev.yCmd = CMD_RDY;
     RTP_Dev.Sta |= RTP_LIFT_UP;
-    RTP_ReadXY(&d1,&d1);//ç¬¬ä¸€æ¬¡è¯»å–åˆå§‹åŒ–
+    RTP_ReadXY(&d1,&d1);//µÚÒ»´Î¶ÁÈ¡³õÊ¼»¯
     
-    while (1)                           //å¦‚æœè¿ç»­10ç§’é’Ÿæ²¡æœ‰æŒ‰ä¸‹,åˆ™è‡ªåŠ¨é€€å‡º
+    while (1)                           //Èç¹ûÁ¬Ğø10ÃëÖÓÃ»ÓĞ°´ÏÂ,Ôò×Ô¶¯ÍË³ö
     {
-        if (RTP_Scan() != RTP_OK)       //æ‰«æç‰©ç†åæ ‡
+        if (RTP_Scan() != RTP_OK)       //É¨ÃèÎïÀí×ø±ê
         {
             continue;
         }
 
-        if (RTP_Dev.Sta & RTP_PRESS)    //æŒ‰é”®æŒ‰ä¸‹äº†ä¸€æ¬¡(æ­¤æ—¶æŒ‰é”®æ¾å¼€äº†.)
+        if (RTP_Dev.Sta & RTP_PRESS)    //°´¼ü°´ÏÂÁËÒ»´Î(´ËÊ±°´¼üËÉ¿ªÁË.)
         {
             OutTime = 0;
 
@@ -363,103 +363,103 @@ void RTP_Adjust(void)
             switch (cnt)
             {
             case 1:
-                RTP_DrawTouchPoint(20, 20, WHITE);              //æ¸…é™¤ç‚¹1
-                RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, 20, RED); //ç”»ç‚¹2
+                RTP_DrawTouchPoint(20, 20, WHITE);              //Çå³ıµã1
+                RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, 20, RED); //»­µã2
                 break;
             case 2:
-                RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, 20, WHITE); //æ¸…é™¤ç‚¹2
-                RTP_DrawTouchPoint(20, BspLCD_Dev.Height - 20, RED);  //ç”»ç‚¹3
+                RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, 20, WHITE); //Çå³ıµã2
+                RTP_DrawTouchPoint(20, BspLCD_Dev.Height - 20, RED);  //»­µã3
                 break;
             case 3:
-                RTP_DrawTouchPoint(20, BspLCD_Dev.Height - 20, WHITE);              //æ¸…é™¤ç‚¹3
-                RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, RED); //ç”»ç‚¹4
+                RTP_DrawTouchPoint(20, BspLCD_Dev.Height - 20, WHITE);              //Çå³ıµã3
+                RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, RED); //»­µã4
                 break;
-            case 4:                                          //å…¨éƒ¨å››ä¸ªç‚¹å·²ç»å¾—åˆ°
-                                                             //å¯¹è¾¹ç›¸ç­‰
+            case 4:                                          //È«²¿ËÄ¸öµãÒÑ¾­µÃµ½
+                                                             //¶Ô±ßÏàµÈ
                 tem1 = abs(PosTemp[0][0] - PosTemp[1][0]); //x1-x2
                 tem2 = abs(PosTemp[0][1] - PosTemp[1][1]); //y1-y2
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d1 = sqrt(tem1 + tem2); //å¾—åˆ°1,2çš„è·ç¦»
+                d1 = sqrt(tem1 + tem2); //µÃµ½1,2µÄ¾àÀë
 
                 tem1 = abs(PosTemp[2][0] - PosTemp[3][0]); //x3-x4
                 tem2 = abs(PosTemp[2][1] - PosTemp[3][1]); //y3-y4
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d2 = sqrt(tem1 + tem2); //å¾—åˆ°3,4çš„è·ç¦»
+                d2 = sqrt(tem1 + tem2); //µÃµ½3,4µÄ¾àÀë
                 fac = (float)d1 / d2;
-                if (fac < 0.95 || fac > 1.05 || d1 == 0 || d2 == 0) //ä¸åˆæ ¼
+                if (fac < 0.95 || fac > 1.05 || d1 == 0 || d2 == 0) //²»ºÏ¸ñ
                 {
                     cnt = 0;
-                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE);                                                                                           //æ¸…é™¤ç‚¹4
-                    RTP_DrawTouchPoint(20, 20, RED);                                                                                                                            //ç”»ç‚¹1
+                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE);                                                                                           //Çå³ıµã4
+                    RTP_DrawTouchPoint(20, 20, RED);                                                                                                                            //»­µã1
                     // TP_Adj_Info_Show(PosTemp[0][0], PosTemp[0][1], PosTemp[1][0], PosTemp[1][1],
-                    //                  PosTemp[2][0], PosTemp[2][1], PosTemp[3][0], PosTemp[3][1], fac * 100); //æ˜¾ç¤ºæ•°æ®
+                    //                  PosTemp[2][0], PosTemp[2][1], PosTemp[3][0], PosTemp[3][1], fac * 100); //ÏÔÊ¾Êı¾İ
                     continue;
                 }
                 tem1 = abs(PosTemp[0][0] - PosTemp[2][0]); //x1-x3
                 tem2 = abs(PosTemp[0][1] - PosTemp[2][1]); //y1-y3
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d1 = sqrt(tem1 + tem2); //å¾—åˆ°1,3çš„è·ç¦»
+                d1 = sqrt(tem1 + tem2); //µÃµ½1,3µÄ¾àÀë
 
                 tem1 = abs(PosTemp[1][0] - PosTemp[3][0]); //x2-x4
                 tem2 = abs(PosTemp[1][1] - PosTemp[3][1]); //y2-y4
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d2 = sqrt(tem1 + tem2); //å¾—åˆ°2,4çš„è·ç¦»
+                d2 = sqrt(tem1 + tem2); //µÃµ½2,4µÄ¾àÀë
                 fac = (float)d1 / d2;
-                if (fac < 0.95 || fac > 1.05) //ä¸åˆæ ¼
+                if (fac < 0.95 || fac > 1.05) //²»ºÏ¸ñ
                 {
                     cnt = 0;
-                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE);                                                                                           //æ¸…é™¤ç‚¹4
-                    RTP_DrawTouchPoint(20, 20, RED);                                                                                                                            //ç”»ç‚¹1
+                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE);                                                                                           //Çå³ıµã4
+                    RTP_DrawTouchPoint(20, 20, RED);                                                                                                                            //»­µã1
                     // TP_Adj_Info_Show(PosTemp[0][0], PosTemp[0][1], PosTemp[1][0], PosTemp[1][1],
-                    //                  PosTemp[2][0], PosTemp[2][1], PosTemp[3][0], PosTemp[3][1], fac * 100); //æ˜¾ç¤ºæ•°æ®
+                    //                  PosTemp[2][0], PosTemp[2][1], PosTemp[3][0], PosTemp[3][1], fac * 100); //ÏÔÊ¾Êı¾İ
                     continue;
-                } //æ­£ç¡®äº†
+                } //ÕıÈ·ÁË
 
-                //å¯¹è§’çº¿ç›¸ç­‰
+                //¶Ô½ÇÏßÏàµÈ
                 tem1 = abs(PosTemp[1][0] - PosTemp[2][0]); //x1-x3
                 tem2 = abs(PosTemp[1][1] - PosTemp[2][1]); //y1-y3
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d1 = sqrt(tem1 + tem2); //å¾—åˆ°1,4çš„è·ç¦»
+                d1 = sqrt(tem1 + tem2); //µÃµ½1,4µÄ¾àÀë
 
                 tem1 = abs(PosTemp[0][0] - PosTemp[3][0]); //x2-x4
                 tem2 = abs(PosTemp[0][1] - PosTemp[3][1]); //y2-y4
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d2 = sqrt(tem1 + tem2); //å¾—åˆ°2,3çš„è·ç¦»
+                d2 = sqrt(tem1 + tem2); //µÃµ½2,3µÄ¾àÀë
                 fac = (float)d1 / d2;
-                if (fac < 0.95 || fac > 1.05) //ä¸åˆæ ¼
+                if (fac < 0.95 || fac > 1.05) //²»ºÏ¸ñ
                 {
                     cnt = 0;
-                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE);                                                                                           //æ¸…é™¤ç‚¹4
-                    RTP_DrawTouchPoint(20, 20, RED);                                                                                                                            //ç”»ç‚¹1
+                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE);                                                                                           //Çå³ıµã4
+                    RTP_DrawTouchPoint(20, 20, RED);                                                                                                                            //»­µã1
                     // TP_Adj_Info_Show(PosTemp[0][0], PosTemp[0][1], PosTemp[1][0], PosTemp[1][1],
-                    //                  PosTemp[2][0], PosTemp[2][1], PosTemp[3][0], PosTemp[3][1], fac * 100); //æ˜¾ç¤ºæ•°æ®
+                    //                  PosTemp[2][0], PosTemp[2][1], PosTemp[3][0], PosTemp[3][1], fac * 100); //ÏÔÊ¾Êı¾İ
                     continue;
-                } //æ­£ç¡®äº†
-                //è®¡ç®—ç»“æœ
-                RTP_Dev.RTP_Param.xFac = (float)(BspLCD_Dev.Width - 40) / (PosTemp[1][0] - PosTemp[0][0]);       //å¾—åˆ°xfac
-                RTP_Dev.RTP_Param.xOff = (BspLCD_Dev.Width - RTP_Dev.RTP_Param.xFac * (PosTemp[1][0] + PosTemp[0][0])) / 2; //å¾—åˆ°xoff
+                } //ÕıÈ·ÁË
+                //¼ÆËã½á¹û
+                RTP_Dev.RTP_Param.xFac = (float)(BspLCD_Dev.Width - 40) / (PosTemp[1][0] - PosTemp[0][0]);       //µÃµ½xfac
+                RTP_Dev.RTP_Param.xOff = (BspLCD_Dev.Width - RTP_Dev.RTP_Param.xFac * (PosTemp[1][0] + PosTemp[0][0])) / 2; //µÃµ½xoff
 
-                RTP_Dev.RTP_Param.yFac = (float)(BspLCD_Dev.Height - 40) / (PosTemp[2][1] - PosTemp[0][1]);       //å¾—åˆ°yfac
-                RTP_Dev.RTP_Param.yOff = (BspLCD_Dev.Height - RTP_Dev.RTP_Param.yFac * (PosTemp[2][1] + PosTemp[0][1])) / 2; //å¾—åˆ°yoff
-                if (abs(RTP_Dev.RTP_Param.yFac) > 2)                                    //è§¦å±å’Œé¢„è®¾çš„ç›¸åäº†.
+                RTP_Dev.RTP_Param.yFac = (float)(BspLCD_Dev.Height - 40) / (PosTemp[2][1] - PosTemp[0][1]);       //µÃµ½yfac
+                RTP_Dev.RTP_Param.yOff = (BspLCD_Dev.Height - RTP_Dev.RTP_Param.yFac * (PosTemp[2][1] + PosTemp[0][1])) / 2; //µÃµ½yoff
+                if (abs(RTP_Dev.RTP_Param.yFac) > 2)                                    //´¥ÆÁºÍÔ¤ÉèµÄÏà·´ÁË.
                 {
                     cnt = 0;
-                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE); //æ¸…é™¤ç‚¹4
-                    RTP_DrawTouchPoint(20, 20, RED);                                  //ç”»ç‚¹1
+                    RTP_DrawTouchPoint(BspLCD_Dev.Width - 20, BspLCD_Dev.Height - 20, WHITE); //Çå³ıµã4
+                    RTP_DrawTouchPoint(20, 20, RED);                                  //»­µã1
                     GuiDrawStringAt("TP Need readjust!", 40, 26);
-                    RTP_Dev.RTP_Param.TouchType = !RTP_Dev.RTP_Param.TouchType; //ä¿®æ”¹è§¦å±ç±»å‹.
-                    if (RTP_Dev.RTP_Param.TouchType)                 //X,Yæ–¹å‘ä¸å±å¹•ç›¸å
+                    RTP_Dev.RTP_Param.TouchType = !RTP_Dev.RTP_Param.TouchType; //ĞŞ¸Ä´¥ÆÁÀàĞÍ.
+                    if (RTP_Dev.RTP_Param.TouchType)                 //X,Y·½ÏòÓëÆÁÄ»Ïà·´
                     {
                         RTP_Dev.xCmd = CMD_RDY;
                         RTP_Dev.yCmd = CMD_RDX;
                     }
-                    else //X,Yæ–¹å‘ä¸å±å¹•ç›¸åŒ
+                    else //X,Y·½ÏòÓëÆÁÄ»ÏàÍ¬
                     {
                         RTP_Dev.xCmd = CMD_RDX;
                         RTP_Dev.yCmd = CMD_RDY;
@@ -470,8 +470,8 @@ void RTP_Adjust(void)
                 GuiDrawStringAt("Touch Screen Adjust OK!", 35, 110) ;            
                 HAL_Delay(1000);
                 RTP_SaveAdjdata();
-                GuiClrScr(WHITE); //æ¸…å±
-                return;           //æ ¡æ­£å®Œæˆ
+                GuiClrScr(WHITE); //ÇåÆÁ
+                return;           //Ğ£ÕıÍê³É
             }
         }
         HAL_Delay(10);

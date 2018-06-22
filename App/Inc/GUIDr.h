@@ -19,26 +19,66 @@
 
 #include "Font.h"
 
+/* 屏幕的宽度和高度 */
 #define LCD_WIDTH           320
 #define LCD_HEIGHT          240
 
 /* 点阵数据缓存, 必须大于等于单个字模需要的存储空间*/ 
 #define BYTES_PER_FONT      512 
 
-#define USE_SMALL_FONT
-#define USE_GBK_FONT
-#define USE_GB2312_FONT
+#if defined USE_CN_INT_LIB || defined USE_ASCII_INT_LIB
+/* 字库位于内部的FLASH */
+#define USE_SMALL_LIB_FONT              (1)     //1为使能内部字库
+#endif
 
+#ifdef USE_CN_EXT_LIB
+/* 字库位于外部的FLASH */
+#define USE_GBK_LIB_FONT                (0)     //1为使能GBK字库
+/* 字库位于外部的FLASH */
+#define USE_GB2312_LIB_FONT             (0)     //1为使能GB2312字库
+#endif
+
+#if USE_SMALL_LIB_FONT == 1
+/* 中文字库最大容量 */
+#define ChAR_NUM_MAX          200
+#endif
+
+/* 英文的字库的地址如果不存在，请将其注释掉，避免出现错误 */
+#ifdef USE_ASCII_EXT_LIB
+/* 英文字库基地址 */
+#define FONT_ASCII16_BASE_ADDR                 0x20000000
+#define FONT_ASCII24_BASE_ADDR                 0x20000000
+#define FONT_ASCII32_BASE_ADDR                 0x20000000
+#define FONT_ASCII40_BASE_ADDR                 0x20000000
+#define FONT_ASCII48_BASE_ADDR                 0x20000000
+#endif
+
+/* 汉字的字库的地址如果不存在，请将其注释掉，避免出现错误 */
+#if USE_GBK_LIB_FONT == 1
+
+/* 中文字库基地址 */
+#define GBK_FONT_CN16_BASE_ADDR                 0x20000000
+#define GBK_FONT_CN24_BASE_ADDR                 0x20000000
+#define GBK_FONT_CN32_BASE_ADDR                 0x20000000
+#define GBK_FONT_CN40_BASE_ADDR                 0x20000000
+#define GBK_FONT_CN48_BASE_ADDR                 0x20000000
+#endif
+
+#if USE_GB2312_LIB_FONT == 1
+/* 中文字库基地址 */
+#define GB2312_FONT_CN16_BASE_ADDR                 0x20000000
+#define GB2312_FONT_CN24_BASE_ADDR                 0x20000000
+#define GB2312_FONT_CN32_BASE_ADDR                 0x20000000
+#define GB2312_FONT_CN40_BASE_ADDR                 0x20000000
+#define GB2312_FONT_CN48_BASE_ADDR                 0x20000000
+#endif
+
+/* 字符串对齐方式的宏定义 */
 #define LEFT_ALIGN          1 << 0
 #define RIGHT_ALIGN         1 << 1
 #define TOP_ALIGN           1 << 2
 #define BOTTOM_ALIGN        1 << 3
 #define CENTER_ALIGN        1 << 4
-
-#ifdef USE_SMALL_FONT
-/* 中文字库最大容量 */
-#define CharNumMax          200
-#endif
 
 /* 字体颜色默认值 */
 #define GUI_TextDefaultColor  \
@@ -53,6 +93,10 @@
     {16, 24, 12, "A24"}, \
     {24, 24, 24, "H24"}, \
 };
+
+#ifndef NULL
+    #define NULL            0
+#endif
 
 /* 扩展声明变量 */
 typedef unsigned char       uint8_t;
@@ -99,6 +143,9 @@ void GuiSetDeviceAPI(void (* PutPixelNoPos)(uint16_t pColor),
                      void (* PutPixel)(uint16_t xCur, uint16_t yCur, uint16_t pColor),
                      void (* SetDispWin)(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height)
                      );
+#if defined USE_ASCII_EXT_LIB || defined USE_CN_EXT_LIB
+void GuiSetFlashReadAPI(void (* ReadData)(uint32_t Address, uint8_t * pDataBuf, uint32_t BufSize));
+#endif
 void GuiClrScr(uint16_t pColor);
 void GuiDrawStringAt(const char * Cn, uint16_t x, uint16_t y);
 void GuiDrawTranStringAt(const char * Cn, uint16_t x, uint16_t y);

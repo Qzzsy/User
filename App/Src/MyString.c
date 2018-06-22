@@ -1,4 +1,4 @@
-#include "string.h"
+#include "MyString.h"
 
 #ifdef  __cplusplus
 #define _ADDRESSOF(v)   ( &reinterpret_cast<const char &>(v) )

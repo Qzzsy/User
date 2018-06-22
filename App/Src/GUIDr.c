@@ -12,16 +12,19 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "GUIDr.h"
-#include "string.h"
-#include "stdio.h"
 #include "math.h"
 #include "stdlib.h"
-#include "string.h"
+#include "MyString.h"
 
 /* Private macro Definition --------------------------------------------------*/
 /* 定义两个控制变量 */
 #define CHAR_TRANS          0x00
 #define CHAR_NO_TRANS       0x01
+#define GBK_FONT            0x00
+#define GB2312_FONT         0x01
+#define NONE_FONT           0xff
+
+#define GUI_ERROR           0xffffffff
 
 typedef struct _LCD_Info
 {
@@ -56,6 +59,9 @@ typedef struct
     void (* PutPixelNoPos)(uint16_t pColor);
     void (* PutPixel)(uint16_t xCur, uint16_t yCur, uint16_t pColor);
     void (* SetDispWin)(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height);
+#if defined USE_ASCII_EXT_LIB || defined USE_CN_EXT_LIB
+    void (* ReadData)(uint32_t Address, uint8_t * pDataBuf, uint32_t BufSize);
+#endif
 }GUI_DeviceAPI_t;
 
 /* 外部声明，引用变量 */
@@ -91,6 +97,11 @@ static GUI_TextColor_t _GUI_TextColor = GUI_TextDefaultColor;
 /* 默认字体内容缓存区，防止因找不到字体使显示错乱 */
 static uint8_t _GUI_FontDefaultDataBuf[BYTES_PER_FONT] = {'\0'};
 
+#if defined USE_CN_EXT_LIB || defined USE_ASCII_EXT_LIB
+/* 默认字体内容缓存区，使用外部字库时用到 */
+static uint8_t _GUI_FontDataBufFromFlash[BYTES_PER_FONT] = {'\0'};
+#endif
+
 /* 字体内容的缓存指针，直接指向内存，提高速度 */
 static uint8_t * _GUI_FontDataBuf;
 
@@ -107,6 +118,328 @@ static uint16_t _GUI_BarColorItems[LCD_HEIGHT] = {'\0'};
 static uint16_t _GUI_BarColorItems[LCD_WIDTH] = {'\0'};
 #endif
 
+static inline uint8_t * _GetASCII_FontData(GUI_CnInfo_t * GUI_CnInfo)
+{
+    uint8_t WordNun; 
+#if defined USE_ASCII_EXT_LIB || defined USE_CN_EXT_LIB
+    uint32_t FlashAddr = 0;
+#endif
+/* 屏蔽部分没有显示的ASCII码 */
+    if (GUI_CnInfo->Cn < 32)
+    {
+        return (uint8_t *)GUI_ERROR;
+    }
+    
+    /* 从ASCII码的32开始有显示，所以此处减掉32 */
+    WordNun = GUI_CnInfo->Cn - 32;
+#ifdef USE_ASCII_INT_LIB        
+    /* 使用16的点阵 */
+#ifdef USING_CN_16_CHAR
+    if (my_strncmp("A16", GUI_CnInfo->Font, 3) == 0) /* 8*16 ASCII字符 */
+    {
+        /* 指针直接取地址 */
+        return (uint8_t *)&ASCII08x16[(uint16_t )WordNun * GUI_CnInfo->SumBytes];
+    }
+#endif /* USING_CN_16_CHAR */   
+    
+    /* 使用24的点阵 */
+#ifdef USING_CN_24_CHAR  
+    if (my_strncmp("A24", GUI_CnInfo->Font, 3) == 0) /* 16*24 ASCII字符 */
+    {          
+        return (uint8_t *)&ASCII12x24[(uint16_t )WordNun * GUI_CnInfo->SumBytes];
+    }
+#endif /* USING_CN_24_CHAR */
+    
+    /* 使用32的点阵 */
+#ifdef USING_CN_32_CHAR  
+    if (my_strncmp("A32", GUI_CnInfo->Font, 3) == 0) /* 20*32 ASCII字符 */
+    {  
+        return (uint8_t *)&ASCII16x32[(uint16_t )WordNun * GUI_CnInfo->SumBytes];
+    }
+#endif /* USING_CN_32_CHAR */
+    
+    /* 使用40的点阵 */
+#ifdef USING_CN_40_CHAR  
+    if (my_strncmp("A40", GUI_CnInfo->Font, 3) == 0) /* 24*40 ASCII字符 */
+    {  
+        return (uint8_t *)&ASCII20x40[(uint16_t )WordNun * GUI_CnInfo->SumBytes];
+    }
+#endif /* USING_CN_40_CHAR */
+    
+    /* 使用48的点阵 */
+#ifdef USING_CN_48_CHAR   
+    if (my_strncmp("A48", GUI_CnInfo->Font, 3) == 0) /* 28*48 ASCII字符 */
+    { 
+        return (uint8_t *)&ASCII24x48[(uint16_t )WordNun * GUI_CnInfo->SumBytes];
+    }
+#endif /* USING_CN_48_CHAR */
+#elif defined USE_ASCII_EXT_LIB
+    /* 使用16的点阵 */
+#ifdef USING_CN_16_CHAR
+    if (my_strncmp("A16", GUI_CnInfo->Font, 3) == 0) /* 8*16 ASCII字符 */
+    {
+#ifdef FONT_ASCII16_BASE_ADDR
+        /* 计算地址 */
+        FlashAddr = FONT_ASCII16_BASE_ADDR + (uint16_t)WordNun * GUI_CnInfo->SumBytes;
+        goto _ReadASCII_Data; 
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_16_CHAR */   
+    
+    /* 使用24的点阵 */
+#ifdef USING_CN_24_CHAR  
+    if (my_strncmp("A24", GUI_CnInfo->Font, 3) == 0) /* 16*24 ASCII字符 */
+    {          
+#ifdef FONT_ASCII24_BASE_ADDR
+        FlashAddr = FONT_ASCII24_BASE_ADDR + (uint16_t)WordNun * GUI_CnInfo->SumBytes;
+        goto _ReadASCII_Data;
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_24_CHAR */
+    
+    /* 使用32的点阵 */
+#ifdef USING_CN_32_CHAR  
+    if (my_strncmp("A32", GUI_CnInfo->Font, 3) == 0) /* 20*32 ASCII字符 */
+    {  
+#ifdef FONT_ASCII32_BASE_ADDR
+        FlashAddr = FONT_ASCII32_BASE_ADDR + (uint16_t)WordNun * GUI_CnInfo->SumBytes;
+        goto _ReadASCII_Data;
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_32_CHAR */
+    
+    /* 使用40的点阵 */
+#ifdef USING_CN_40_CHAR  
+    if (my_strncmp("A40", GUI_CnInfo->Font, 3) == 0) /* 24*40 ASCII字符 */
+    {  
+#ifdef FONT_ASCII40_BASE_ADDR
+        FlashAddr = FONT_ASCII40_BASE_ADDR + (uint16_t)WordNun * GUI_CnInfo->SumBytes;
+        goto _ReadASCII_Data;
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_40_CHAR */
+    
+    /* 使用48的点阵 */
+#ifdef USING_CN_48_CHAR   
+    if (my_strncmp("A48", GUI_CnInfo->Font, 3) == 0) /* 28*48 ASCII字符 */
+    { 
+#ifdef FONT_ASCII48_BASE_ADDR
+        FlashAddr = FONT_ASCII48_BASE_ADDR + (uint16_t)WordNun * GUI_CnInfo->SumBytes;
+        goto _ReadASCII_Data;
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_48_CHAR */
+_ReadASCII_Data:
+    _GUI_DeviceAPI.ReadData(FlashAddr, _GUI_FontDataBufFromFlash, GUI_CnInfo->SumBytes);
+    return _GUI_FontDataBufFromFlash;
+#endif
+    return (uint8_t *)GUI_ERROR;
+}
+
+static inline uint8_t * _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
+{
+    uint16_t i = 0;
+#if defined USE_ASCII_EXT_LIB || defined USE_CN_EXT_LIB
+    uint32_t FlashAddr = 0;
+    uint8_t FontType = NONE_FONT;
+#endif
+#ifdef USE_CN_INT_LIB
+#ifdef USING_CN_16_CHAR  
+    if(my_strncmp("H16", GUI_CnInfo->Font, 3) == 0) /* 16*16 中文字符 */
+    { 
+        for (i = 0; i < ChAR_NUM_MAX; i++)        //循环查询内码，查找汉字的数据
+        {
+            if((HanZi16Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi16Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            {
+                return (uint8_t *)HanZi16Data[i].Msk;
+            }
+        }
+        
+        _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
+    }
+#endif /* USING_CN_16_CHAR */
+#ifdef USING_CN_24_CHAR          
+    if (my_strncmp("H24", GUI_CnInfo->Font, 3) == 0) /* 24*24 中文字符 */
+    {
+        for (i = 0; i < ChAR_NUM_MAX; i++)
+        {
+            if((HanZi24Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi24Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            {
+                return (uint8_t *)HanZi24Data[i].Msk;
+            }
+        }
+        
+        _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
+    }
+#endif /* USING_CN_24_CHAR */
+#ifdef USING_CN_32_CHAR  
+    if (my_strncmp("H32", GUI_CnInfo->Font, 3) == 0) /* 32*32 中文字符 */
+    {
+        for (i = 0; i < ChAR_NUM_MAX; i++)
+        {
+            if((HanZi32Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi32Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            {
+                return (uint8_t *)HanZi32Data[i].Msk;
+            }
+        }
+        
+        _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
+    }
+#endif /* USING_CN_32_CHAR */
+#ifdef USING_CN_40_CHAR  
+    if (my_strncmp("H40", GUI_CnInfo->Font, 3) == 0) /* 40*40 中文字符 */
+    {
+        for (i = 0; i < ChAR_NUM_MAX; i++)
+        {
+            if((HanZi40Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi40Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            {
+                return (uint8_t *)HanZi40Data[i].Msk;
+            }
+        }
+        
+        _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
+    }
+#endif /* USING_CN_40_CHAR */
+#ifdef USING_CN_48_CHAR  
+    if (my_strncmp("H48", GUI_CnInfo->Font, 3) == 0) /* 48*48 中文字符 */
+    {
+        for (i = 0; i < ChAR_NUM_MAX; i++)
+        {
+            if((HanZi48Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi48Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            {
+                return (uint8_t *)HanZi48Data[i].Msk;
+            }
+        }
+        
+        _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
+    }
+#endif /* USING_CN_48_CHAR */
+#elif defined USE_CN_EXT_LIB
+#ifdef USING_CN_16_CHAR  
+    if(my_strncmp("H16", GUI_CnInfo->Font, 3) == 0) /* 16*16 中文字符 */
+    { 
+#ifdef GBK_FONT_CN16_BASE_ADDR
+        FlashAddr = GBK_FONT_CN16_BASE_ADDR;
+        FontType = GBK_FONT;
+        goto _ReadCN_Data;
+#elif define GB2312_FONT_CN16_BASE_ADDR
+        FlashAddr = GB2312_FONT_CN16_BASE_ADDR;
+        FontType = GB2312_FONT;
+        goto _ReadCN_Data;
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_16_CHAR */
+#ifdef USING_CN_24_CHAR          
+    if (my_strncmp("H24", GUI_CnInfo->Font, 3) == 0) /* 24*24 中文字符 */
+    {
+#ifdef GBK_FONT_CN24_BASE_ADDR
+        FlashAddr = GBK_FONT_CN24_BASE_ADDR;
+        FontType = GBK_FONT;
+        goto _ReadCN_Data;
+#elif define GB2312_FONT_CN24_BASE_ADDR
+        FlashAddr = GB2312_FONT_CN24_BASE_ADDR;
+        FontType = GB2312_FONT;
+        goto _ReadCN_Data;
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_24_CHAR */
+#ifdef USING_CN_32_CHAR  
+    if (my_strncmp("H32", GUI_CnInfo->Font, 3) == 0) /* 32*32 中文字符 */
+    {
+#ifdef GBK_FONT_CN32_BASE_ADDR
+        FlashAddr = GBK_FONT_CN32_BASE_ADDR;
+        FontType = GBK_FONT;
+        goto _ReadCN_Data;
+#elif define GB2312_FONT_CN32_BASE_ADDR
+        FlashAddr = GB2312_FONT_CN32_BASE_ADDR;
+        FontType = GB2312_FONT;
+        goto _ReadCN_Data;
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_32_CHAR */
+#ifdef USING_CN_40_CHAR  
+    if (my_strncmp("H40", GUI_CnInfo->Font, 3) == 0) /* 40*40 中文字符 */
+    {
+#ifdef GBK_FONT_CN40_BASE_ADDR
+        FlashAddr = GBK_FONT_CN40_BASE_ADDR;
+        FontType = GBK_FONT;
+        goto _ReadCN_Data;
+#elif define GB2312_FONT_CN40_BASE_ADDR
+        FlashAddr = GB2312_FONT_CN40_BASE_ADDR;
+        FontType = GB2312_FONT;
+        goto _ReadCN_Data;
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_40_CHAR */
+#ifdef USING_CN_48_CHAR  
+    if (my_strncmp("H48", GUI_CnInfo->Font, 3) == 0) /* 48*48 中文字符 */
+    {
+#ifdef GBK_FONT_CN48_BASE_ADDR
+        FlashAddr = GBK_FONT_CN48_BASE_ADDR;
+        FontType = GBK_FONT;
+        goto _ReadCN_Data;
+#elif define GB2312_FONT_CN48_BASE_ADDR
+        FlashAddr = GB2312_FONT_CN48_BASE_ADDR;
+        FontType = GB2312_FONT;
+        goto _ReadCN_Data;
+#else
+        return (uint8_t *)GUI_ERROR;
+#endif
+    }
+#endif /* USING_CN_48_CHAR */
+_ReadCN_Data:
+    if (FontType == GBK_FONT)
+    {
+        /* 根据汉字内码的计算公式锁定起始地址 */
+        code2 = c >> 8;
+        code1 = c & 0xFF;
+        
+        /* 由于字符编码是安顺序存储的，先存储到高位（区号），然后是低位（位号）。而我们用的是小端格式，
+            一个汉字两个字节，获取的16位变量，正好相反，16位变量的高位是位号，低位是区号。
+        */
+        FlashAddr = ((code1 - 0xA1) * 94 + (code2 - 0xa1)) * GUI_CnInfo->SumBytes + FlashAddr;
+    }
+    else if (FontType == GB2312_FONT)
+    {
+        /* 根据汉字内码的计算公式锁定起始地址 */
+        code2 = c >> 8;
+        code1 = c & 0xFF;
+        
+        /* 由于字符编码是安顺序存储的，先存储到高位（区号），然后是低位（位号）。而我们用的是小端格式，
+            一个汉字两个字节，获取的16位变量，正好相反，16位变量的高位是位号，低位是区号。
+        */
+        FlashAddr = ((code1 - 0x81) * 190 + (code2 - 0x40) - (code2 / 128)) * GUI_CnInfo->SumBytes + FlashAddr;
+    }
+
+    _GUI_DeviceAPI.ReadData(FlashAddr, _GUI_FontDataBufFromFlash, GUI_CnInfo->SumBytes);
+    return _GUI_FontDataBufFromFlash;
+#endif
+    return (uint8_t *)GUI_ERROR;
+}
+
 /**
  * @func    _GetDataFromMemory
  * @brief   从内存里获取点阵的信息
@@ -114,13 +447,11 @@ static uint16_t _GUI_BarColorItems[LCD_WIDTH] = {'\0'};
  * @note
  * @retval  无
  */
-static inline void _GetDataFromMemory(GUI_CnInfo_t GUI_CnInfo)
+static uint8_t * _GetDataFromMemory(GUI_CnInfo_t * GUI_CnInfo)
 {
-    uint16_t BytesPerFont, i = 0;
-    uint8_t WordNun; 
-    
+    uint16_t BytesPerFont;
     /* 获取该大小下的点阵字模的字节数 */
-    BytesPerFont = GUI_CnInfo.SumBytes;
+    BytesPerFont = GUI_CnInfo->SumBytes;
     
     /* 判断是否超出缓存大小，超出大小限制大小，防止数组越界 */
     if (BytesPerFont > BYTES_PER_FONT)
@@ -129,148 +460,14 @@ static inline void _GetDataFromMemory(GUI_CnInfo_t GUI_CnInfo)
     }
     
     /* 判断是中文的还是英文的 */    
-    if (GUI_CnInfo.Cn < 0x80)                                                                
+    if (GUI_CnInfo->Cn < 0x80)                                                                
     {
-        /* 屏蔽部分没有显示的ASCII码 */
-        if (GUI_CnInfo.Cn < 32)
-        {
-            _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
-            return ;
-        }
-        
-        /* 从ASCII码的32开始有显示，所以此处减掉32 */
-        WordNun = GUI_CnInfo.Cn - 32;
-        
-        /* 使用16的点阵 */
-#ifdef USING_CN_16_CHAR
-        if (strncmp("A16", GUI_CnInfo.Font, 3) == 0) /* 8*16 ASCII字符 */
-		{
-            /* 指针直接取地址 */
-            _GUI_FontDataBuf = (uint8_t *)&ASCII08x16[(uint16_t )WordNun * GUI_CnInfo.SumBytes];
-            return ; 
-        }
-#endif /* USING_CN_16_CHAR */   
-        
-        /* 使用24的点阵 */
-#ifdef USING_CN_24_CHAR  
-        if (strncmp("A24", GUI_CnInfo.Font, 3) == 0) /* 16*24 ASCII字符 */
-        {          
-            _GUI_FontDataBuf = (uint8_t *)&ASCII12x24[(uint16_t )WordNun * GUI_CnInfo.SumBytes];
-            return ;
-        }
-#endif /* USING_CN_24_CHAR */
-        
-        /* 使用32的点阵 */
-#ifdef USING_CN_32_CHAR  
-        if (strncmp("A32", GUI_CnInfo.Font, 3) == 0) /* 20*32 ASCII字符 */
-        {  
-            _GUI_FontDataBuf = (uint8_t *)&ASCII16x32[(uint16_t )WordNun * GUI_CnInfo.SumBytes];
-            return ;
-        }
-#endif /* USING_CN_32_CHAR */
-        
-        /* 使用40的点阵 */
-#ifdef USING_CN_40_CHAR  
-        if (strncmp("A40", GUI_CnInfo.Font, 3) == 0) /* 24*40 ASCII字符 */
-        {  
-            _GUI_FontDataBuf = (uint8_t *)&ASCII20x40[(uint16_t )WordNun * GUI_CnInfo.SumBytes];
-            return ;
-        }
-#endif /* USING_CN_40_CHAR */
-        
-        /* 使用48的点阵 */
-#ifdef USING_CN_48_CHAR   
-        if (strncmp("A48", GUI_CnInfo.Font, 3) == 0) /* 28*48 ASCII字符 */
-        { 
-            _GUI_FontDataBuf = (uint8_t *)&ASCII24x48[(uint16_t )WordNun * GUI_CnInfo.SumBytes];
-            return ;
-        }
-#endif /* USING_CN_48_CHAR */
+        return _GetASCII_FontData(GUI_CnInfo);
     }
-    
     /* 中文显示 */
     else
     {
-#ifdef USING_CN_16_CHAR  
-        if(strncmp("H16", GUI_CnInfo.Font, 3) == 0) /* 16*16 中文字符 */
-		{ 
-            for (i = 0; i < CharNumMax; i++)        //循环查询内码，查找汉字的数据
-            {
-                if((HanZi16Index[i].Index[0] == ((GUI_CnInfo.Cn >> 8) & 0xff))		
-                    & (HanZi16Index[i].Index[1] == (GUI_CnInfo.Cn & 0xff)))
-                {
-                    _GUI_FontDataBuf = (uint8_t *)HanZi16Data[i].Msk;
-                    return ;
-                }
-            }
-            
-            _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
-        }
-#endif /* USING_CN_16_CHAR */
-#ifdef USING_CN_24_CHAR          
-        if (strncmp("H24", GUI_CnInfo.Font, 3) == 0) /* 24*24 中文字符 */
-        {
-            for (i = 0; i < CharNumMax; i++)
-            {
-                if((HanZi24Index[i].Index[0] == ((GUI_CnInfo.Cn >> 8) & 0xff))		
-                    & (HanZi24Index[i].Index[1] == (GUI_CnInfo.Cn & 0xff)))
-                {
-                    _GUI_FontDataBuf = (uint8_t *)HanZi24Data[i].Msk;
-                    return ;
-                }
-            }
-            
-            _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
-        }
-#endif /* USING_CN_24_CHAR */
-#ifdef USING_CN_32_CHAR  
-        if (strncmp("H32", GUI_CnInfo.Font, 3) == 0) /* 32*32 中文字符 */
-        {
-            for (i = 0; i < CharNumMax; i++)
-            {
-                if((HanZi32Index[i].Index[0] == ((GUI_CnInfo.Cn >> 8) & 0xff))		
-                    & (HanZi32Index[i].Index[1] == (GUI_CnInfo.Cn & 0xff)))
-                {
-                    _GUI_FontDataBuf = (uint8_t *)HanZi32Data[i].Msk;
-                    return ;
-                }
-            }
-            
-            _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
-        }
-#endif /* USING_CN_32_CHAR */
-#ifdef USING_CN_40_CHAR  
-        if (strncmp("H40", GUI_CnInfo.Font, 3) == 0) /* 40*40 中文字符 */
-        {
-            for (i = 0; i < CharNumMax; i++)
-            {
-                if((HanZi40Index[i].Index[0] == ((GUI_CnInfo.Cn >> 8) & 0xff))		
-                    & (HanZi40Index[i].Index[1] == (GUI_CnInfo.Cn & 0xff)))
-                {
-                    _GUI_FontDataBuf = (uint8_t *)HanZi40Data[i].Msk;
-                    return ;
-                }
-            }
-            
-            _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
-        }
-#endif /* USING_CN_40_CHAR */
-#ifdef USING_CN_48_CHAR  
-        if (strncmp("H48", GUI_CnInfo.Font, 3) == 0) /* 48*48 中文字符 */
-        {
-            for (i = 0; i < CharNumMax; i++)
-            {
-                if((HanZi48Index[i].Index[0] == ((GUI_CnInfo.Cn >> 8) & 0xff))		
-                    & (HanZi48Index[i].Index[1] == (GUI_CnInfo.Cn & 0xff)))
-                {
-                    _GUI_FontDataBuf = (uint8_t *)HanZi48Data[i].Msk;
-                    return ;
-                }
-            }
-            
-            _GUI_FontDataBuf = _GUI_FontDefaultDataBuf;
-        }
-#endif /* USING_CN_48_CHAR */
+        return _GetCN_FontData(GUI_CnInfo);
     }
 }
 
@@ -281,24 +478,28 @@ static inline void _GetDataFromMemory(GUI_CnInfo_t GUI_CnInfo)
  * @note
  * @retval  无
  */
-static inline void _DispChar(GUI_CnInfo_t GUI_CnInfo)
+static inline void _DispChar(GUI_CnInfo_t * GUI_CnInfo)
 {
     uint16_t i, Cnt, Color;
-    
+    uint8_t * DataAddr = NULL;
     /* 获取字体的点阵 */
-    _GetDataFromMemory(GUI_CnInfo);
+    DataAddr = _GetDataFromMemory(GUI_CnInfo);
+    if (DataAddr == (uint8_t *)GUI_ERROR)
+    {
+        DataAddr = _GUI_FontDefaultDataBuf;
+    }
     
     /* 判断是否需要背景透明显示 */
-    if (GUI_CnInfo.TransFlag == CHAR_NO_TRANS)
+    if (GUI_CnInfo->TransFlag == CHAR_NO_TRANS)
     {
         /* 设置窗口 */
-        _GUI_DeviceAPI.SetDispWin(GUI_CnInfo.x, GUI_CnInfo.y, GUI_CnInfo.Width, GUI_CnInfo.Hight);
+        _GUI_DeviceAPI.SetDispWin(GUI_CnInfo->x, GUI_CnInfo->y, GUI_CnInfo->Width, GUI_CnInfo->Hight);
         
         /* 循环取数据进行显示 */
-        for (Cnt = 0; Cnt < GUI_CnInfo.SumBytes; Cnt++)
+        for (Cnt = 0; Cnt < GUI_CnInfo->SumBytes; Cnt++)
         {
             /* 获取点阵数据，一个字节 */
-            Color = _GUI_FontDataBuf[Cnt];
+            Color = DataAddr[Cnt];
             for (i = 0; i < 8; i++)
             {
                 /* 判断画点 */
@@ -315,15 +516,15 @@ static inline void _DispChar(GUI_CnInfo_t GUI_CnInfo)
     }
     
     /* 需要背景透明显示 */
-    else if (GUI_CnInfo.TransFlag == CHAR_TRANS)
+    else if (GUI_CnInfo->TransFlag == CHAR_TRANS)
     {
         uint16_t x, y;
         
         /* 记录起始坐标 */
-        x = GUI_CnInfo.x;
-        y = GUI_CnInfo.y;
+        x = GUI_CnInfo->x;
+        y = GUI_CnInfo->y;
         
-        for (Cnt = 0; Cnt < GUI_CnInfo.SumBytes; Cnt++)
+        for (Cnt = 0; Cnt < GUI_CnInfo->SumBytes; Cnt++)
         {
             /* 获取点阵数据，一个字节 */
             Color = _GUI_FontDataBuf[Cnt];
@@ -336,9 +537,9 @@ static inline void _DispChar(GUI_CnInfo_t GUI_CnInfo)
                 }
                 x++;
                 /* 判断是否需要换行 */
-                if(x == (GUI_CnInfo.x + GUI_CnInfo.Width))
+                if(x == (GUI_CnInfo->x + GUI_CnInfo->Width))
                 {
-                    x = GUI_CnInfo.x;
+                    x = GUI_CnInfo->x;
                     y++;
                 }
                 
@@ -357,13 +558,10 @@ static inline void _DispChar(GUI_CnInfo_t GUI_CnInfo)
  * @note
  * @retval  无
  */
-static inline void _GuiDrawString(const char * Cn, uint16_t xCur, uint16_t yCur, GUI_CnInfo_t GUI_CnInfoIn)
+static inline void _GuiDrawString(const char * Cn, uint16_t xCur, uint16_t yCur, GUI_CnInfo_t * GUI_CnInfoIn)
 {
     uint16_t Ch;
-    GUI_CnInfo_t GUI_CnInfo;
-    
-    /* 获取信息 */
-    GUI_CnInfo.TransFlag = GUI_CnInfoIn.TransFlag;
+    GUI_CnInfo_t * GUI_CnInfo = GUI_CnInfoIn;
     
     /* 循环取出字符串中的字符进行显示 */
     while (*Cn != '\0')
@@ -375,19 +573,19 @@ static inline void _GuiDrawString(const char * Cn, uint16_t xCur, uint16_t yCur,
         if (Ch < 0x80)
         {
             /* 载入一些信息，显示需要 */
-            GUI_CnInfo.Cn = Ch;
-            GUI_CnInfo.SumBytes = _paCharInfo.paAsciiData.Hight * _paCharInfo.paAsciiData.Width / 8;
-            GUI_CnInfo.Font = _paCharInfo.paAsciiData.ASCII;
+            GUI_CnInfo->Cn = Ch;
+            GUI_CnInfo->SumBytes = _paCharInfo.paAsciiData.Hight * _paCharInfo.paAsciiData.Width / 8;
+            GUI_CnInfo->Font = _paCharInfo.paAsciiData.ASCII;
             
             /* 载入显示的坐标 */
-            GUI_CnInfo.x = xCur;
-            GUI_CnInfo.y = yCur;
+            GUI_CnInfo->x = xCur;
+            GUI_CnInfo->y = yCur;
             
-            GUI_CnInfo.PerLinePixel = _paCharInfo.paAsciiData.PerLinePixels;
+            GUI_CnInfo->PerLinePixel = _paCharInfo.paAsciiData.PerLinePixels;
             
             /* 载入显示字体的高度和宽度 */
-            GUI_CnInfo.Hight = _paCharInfo.paAsciiData.Hight;
-            GUI_CnInfo.Width = _paCharInfo.paAsciiData.Width;
+            GUI_CnInfo->Hight = _paCharInfo.paAsciiData.Hight;
+            GUI_CnInfo->Width = _paCharInfo.paAsciiData.Width;
             
             /* 一个英文字符由一个字节的编码构成 */
             Cn++;
@@ -397,18 +595,18 @@ static inline void _GuiDrawString(const char * Cn, uint16_t xCur, uint16_t yCur,
         }
         else
         {
-            GUI_CnInfo.Cn = (*Cn << 8) | *(Cn + 1);
-            GUI_CnInfo.SumBytes = _paCharInfo.paHanziData.Hight * _paCharInfo.paHanziData.Width / 8;
-            GUI_CnInfo.Font = _paCharInfo.paHanziData.Hanzi;
+            GUI_CnInfo->Cn = (*Cn << 8) | *(Cn + 1);
+            GUI_CnInfo->SumBytes = _paCharInfo.paHanziData.Hight * _paCharInfo.paHanziData.Width / 8;
+            GUI_CnInfo->Font = _paCharInfo.paHanziData.Hanzi;
             
             /* 载入显示的坐标 */
-            GUI_CnInfo.x = xCur;
-            GUI_CnInfo.y = yCur;
-            GUI_CnInfo.PerLinePixel = _paCharInfo.paHanziData.PerLinePixels;
+            GUI_CnInfo->x = xCur;
+            GUI_CnInfo->y = yCur;
+            GUI_CnInfo->PerLinePixel = _paCharInfo.paHanziData.PerLinePixels;
             
             /* 载入显示字体的高度和宽度 */
-            GUI_CnInfo.Hight = _paCharInfo.paHanziData.Hight;
-            GUI_CnInfo.Width = _paCharInfo.paHanziData.Width;
+            GUI_CnInfo->Hight = _paCharInfo.paHanziData.Hight;
+            GUI_CnInfo->Width = _paCharInfo.paHanziData.Width;
             
             /* 一个汉字由两个字节的编码构成 */
             Cn += 2;
@@ -969,6 +1167,9 @@ static inline void _GuiDrawFillTopTriangle(uint16_t xCur, uint16_t yCur, uint16_
 {  
     uint16_t x1, x2, x3, y1, y2, y3, Height, i;
     
+    (void)y2;
+    (void)y3;
+    
     float dxy, xs, xe;
     
     x1 = xCur - (Edges >> 1);
@@ -1052,14 +1253,14 @@ static inline void _GuiDrawBmp(uint16_t xCur, uint16_t yCur, uint16_t dWidth, ui
 /**
  * @func    GuiSetTextFont
  * @brief   设置GUI显示的文字的大小
- * @param   CharInfo 字体信息结构体
+ * @param   paCharInfo 字体信息结构体
  * @note
  * @retval  无
  */
-void GuiSetTextFont(const paCharInfo_t* CharInfo)
+void GuiSetTextFont(const paCharInfo_t* paCharInfo)
 {
     /* 结构体直接复制，此处是允许这样操作的 */
-    _paCharInfo = *CharInfo;
+    _paCharInfo = *paCharInfo;
 }
 
 /**
@@ -1096,6 +1297,19 @@ void GuiSetDeviceAPI(void (* PutPixelNoPos)(uint16_t pColor),
     _GUI_DeviceAPI.SetDispWin = SetDispWin;
 }
 
+#if defined USE_ASCII_EXT_LIB || defined USE_CN_EXT_LIB
+/**
+ * @func    GuiSetFlashReadAPI
+ * @brief   设置GUI与底层驱动的API接口
+ * @param   void (* ReadData)(uint32_t Address, uint8_t * pDataBuf, uint32_t BufSize) 从Flash中读取数据
+ * @note
+ * @retval  无
+ */
+void GuiSetFlashReadAPI(void (* ReadData)(uint32_t Address, uint8_t * pDataBuf, uint32_t BufSize))
+{
+    _GUI_DeviceAPI.ReadData = ReadData;
+}
+#endif
 /**
  * @func    GuiClrScr
  * @brief   清屏
@@ -1137,7 +1351,7 @@ void GuiDrawStringAt(const char * Cn, uint16_t xCur, uint16_t yCur)
     GUI_CnInfo.TransFlag = CHAR_NO_TRANS;
     
     /* 显示字符串 */
-    _GuiDrawString(Cn, xCur, yCur, GUI_CnInfo);
+    _GuiDrawString(Cn, xCur, yCur, &GUI_CnInfo);
 }
 
 /**
@@ -1157,7 +1371,7 @@ void GuiDrawTranStringAt(const char * Cn, uint16_t xCur, uint16_t yCur)
     GUI_CnInfo.TransFlag = CHAR_TRANS;
     
     /* 显示字符串 */
-    _GuiDrawString(Cn, xCur, yCur, GUI_CnInfo);
+    _GuiDrawString(Cn, xCur, yCur, &GUI_CnInfo);
 }
 
 /**
@@ -1180,13 +1394,13 @@ uint8_t GuiDrawNumberAt(double Number, uint16_t xCur, uint16_t yCur, uint8_t Poi
     if (PointNum > 0)
     {
         /* 构造字符串 */
-        sprintf(ConsBuf, "%%.%df", PointNum);
-        sprintf(Buf, ConsBuf, Number);
+        my_sprintf(ConsBuf, "%%.%df", PointNum);
+        my_sprintf(Buf, ConsBuf, Number);
     }
     else
     {
         /* 构造字符串 */
-        sprintf(Buf, "%d", (int32_t)Number);
+        my_sprintf(Buf, "%d", (int32_t)Number);
     }
     
     /* 显示字符串 */
@@ -1216,13 +1430,13 @@ uint8_t GuiDrawTranNumberAt(double Number, uint16_t xCur, uint16_t yCur, uint8_t
     if (PointNum > 0)
     {
         /* 构造字符串 */
-        sprintf(ConsBuf, "%%.%df", PointNum);
-        sprintf(Buf, ConsBuf, Number);
+        my_sprintf(ConsBuf, "%%.%df", PointNum);
+        my_sprintf(Buf, ConsBuf, Number);
     }
     else
     {
         /* 构造字符串 */
-        sprintf(Buf, "%d", (int32_t)Number);
+        my_sprintf(Buf, "%d", (int32_t)Number);
     }
     
     /* 显示字符串 */
@@ -1421,7 +1635,7 @@ void GuiDrawHorGradientColorBar(uint16_t xCur, uint16_t yCur,
     _GuiGetColorBarData(Width, FirstColor, SecondColor, DataBuf);
     
     /* 复制色条的数据到临时缓存 */
-    memcpy(_GUI_BarColorItems, DataBuf, Width * 2);
+    my_memcpy(_GUI_BarColorItems, DataBuf, Width * 2);
     
     /* 坐标设置 */
     _GUI_DeviceAPI.SetDispWin(xCur, yCur, Width, Height);								
@@ -1481,7 +1695,7 @@ void GuiDrawHorRadiationColorBar(uint16_t xCur, uint16_t yCur,
     }
     
     /* 复制色条的数据到临时缓存 */
-    memcpy(_GUI_BarColorItems, DataBuf, Width * 2);
+    my_memcpy(_GUI_BarColorItems, DataBuf, Width * 2);
     
     /* 坐标设置 */
     _GUI_DeviceAPI.SetDispWin(xCur, yCur, Width, Height);								
@@ -1542,7 +1756,7 @@ void GuiDrawHorThreeGradientColorBar(uint16_t xCur, uint16_t yCur,
     }
     
     /* 复制色条的数据到临时缓存 */
-    memcpy(_GUI_BarColorItems, DataBuf, Width * 2);
+    my_memcpy(_GUI_BarColorItems, DataBuf, Width * 2);
     
     /* 坐标设置 */
     _GUI_DeviceAPI.SetDispWin(xCur, yCur, Width, Height);								
@@ -1583,7 +1797,7 @@ void GuiDrawVerGradientColorBar(uint16_t xCur, uint16_t yCur,
     _GuiGetColorBarData(Height, FirstColor, SecondColor, DataBuf);
     
     /* 复制色条的数据到临时缓存 */
-    memcpy(_GUI_BarColorItems, DataBuf, Height * 2);
+    my_memcpy(_GUI_BarColorItems, DataBuf, Height * 2);
     
     /* 坐标设置 */
     _GUI_DeviceAPI.SetDispWin(xCur, yCur, Width, Height);								
@@ -1633,7 +1847,7 @@ void GuiDrawVerRadiationColorBar(uint16_t xCur, uint16_t yCur,
     }
     
     /* 复制色条的数据到临时缓存 */
-    memcpy(_GUI_BarColorItems, DataBuf, Height * 2);
+    my_memcpy(_GUI_BarColorItems, DataBuf, Height * 2);
     
     /* 坐标设置 */
     _GUI_DeviceAPI.SetDispWin(xCur, yCur, Width, Height);								
@@ -1685,7 +1899,7 @@ void GuiDrawVerThreeGradientColorBar(uint16_t xCur, uint16_t yCur,
     }
     
     /* 复制色条的数据到临时缓存 */
-    memcpy(_GUI_BarColorItems, DataBuf, Height * 2);
+    my_memcpy(_GUI_BarColorItems, DataBuf, Height * 2);
     
     /* 坐标设置 */
     _GUI_DeviceAPI.SetDispWin(xCur, yCur, Width, Height);								
@@ -1721,7 +1935,7 @@ void GuiGetBarColorItems(uint16_t *Buf, uint16_t nLen)
     }
 #endif
     /* 复制色条的数据到输出缓存 */
-    memcpy(Buf, _GUI_BarColorItems, nLen * 2);
+    my_memcpy(Buf, _GUI_BarColorItems, nLen * 2);
 }
 
 /**

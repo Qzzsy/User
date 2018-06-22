@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "Font.h"
 
+#ifdef USE_CN_INT_LIB
 #ifdef USING_CN_16_CHAR
 /* 字体信息参数，不需要更改 */
 const paCharInfo_t FontCn16 = 
@@ -522,6 +523,7 @@ const Cn48Data_t HanZi48Data[] =
     '\0'
 };
 #endif /* USING_CN_48_CHAR */
+#endif /* USE_CN_INT_LIB */
 
 #ifdef PICTRUE_DATA
 const unsigned char Cursor_Data[5][288] ={
@@ -624,6 +626,7 @@ const unsigned char Cursor_Data[5][288] ={
 
 #endif /* PICTRUE_DATA */
 
+#ifdef USE_ASCII_INT_LIB
 #ifdef USING_CN_16_CHAR
 const unsigned char ASCII08x16[] =
 {
@@ -3053,4 +3056,5 @@ const unsigned char ASCII24x48[] =
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,/*"",127*/
 };
 #endif /* USING_CN_48_CHAR */
+#endif /* USE_ASCII_INT_LIB */
 

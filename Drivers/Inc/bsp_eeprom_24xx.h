@@ -2,10 +2,10 @@
  ******************************************************************************
  * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
  * @filename      bsp_eeprom_24xx.h
- * @author        é—¨ç¦å¼€å‘å°ç»„
+ * @author        ÃÅ½û¿ª·¢Ğ¡×é
  * @version       V1.0.0
  * @date          2018-06-21
- * @Description   ä¸²è¡ŒEEPROM 24xx02é©±åŠ¨æ¨¡å—
+ * @Description   ´®ĞĞEEPROM 24xx02Çı¶¯Ä£¿é
  * @Others
  * @History
  * Date           Author    version    		Notes
@@ -30,18 +30,18 @@
 
 #ifdef AT24C02
 	#define EE_MODEL_NAME       "AT24C02"
-	#define EE_DEV_ADDR         0xA0		/* è®¾å¤‡åœ°å€ */
-	#define EE_PAGE_SIZE        8			/* é¡µé¢å¤§å°(å­—èŠ‚) */
-	#define EE_SIZE             256			/* æ€»å®¹é‡(å­—èŠ‚) */
-	#define EE_ADDR_BYTES       1			/* åœ°å€å­—èŠ‚ä¸ªæ•° */
+	#define EE_DEV_ADDR         0xA0		/* Éè±¸µØÖ· */
+	#define EE_PAGE_SIZE        8			/* Ò³Ãæ´óĞ¡(×Ö½Ú) */
+	#define EE_SIZE             256			/* ×ÜÈİÁ¿(×Ö½Ú) */
+	#define EE_ADDR_BYTES       1			/* µØÖ·×Ö½Ú¸öÊı */
 #endif
 
 #ifdef AT24C128
 	#define EE_MODEL_NAME		"AT24C128"
-	#define EE_DEV_ADDR			0xA0		/* è®¾å¤‡åœ°å€ */
-	#define EE_PAGE_SIZE		64			/* é¡µé¢å¤§å°(å­—èŠ‚) */
-	#define EE_SIZE				(16*1024)	/* æ€»å®¹é‡(å­—èŠ‚) */
-	#define EE_ADDR_BYTES		2			/* åœ°å€å­—èŠ‚ä¸ªæ•° */
+	#define EE_DEV_ADDR			0xA0		/* Éè±¸µØÖ· */
+	#define EE_PAGE_SIZE		64			/* Ò³Ãæ´óĞ¡(×Ö½Ú) */
+	#define EE_SIZE				(16*1024)	/* ×ÜÈİÁ¿(×Ö½Ú) */
+	#define EE_ADDR_BYTES		2			/* µØÖ·×Ö½Ú¸öÊı */
 #endif
 
 uint8_t Bsp_eeCheckOk(void);
