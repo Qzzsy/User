@@ -2,8 +2,8 @@
  ******************************************************************************
  * @file      iic.c
  * @author    门禁开发小组
- * @version   V1.0.4
- * @date      2018-06-20
+ * @version   V1.0.5
+ * @date      2018-06-24
  * @brief     文件内包含一些iic的引脚配置，iic的基本读写操作以及通信时序
  * @History
  * Date           Author    version    		Notes
@@ -14,6 +14,7 @@
  * 2018-01-09     ZSY       V1.0.2          排版格式化操作.
  * 2018-01-26     ZSY       V1.0.3          添加私有和公有宏定义.
  * 2018-06-20     ZSY       V1.0.4          提高兼容性.
+ * 2018-06-24     ZSY       V1.0.5          更改驱动框架，实现不同的IIC设备利用统一的接口实现数据传输.
  */
 	
 /* Includes ------------------------------------------------------------------*/
@@ -54,11 +55,7 @@
 
 /* global variable Declaration -----------------------------------------------*/
 
-
-
 /* User function Declaration -------------------------------------------------*/
-
-
 
 /* User functions ------------------------------------------------------------*/
 
@@ -70,7 +67,7 @@
  */
 void BspIIC_Delay(__IO uint32_t Number)
 {
-    uint32_t i=0;
+    uint32_t i = 0;
 
     while (Number--)
     {
@@ -79,56 +76,24 @@ void BspIIC_Delay(__IO uint32_t Number)
     }
 }
 
-///**
-// * @func    IIC_GPIO_Config
-// * @brief   设置触屏的IIC引脚,用软件模拟的方法实现IIC功能
-// * @note    需要开启对应的时钟和复用
-// * @retval  无
-// */
-//void IIC_GPIO_Config(void) 
-//{
-//    GPIO_InitTypeDef GPIO_InitStructure;
-
-//    /* 使能GPIOB和GPIOC的时钟 */
-//    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-//    
-//    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;  
-//    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-//    GPIO_Init(GPIOA, &GPIO_InitStructure);//初始化GPIO
-//    /* config IIC scl line */
-//    GPIO_InitStructure.GPIO_Pin = IIC_SCL_PIN;  		//PC5  
-//    GPIO_Init(IIC_SCL_PORT, &GPIO_InitStructure);
-//    
-//    /* config IIC sda line */
-//    GPIO_InitStructure.GPIO_Pin =  IIC_SDA_PIN; 		//PC4
-//    GPIO_Init(IIC_SDA_PORT, &GPIO_InitStructure);
-//    
-//    /* 初始化完成后设置为高 */
-//    IIC_SCL_WRITE_H;
-//    IIC_SDA_WRITE_H;
-//    
-//    /* IIC stop transport */
-//    IIC_Stop();
-//}
-
 /**
  * @func    IIC_Start
  * @brief   IIC start transport
                 IIC device is about to start a new transfer process
  * @retval  none
  */
-void IIC_Start(void)  
+void IIC_Start(IIC_Handle_t Handle)  
 { 
     /* Set GPIO to Output mode */
-    SET_IIC_SDA_OUT();
+    Handle->Ops->Set_SDA_DIR(SDA_OUT);
     
     /* IIC produce a start signal */
-    IIC_SDA_WRITE_H;
-    IIC_SCL_WRITE_H;
-    BspIIC_Delay(4);
-    IIC_SDA_WRITE_L;
-    BspIIC_Delay(4);
-    IIC_SCL_WRITE_L; 
+    Handle->Ops->Set_SDA(SET);
+    Handle->Ops->Set_SCL(SET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
+    Handle->Ops->Set_SDA(RESET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
+    Handle->Ops->Set_SCL(RESET);
 } 
 
 /**
@@ -137,18 +102,18 @@ void IIC_Start(void)
                 IIC device is about to stop the current transport process
  * @retval  none
  */
-void IIC_Stop(void)  
+void IIC_Stop(IIC_Handle_t Handle)  
 { 
     /* Set GPIO to Output mode */
-    SET_IIC_SDA_OUT();
+    Handle->Ops->Set_SDA_DIR(SDA_OUT);
     
     /* iic produce a stop signal */
-    IIC_SDA_WRITE_L;
-    IIC_SCL_WRITE_L;
-    BspIIC_Delay(4);
-    IIC_SCL_WRITE_H;
-    BspIIC_Delay(4);
-    IIC_SDA_WRITE_H;
+    Handle->Ops->Set_SCL(RESET);
+    Handle->Ops->Set_SDA(RESET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
+    Handle->Ops->Set_SCL(SET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
+    Handle->Ops->Set_SDA(SET);
 }
 
 /**
@@ -156,18 +121,18 @@ void IIC_Stop(void)
  * @brief   IIC master produce a ack signal
  * @retval  none
  */
-static void IIC_Ack(void) 
+static void IIC_Ack(IIC_Handle_t Handle) 
 { 
-    IIC_SCL_WRITE_L;
+    Handle->Ops->Set_SCL(RESET);
     
     /* Set GPIO to Output mode */
-    SET_IIC_SDA_OUT();
+    Handle->Ops->Set_SDA_DIR(SDA_OUT);
     
-    IIC_SDA_WRITE_L;
-    BspIIC_Delay(2);
-    IIC_SCL_WRITE_H;
-    BspIIC_Delay(2);
-    IIC_SCL_WRITE_L;
+    Handle->Ops->Set_SDA(RESET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
+    Handle->Ops->Set_SCL(SET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
+    Handle->Ops->Set_SCL(RESET);
 } 
 
 /**
@@ -175,19 +140,19 @@ static void IIC_Ack(void)
  * @brief   IIC slave don't produce a ack signal??transport will stop
  * @retval  none
  */
-static void IIC_NoAck(void)
+static void IIC_NoAck(IIC_Handle_t Handle)
 {
-    IIC_SCL_WRITE_L;
+    Handle->Ops->Set_SCL(RESET);
     
     /* Set GPIO to Output mode */
-    SET_IIC_SDA_OUT();
+    Handle->Ops->Set_SDA_DIR(SDA_OUT);
     
     /* IIC produce no ack signal */
-    IIC_SDA_WRITE_H;
-    BspIIC_Delay(2);
-    IIC_SCL_WRITE_H;
-    BspIIC_Delay(2);
-    IIC_SCL_WRITE_L;	
+    Handle->Ops->Set_SDA(SET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
+    Handle->Ops->Set_SCL(SET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
+    Handle->Ops->Set_SCL(RESET);
 }
 
 /**
@@ -196,34 +161,34 @@ static void IIC_NoAck(void)
                 The CPU produces a clock and reads the device's ACK signal
  * @retval  return IIC_OPER_OK for correct response, IIC_OPER_FAILT for no device response
  */
-uint8_t IIC_WaitAck(void)
+uint8_t IIC_WaitAck(IIC_Handle_t Handle)
 { 
     __IO uint16_t time = 0;
     
     /* Set GPIO to input mode */
-    SET_IIC_SDA_IN();
+    Handle->Ops->Set_SDA_DIR(SDA_IN);
     
-    IIC_SDA_WRITE_H;  
-    BspIIC_Delay(1);
-    IIC_SCL_WRITE_H;
-    BspIIC_Delay(1);
+    Handle->Ops->Set_SDA(SET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
+    Handle->Ops->Set_SCL(SET);
+    Handle->Ops->uDelay(Handle->Ops->Delay_us);
     
     /* waiting slave ack signal	*/
-    while (IIC_SDA_READ)
+    while (Handle->Ops->Get_SDA())
     {
         time++;
         
         /* 超时检测，防止卡死 */
-        if (time > IIC_ACK_TIMEOUT)
+        if (time > (Handle->Ops->Timeout))
         {
-            IIC_Stop();
+            IIC_Stop(Handle);
             
             /* 超时意味着失败 */
             return IIC_OPER_FAILT;
         }	
     }
     
-    IIC_SCL_WRITE_L;
+    Handle->Ops->Set_SCL(RESET);
     
     /* 有应答信号说明成功 */
     return IIC_OPER_OK; 
@@ -235,34 +200,36 @@ uint8_t IIC_WaitAck(void)
  * @param   Data 将要发送的数据					
  * @retval  无
  */
-void IIC_SendByte(uint8_t Data)
+void IIC_SendByte(IIC_Handle_t Handle)
 {
-    __IO uint8_t i;
+    __IO uint8_t i, Data = *(Handle->Msg->Data + Handle->Msg->Offiset);
     
+    Data |= Handle->Msg->Flags;
+
     /* Set GPIO to Output mode */
-    SET_IIC_SDA_OUT();
+    Handle->Ops->Set_SDA_DIR(SDA_OUT);
     
-    IIC_SCL_WRITE_L;
+    Handle->Ops->Set_SCL(RESET);
     
     /* 循环发送一个字节的数据 */
     for (i = 0; i < 8; i++)
     {		
         if (Data & 0x80)
         {
-            IIC_SDA_WRITE_H;
+            Handle->Ops->Set_SDA(SET);
         }
         else
         {
-            IIC_SDA_WRITE_L;
+            Handle->Ops->Set_SDA(RESET);
         }
-        BspIIC_Delay(2);
-        IIC_SCL_WRITE_H;	
-        BspIIC_Delay(2);
-        IIC_SCL_WRITE_L;
-        BspIIC_Delay(2);
+        Handle->Ops->uDelay(Handle->Ops->Delay_us);
+        Handle->Ops->Set_SCL(SET);
+        Handle->Ops->uDelay(Handle->Ops->Delay_us);
+        Handle->Ops->Set_SCL(RESET);
+        Handle->Ops->uDelay(Handle->Ops->Delay_us);
         Data <<= 1;	
     }
-    IIC_SDA_WRITE_H;
+    Handle->Ops->Set_SDA(SET);
 }
 
 /**
@@ -273,39 +240,38 @@ void IIC_SendByte(uint8_t Data)
                 I2C_NEEDNT_ACK 说明当前的传输是最后一个字节的数据，此时发送nack
  * @retval	receive 读取到的数据
  */
-uint8_t IIC_ReadByte(uint8_t Ack)
+void IIC_ReadByte(IIC_Handle_t Handle)
 {
-    unsigned char i, Receive = 0;
+    uint8_t i, Receive = 0;
     
     /* Set Gpio to input mode */
-    SET_IIC_SDA_IN();
+    Handle->Ops->Set_SDA_DIR(SDA_IN);
     
-    IIC_SDA_WRITE_H;
+    Handle->Ops->Set_SDA(SET);
     
     /* 循环读取一个字节的数据 */
     for (i = 0; i < 8; i++)
     {
-        IIC_SCL_WRITE_L; 
-        BspIIC_Delay(2);
-        IIC_SCL_WRITE_H;
+        Handle->Ops->Set_SCL(RESET);
+        Handle->Ops->uDelay(Handle->Ops->Delay_us);
+        Handle->Ops->Set_SCL(SET);
         Receive <<= 1;
-        if (IIC_SDA_READ)
+        if (Handle->Ops->Get_SDA())
         {
             Receive++;   
         }
-        BspIIC_Delay(2); 
+        Handle->Ops->uDelay(Handle->Ops->Delay_us);
     }		
     
-    if (Ack == IIC_NEEDNT_ACK) 
+    if (Handle->Msg->Flags & IIC_NEEDNT_ACK) 
     {	   
-        IIC_NoAck();	//发送nACK
+        IIC_NoAck(Handle);	//发送nACK
     }
     else       
     {
-        IIC_Ack(); 		//发送ACK   
+        IIC_Ack(Handle); 		//发送ACK   
     }
-      
-    return Receive;
+    *(Handle->Msg->Data + Handle->Msg->Offiset) = Receive;  
 }
 
 /**
@@ -314,21 +280,135 @@ uint8_t IIC_ReadByte(uint8_t Ack)
  * @param   _Address 从设备地址
  * @retval	receive 读取到的数据
  */
-uint8_t IIC_CheckDevice(uint8_t _Address)
+uint8_t IIC_CheckDevice(IIC_Handle_t Handle)
 {
-	if (IIC_SDA_READ)
+	if (Handle->Ops->Get_SDA())
 	{
-		IIC_Start();		/* 发送启动信号 */
+		IIC_Start(Handle);		/* 发送启动信号 */
 
 		/* 发送设备地址+读写控制bit（0 = w， 1 = r) bit7 先传 */
-		IIC_SendByte(_Address | IIC_DRV_WR);
-		if (IIC_WaitAck() == IIC_OPER_OK)	/* 检测设备的ACK应答 */
+        Handle->Msg->Flags = IIC_DRV_WR;
+		IIC_SendByte(Handle);
+		if (IIC_WaitAck(Handle) == IIC_OPER_OK)	/* 检测设备的ACK应答 */
         {
-            IIC_Stop();			/* 发送停止信号 */
+            IIC_Stop(Handle);			/* 发送停止信号 */
             return IIC_OPER_OK;
         }
 	}
 	return IIC_OPER_FAILT;	/* IIC总线异常 */
 }
 
+/**
+ * @func    IIC_Read
+ * @brief   主机从指定的地址读取指定长度的数据
+ * @param   Handle 设备的句柄
+ * @retval  Operation successfully returned IIC_OPER_OK, otherwise IIC_OPER_FAILT returned
+ */
+uint8_t IIC_Read(IIC_Handle_t Handle)
+{
+    /* 第1步：发起I2C总线启动信号 */
+    IIC_Start(Handle);
+    
+    /* 第2步：发起控制字节，高7bit是地址，bit0是读写控制位，0表示写，1表示读 */
+    /* 此处是写指令 */
+    Handle->Msg->Flags = IIC_DRV_WR;
 
+    /* 发送器件地址 */
+    IIC_SendByte(Handle);	
+    
+    /* 第3步：等待ACK */
+    if (IIC_WaitAck(Handle) != IIC_OPER_OK)
+    {
+        goto _return;	/* 器件无应答 */
+    }
+
+    /* 第4步：发送字节地址，判断地址的大小 */
+    for (Handle->Msg->Offiset = 0; Handle->Msg->Offiset < Handle->Msg->SubAddrSize; Handle->Msg->Offiset++)
+    {
+        IIC_SendByte(Handle);
+        if (IIC_WaitAck(Handle) != IIC_OPER_OK)
+        {
+            goto _return;	/* 器件无应答 */
+        }
+    }
+    
+    /* 第6步：重新启动I2C总线。下面开始读取数据 */
+    IIC_Start(Handle);
+    
+    /* 第7步：发起控制字节，高7bit是地址，bit0是读写控制位，0表示写，1表示读 */
+    Handle->Msg->Flags = IIC_DRV_R;
+    IIC_SendByte(Handle);	/* 此处是读指令 */
+    
+    /* 第8步：等待ACK */
+    if (IIC_WaitAck(Handle) != IIC_OPER_OK)
+    {
+        goto _return;	/* 器件无应答 */
+    }
+    
+    Handle->Msg->Offiset = 0;
+    /* 第9步：循环读取数据 */
+    for (Handle->Msg->Offiset = 0; Handle->Msg->Offiset < Handle->Msg->DataSize - 1; Handle->Msg->Offiset++)
+    {
+        Handle->Msg->Flags = IIC_NEED_ACK;
+        IIC_ReadByte(Handle);	/* 读1个字节 */
+    }
+    
+    Handle->Msg->Flags = IIC_NEEDNT_ACK;
+    IIC_ReadByte(Handle);	/* 读1个字节 */
+    
+    /* 发送I2C总线停止信号 */
+    IIC_Stop(Handle);
+    
+    /* 执行成功 */
+    return IIC_OPER_OK;	
+    
+_return: /* 命令执行失败后，切记发送停止信号，避免影响I2C总线上其他设备 */
+
+    return IIC_OPER_FAILT;
+}
+
+/**
+ * @func    IIC_Write
+ * @brief   主机往指定的地址写入指定长度的数据
+ * @param   Handle 设备句柄
+ * @retval  Operation successfully returned IIC_OPER_OK, otherwise IIC_OPER_FAILT returned
+ */
+uint8_t IIC_Write(IIC_Handle_t Handle)
+{
+    uint16_t i, m;
+    
+    /* 第1步：发起I2C总线启动信号 */
+    IIC_Start(Handle);
+    
+    /* 第2步：发起控制字节，高7bit是地址，bit0是读写控制位，0表示写，1表示读 */
+    /* 此处是写指令 */
+    Handle->Msg->Flags = IIC_DRV_WR;
+
+    /* 发送器件地址 */
+    IIC_SendByte(Handle);	
+    
+    /* 第3步：等待ACK */
+    if (IIC_WaitAck(Handle) != IIC_OPER_OK)
+    {
+        goto _return;    /* 器件无应答 */
+    }
+
+    for (Handle->Msg->Offiset = 0; Handle->Msg->Offiset < Handle->Msg->DataSize; Handle->Msg->Offiset++)
+    {
+        /* 发送器件地址 */
+        IIC_SendByte(Handle);    
+        /* 等待ACK */
+        if (IIC_WaitAck(Handle) != IIC_OPER_OK)
+        {
+            goto _return;    /* 器件无应答 */
+        }
+    }
+    
+    /* 命令执行成功，发送I2C总线停止信号 */
+    IIC_Stop(Handle);
+    return IIC_OPER_OK;
+    
+_return: /* 命令执行失败后，切记发送停止信号，避免影响I2C总线上其他设备 */
+
+    return IIC_OPER_FAILT;
+}

@@ -2,12 +2,13 @@
  ******************************************************************************
  * @file      GUIDr.c
  * @author    ZSY
- * @version   V1.0.0
+ * @version   V1.0.1
  * @date      2018-06-22
  * @brief     本文件实现LCD的一些绘制文字，图形等操作，移植本文件不需要更改本文件的内容 
  * @History
  * Date           Author    version    		   Notes
  * 2018-06-22      ZSY      V1.0.0          first version.
+ * 2018-06-22      ZSY      V1.0.1          添加对外部字库的支持.
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -25,6 +26,15 @@
 #define NONE_FONT           0xff
 
 #define GUI_ERROR           0xffffffff
+
+/* 扩展声明变量 */
+typedef unsigned char       uint8_t;
+/* 系统已经定义有 */
+typedef char                int8_t;
+typedef unsigned short int  uint16_t;
+typedef short int           int16_t;
+typedef unsigned int        uint32_t;
+typedef int                 int32_t;
 
 typedef struct _LCD_Info
 {

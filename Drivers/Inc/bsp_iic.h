@@ -15,7 +15,7 @@
                                         IIC_OPER_FAILT
  * 2018-01-09     ZSY       V1.0.2      排版格式化操作.
  * 2018-01-26     ZSY       V1.0.3      添加私有和公有宏定义.
- * 2018-06-20     ZSY       V1.0.4          提高兼容性.
+ * 2018-06-20     ZSY       V1.0.4      提高兼容性.
  */
 	
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -35,24 +35,63 @@
 #define IIC_OPER_OK         (0)		//操作成功
 #define IIC_OPER_FAILT      (1)		//操作失败
 
-#define IIC_NEED_ACK        (1)
-#define IIC_NEEDNT_ACK      (0)
+#define IIC_NEED_ACK        (1 << 1)
+#define IIC_NEEDNT_ACK      (1 << 2)
 
 #define IIC_DRV_WR          (0)     //IIC写命令
 #define IIC_DRV_R           (1)     //IIC读命令
+
+#define SDA_IN              (0)
+#define SDA_OUT             (1)
+
+#ifndef uint32_t
+#define uint32_t unsigned int
+#endif
 /* End public macro Definition -----------------------------------------------*/
+
+typedef struct
+{
+    uint32_t Delay_us;
+    uint32_t Timeout;   /* in tick */
+    void (* Set_SDA)(uint32_t State);
+    void (* Set_SCL)(uint32_t State);
+    void (* Set_SDA_DIR)(uint32_t State);
+    int8_t (*Get_SDA)(void);
+    int8_t (*Get_SCL)(void);
+    void (*uDelay)(uint32_t us);
+}IIC_BitOps_t;
+
+#pragma pack(4)
+typedef struct
+{
+    uint8_t SlaveAddr;
+    uint32_t SubAddr;
+    uint8_t SubAddrSize;
+    uint8_t *Data;
+    uint32_t Offiset;
+    uint32_t DataSize;
+    uint8_t Flags;
+}IIC_Msg_t;
+#pragma pack()
+
+typedef struct
+{
+    IIC_BitOps_t * Ops;
+    IIC_Msg_t * Msg;
+    uint8_t Flags;
+    uint16_t Speed;
+}IIC_Device_t;
+
+typedef IIC_Device_t * IIC_Handle_t;
 
 /* UserCode start ------------------------------------------------------------*/
 /* Member method APIs --------------------------------------------------------*/
-/* config iic gpio */
-void IIC_GPIO_Config(void);
-
-void IIC_Start(void); 
-void IIC_Stop(void);
-uint8_t IIC_WaitAck(void);
-void IIC_SendByte(uint8_t Data);
-uint8_t IIC_ReadByte(uint8_t Ack);
-uint8_t IIC_CheckDevice(uint8_t _Address);
+void IIC_Start(IIC_Handle_t Handle); 
+void IIC_Stop(IIC_Handle_t Handle);
+uint8_t IIC_WaitAck(IIC_Handle_t Handle);
+void IIC_SendByte(IIC_Handle_t Handle);
+void IIC_ReadByte(IIC_Handle_t Handle);
+uint8_t IIC_CheckDevice(IIC_Handle_t Handle);
 
 /* End Member Method APIs ---------------------------------------------------*/
 

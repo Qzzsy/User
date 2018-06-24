@@ -3,14 +3,15 @@
  * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
  * @filename      GUIDr.h
  * @author        ZSY
- * @version       V1.0.0
+ * @version       V1.0.1
  * @date          2018-06-22
  * @Description   集成了液晶的基本操作，实现汉字、英文和中英文混合显示，实现各类基本的
  *                2D图像绘制。
  * @Others
  * @History
- * Date           Author    version    		Notes
- * 2018-06-22      ZSY      V1.0.0      first version.
+ * Date           Author    version    		    Notes
+ * 2018-06-22      ZSY      V1.0.0          first version.
+ * 2018-06-22      ZSY      V1.0.1          添加对外部字库的支持.
  */
 	
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -98,24 +99,15 @@
     #define NULL            0
 #endif
 
-/* 扩展声明变量 */
-typedef unsigned char       uint8_t;
-/* 系统已经定义有 */
-//typedef char int8_t;
-typedef unsigned short int  uint16_t;
-typedef short int           int16_t;
-typedef unsigned int        uint32_t;
-typedef int                 int32_t;
-
 /* 定义像素点的结构体，用于拆解像素点 */
 typedef union _GUI_RGB565Color
 {
-    uint16_t Color;
+    unsigned short int Color;
     struct
     {
-        uint16_t  B : 5;
-        uint16_t  G : 6;
-        uint16_t  R : 5;
+        unsigned short int  B : 5;
+        unsigned short int  G : 6;
+        unsigned short int  R : 5;
     }RGB;
 }GUI_RGB565Color_t;
 
@@ -138,63 +130,63 @@ extern const paCharInfo_t FontCn48;
 
 /* API 接口 */
 void GuiSetTextFont(const paCharInfo_t * CharInfo);
-void GuiSetTextColor(uint16_t WordColor, uint16_t BackColor);
-void GuiSetDeviceAPI(void (* PutPixelNoPos)(uint16_t pColor),
-                     void (* PutPixel)(uint16_t xCur, uint16_t yCur, uint16_t pColor),
-                     void (* SetDispWin)(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height)
+void GuiSetTextColor(unsigned short int WordColor, unsigned short int BackColor);
+void GuiSetDeviceAPI(void (* PutPixelNoPos)(unsigned short int pColor),
+                     void (* PutPixel)(unsigned short int xCur, unsigned short int yCur, unsigned short int pColor),
+                     void (* SetDispWin)(unsigned short int xCur, unsigned short int yCur, unsigned short int Width, unsigned short int Height)
                      );
 #if defined USE_ASCII_EXT_LIB || defined USE_CN_EXT_LIB
 void GuiSetFlashReadAPI(void (* ReadData)(uint32_t Address, uint8_t * pDataBuf, uint32_t BufSize));
 #endif
-void GuiClrScr(uint16_t pColor);
-void GuiDrawStringAt(const char * Cn, uint16_t x, uint16_t y);
-void GuiDrawTranStringAt(const char * Cn, uint16_t x, uint16_t y);
-uint8_t GuiDrawNumberAt(double Number, uint16_t x, uint16_t y, uint8_t PointNum);
-uint8_t GuiDrawTranNumberAt(double Number, uint16_t x, uint16_t y, uint8_t PointNum);                    
-void GuiDrawText(const char * Cn, uint16_t xCur, uint16_t yCur, uint16_t xEnd, uint16_t yEnd, uint16_t Align);   
-void GuiDrawTranText(const char * Cn, uint16_t xCur, uint16_t yCur, uint16_t xEnd, uint16_t yEnd, uint16_t Align);                   
+void GuiClrScr(unsigned short int pColor);
+void GuiDrawStringAt(const char * Cn, unsigned short int x, unsigned short int y);
+void GuiDrawTranStringAt(const char * Cn, unsigned short int x, unsigned short int y);
+unsigned char GuiDrawNumberAt(double Number, unsigned short int x, unsigned short int y, unsigned char PointNum);
+unsigned char GuiDrawTranNumberAt(double Number, unsigned short int x, unsigned short int y, unsigned char PointNum);                    
+void GuiDrawText(const char * Cn, unsigned short int xCur, unsigned short int yCur, unsigned short int xEnd, unsigned short int yEnd, unsigned short int Align);   
+void GuiDrawTranText(const char * Cn, unsigned short int xCur, unsigned short int yCur, unsigned short int xEnd, unsigned short int yEnd, unsigned short int Align);                   
                      
-void GuiDrawHorGradientColorBar(uint16_t xCur, uint16_t yCur,
-                                uint16_t Width, uint16_t Height,
-                                uint16_t FirstColor, uint16_t SecondColor);                     
+void GuiDrawHorGradientColorBar(unsigned short int xCur, unsigned short int yCur,
+                                unsigned short int Width, unsigned short int Height,
+                                unsigned short int FirstColor, unsigned short int SecondColor);                     
 
-void GuiDrawHorRadiationColorBar(uint16_t xCur, uint16_t yCur,
-                                uint16_t Width, uint16_t Height,
-                                uint16_t FirstColor, uint16_t SecondColor);
+void GuiDrawHorRadiationColorBar(unsigned short int xCur, unsigned short int yCur,
+                                unsigned short int Width, unsigned short int Height,
+                                unsigned short int FirstColor, unsigned short int SecondColor);
 
-void GuiDrawHorThreeGradientColorBar(uint16_t xCur, uint16_t yCur,
-                                    uint16_t Width, uint16_t Height,
-                                    uint16_t FirstColor, uint16_t SecondColor,
-                                    uint16_t ThreeColor);
+void GuiDrawHorThreeGradientColorBar(unsigned short int xCur, unsigned short int yCur,
+                                    unsigned short int Width, unsigned short int Height,
+                                    unsigned short int FirstColor, unsigned short int SecondColor,
+                                    unsigned short int ThreeColor);
 
-void GuiDrawVerGradientColorBar(uint16_t xCur, uint16_t yCur,
-                                uint16_t Width, uint16_t Height,
-                                uint16_t FirstColor, uint16_t SecondColor);
+void GuiDrawVerGradientColorBar(unsigned short int xCur, unsigned short int yCur,
+                                unsigned short int Width, unsigned short int Height,
+                                unsigned short int FirstColor, unsigned short int SecondColor);
 
-void GuiDrawVerRadiationColorBar(uint16_t xCur, uint16_t yCur,
-                                uint16_t Width, uint16_t Height,
-                                uint16_t FirstColor, uint16_t MiddleColor);
+void GuiDrawVerRadiationColorBar(unsigned short int xCur, unsigned short int yCur,
+                                unsigned short int Width, unsigned short int Height,
+                                unsigned short int FirstColor, unsigned short int MiddleColor);
 
-void GuiDrawVerThreeGradientColorBar(uint16_t xCur, uint16_t yCur,
-                                    uint16_t Width, uint16_t Height,
-                                    uint16_t FirstColor, uint16_t SecondColor,
-                                    uint16_t ThreeColor);
-void GuiGetBarColorItems(uint16_t *Buf, uint16_t nLen);
-void GuiDrawLine(uint16_t xStart , uint16_t yStart , uint16_t xEnd , uint16_t yEnd , uint16_t pColor);
-void GuiDrawHorLine(uint16_t xCur, uint16_t yCur, uint16_t Lenght, uint16_t pColor);
-void GuiDrawVerLine(uint16_t xCur, uint16_t yCur, uint16_t Lenght, uint16_t pColor);
-void GuiDrawHorColorLine(uint16_t xCur, uint16_t yCur, uint16_t dWidth, const uint16_t *pColor);
-void GuiDrawPoints(const uint16_t *x, uint16_t *y, uint16_t Size, uint16_t pColor);
-void GuiDrawRect(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, uint16_t pColor);
-void GuiDrawCircle(uint16_t xCur, uint16_t yCur, uint16_t rRadius, uint16_t pColor);
-void GuiDrawRectRound(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, uint16_t pColor, uint16_t Round);
-void GuiDrawFillRect(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, uint16_t pColor);
-void GuiDrawFillCircle(uint16_t xCur, uint16_t yCur, uint16_t rRadius, uint16_t pColor);
-void GuiDrawFillRectRound(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, uint16_t pColor, uint16_t Round);
-void GuiDrawTopTriangle(uint16_t xCur, uint16_t yCur, uint16_t Edges, uint16_t pColor);
-void GuiDrawFillTopTriangle(uint16_t xCur, uint16_t yCur, uint16_t Edges, uint16_t pColor);
-void GuiDrawBMP(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, const uint16_t *Ptr);
-void GuiGetWarmColdColor(uint16_t SrcColor, uint16_t * WarmColor, uint16_t * ColdColor);
+void GuiDrawVerThreeGradientColorBar(unsigned short int xCur, unsigned short int yCur,
+                                    unsigned short int Width, unsigned short int Height,
+                                    unsigned short int FirstColor, unsigned short int SecondColor,
+                                    unsigned short int ThreeColor);
+void GuiGetBarColorItems(unsigned short int *Buf, unsigned short int nLen);
+void GuiDrawLine(unsigned short int xStart , unsigned short int yStart , unsigned short int xEnd , unsigned short int yEnd , unsigned short int pColor);
+void GuiDrawHorLine(unsigned short int xCur, unsigned short int yCur, unsigned short int Lenght, unsigned short int pColor);
+void GuiDrawVerLine(unsigned short int xCur, unsigned short int yCur, unsigned short int Lenght, unsigned short int pColor);
+void GuiDrawHorColorLine(unsigned short int xCur, unsigned short int yCur, unsigned short int dWidth, const unsigned short int *pColor);
+void GuiDrawPoints(const unsigned short int *x, unsigned short int *y, unsigned short int Size, unsigned short int pColor);
+void GuiDrawRect(unsigned short int xCur, unsigned short int yCur, unsigned short int dWidth, unsigned short int dHeight, unsigned short int pColor);
+void GuiDrawCircle(unsigned short int xCur, unsigned short int yCur, unsigned short int rRadius, unsigned short int pColor);
+void GuiDrawRectRound(unsigned short int xCur, unsigned short int yCur, unsigned short int dWidth, unsigned short int dHeight, unsigned short int pColor, unsigned short int Round);
+void GuiDrawFillRect(unsigned short int xCur, unsigned short int yCur, unsigned short int dWidth, unsigned short int dHeight, unsigned short int pColor);
+void GuiDrawFillCircle(unsigned short int xCur, unsigned short int yCur, unsigned short int rRadius, unsigned short int pColor);
+void GuiDrawFillRectRound(unsigned short int xCur, unsigned short int yCur, unsigned short int dWidth, unsigned short int dHeight, unsigned short int pColor, unsigned short int Round);
+void GuiDrawTopTriangle(unsigned short int xCur, unsigned short int yCur, unsigned short int Edges, unsigned short int pColor);
+void GuiDrawFillTopTriangle(unsigned short int xCur, unsigned short int yCur, unsigned short int Edges, unsigned short int pColor);
+void GuiDrawBMP(unsigned short int xCur, unsigned short int yCur, unsigned short int dWidth, unsigned short int dHeight, const unsigned short int *Ptr);
+void GuiGetWarmColdColor(unsigned short int SrcColor, unsigned short int * WarmColor, unsigned short int * ColdColor);
 
 #endif
 
