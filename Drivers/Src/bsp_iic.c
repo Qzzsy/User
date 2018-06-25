@@ -20,61 +20,10 @@
 /* Includes ------------------------------------------------------------------*/
 #include "bsp_iic.h"
 
-/* Private macro Definition --------------------------------------------------*/
-		   
-/* 宏定义i2c的硬件接口 */
-#define IIC_SCL_PIN   IIC_SCL_Pin
-#define IIC_SDA_PIN   IIC_SDA_Pin   
-
-#define IIC_SCL_PORT	IIC_SCL_GPIO_Port
-#define IIC_SDA_PORT	IIC_SDA_GPIO_Port
-
-#ifdef STM32F1
-/* IO方向设置 */
-#define SET_IIC_SDA_IN()  {GPIOB->CRH &= 0XFFFF0FFF; GPIOB->CRH |= (uint32_t)8 << 12;}
-#define SET_IIC_SDA_OUT() {GPIOB->CRH &= 0XFFFF0FFF; GPIOB->CRH |= (uint32_t)3 << 12;}
-#elif defined STM32F4
-/* IO方向设置 */
-#define SET_IIC_SDA_IN()  {IIC_SDA_PORT->MODER &= ~(3 << (9 * 2)); IIC_SDA_PORT->MODER |= (0 << (9 * 2));}	//PB12??????
-#define SET_IIC_SDA_OUT() {IIC_SDA_PORT->MODER &= ~(3 << (9 * 2)); IIC_SDA_PORT->MODER |= (1 << (9 * 2));} 
-#endif
-/* 设置iic接口的高低逻辑电平输出 */
-#define IIC_SCL_WRITE_H   LL_GPIO_SetOutputPin(IIC_SCL_PORT, IIC_SCL_PIN)
-#define IIC_SCL_WRITE_L   LL_GPIO_ResetOutputPin(IIC_SCL_PORT, IIC_SCL_PIN)
-						
-#define IIC_SDA_WRITE_H   LL_GPIO_SetOutputPin(IIC_SDA_PORT, IIC_SDA_PIN)
-#define IIC_SDA_WRITE_L   LL_GPIO_ResetOutputPin(IIC_SDA_PORT, IIC_SDA_PIN)
-
-/* 设置iic的sda线的读入功能	*/
-#define	IIC_SDA_READ      LL_GPIO_IsInputPinSet(IIC_SDA_PORT, IIC_SDA_PIN)
-
-/* 应答信号ACK等待超时时间	*/
-#define IIC_ACK_TIMEOUT   200
-
-/* End private macro Definition ----------------------------------------------*/
-
-/* global variable Declaration -----------------------------------------------*/
-
-/* User function Declaration -------------------------------------------------*/
+#define WRITE_ADDR              (1 << 0)
+#define WRITE_DATA              (1 << 1)
 
 /* User functions ------------------------------------------------------------*/
-
-/**
- * @func    BspIIC_Delay
- * @brief   BspIIC延时方法
- * @param   nCount 时间
- * @retval  无
- */
-void BspIIC_Delay(__IO uint32_t Number)
-{
-    uint32_t i = 0;
-
-    while (Number--)
-    {
-        i = 200;
-        while (i--);
-    }
-}
 
 /**
  * @func    IIC_Start
@@ -82,7 +31,7 @@ void BspIIC_Delay(__IO uint32_t Number)
                 IIC device is about to start a new transfer process
  * @retval  none
  */
-void IIC_Start(IIC_Handle_t Handle)  
+static void IIC_Start(IIC_Handle_t Handle)  
 { 
     /* Set GPIO to Output mode */
     Handle->Ops->Set_SDA_DIR(SDA_OUT);
@@ -102,7 +51,7 @@ void IIC_Start(IIC_Handle_t Handle)
                 IIC device is about to stop the current transport process
  * @retval  none
  */
-void IIC_Stop(IIC_Handle_t Handle)  
+static void IIC_Stop(IIC_Handle_t Handle)  
 { 
     /* Set GPIO to Output mode */
     Handle->Ops->Set_SDA_DIR(SDA_OUT);
@@ -161,7 +110,7 @@ static void IIC_NoAck(IIC_Handle_t Handle)
                 The CPU produces a clock and reads the device's ACK signal
  * @retval  return IIC_OPER_OK for correct response, IIC_OPER_FAILT for no device response
  */
-uint8_t IIC_WaitAck(IIC_Handle_t Handle)
+static uint8_t IIC_WaitAck(IIC_Handle_t Handle)
 { 
     __IO uint16_t time = 0;
     
@@ -200,11 +149,11 @@ uint8_t IIC_WaitAck(IIC_Handle_t Handle)
  * @param   Data 将要发送的数据					
  * @retval  无
  */
-void IIC_SendByte(IIC_Handle_t Handle)
+static void IIC_SendByte(IIC_Handle_t Handle)
 {
-    __IO uint8_t i, Data = *(Handle->Msg->Data + Handle->Msg->Offiset);
-    
-    Data |= Handle->Msg->Flags;
+    __IO uint8_t i, Data;
+
+    Data = *(Handle->Msg->Data);
 
     /* Set GPIO to Output mode */
     Handle->Ops->Set_SDA_DIR(SDA_OUT);
@@ -240,7 +189,7 @@ void IIC_SendByte(IIC_Handle_t Handle)
                 I2C_NEEDNT_ACK 说明当前的传输是最后一个字节的数据，此时发送nack
  * @retval	receive 读取到的数据
  */
-void IIC_ReadByte(IIC_Handle_t Handle)
+static void IIC_ReadByte(IIC_Handle_t Handle)
 {
     uint8_t i, Receive = 0;
     
@@ -267,11 +216,11 @@ void IIC_ReadByte(IIC_Handle_t Handle)
     {	   
         IIC_NoAck(Handle);	//发送nACK
     }
-    else       
+    else if (Handle->Msg->Flags & IIC_NEED_ACK)
     {
         IIC_Ack(Handle); 		//发送ACK   
     }
-    *(Handle->Msg->Data + Handle->Msg->Offiset) = Receive;  
+    *(Handle->Msg->Data) = Receive;  
 }
 
 /**
@@ -282,13 +231,16 @@ void IIC_ReadByte(IIC_Handle_t Handle)
  */
 uint8_t IIC_CheckDevice(IIC_Handle_t Handle)
 {
+    uint8_t Temp;
 	if (Handle->Ops->Get_SDA())
 	{
 		IIC_Start(Handle);		/* 发送启动信号 */
 
 		/* 发送设备地址+读写控制bit（0 = w， 1 = r) bit7 先传 */
-        Handle->Msg->Flags = IIC_DRV_WR;
+        Temp = Handle->Ops->SlaveAddr | IIC_DRV_WR;
+        Handle->Msg->Data = &Temp;
 		IIC_SendByte(Handle);
+
 		if (IIC_WaitAck(Handle) == IIC_OPER_OK)	/* 检测设备的ACK应答 */
         {
             IIC_Stop(Handle);			/* 发送停止信号 */
@@ -306,12 +258,15 @@ uint8_t IIC_CheckDevice(IIC_Handle_t Handle)
  */
 uint8_t IIC_Read(IIC_Handle_t Handle)
 {
+    uint8_t Temp;
+    assert_param(Handle);
     /* 第1步：发起I2C总线启动信号 */
     IIC_Start(Handle);
     
     /* 第2步：发起控制字节，高7bit是地址，bit0是读写控制位，0表示写，1表示读 */
     /* 此处是写指令 */
-    Handle->Msg->Flags = IIC_DRV_WR;
+    Temp = Handle->Ops->SlaveAddr | IIC_DRV_WR;
+    Handle->Msg->Data = &Temp;
 
     /* 发送器件地址 */
     IIC_SendByte(Handle);	
@@ -323,8 +278,9 @@ uint8_t IIC_Read(IIC_Handle_t Handle)
     }
 
     /* 第4步：发送字节地址，判断地址的大小 */
-    for (Handle->Msg->Offiset = 0; Handle->Msg->Offiset < Handle->Msg->SubAddrSize; Handle->Msg->Offiset++)
+    for (uint32_t i = 0; i < Handle->Msg->SubAddrSize; i++)
     {
+        Handle->Msg->Data = ((uint8_t *)(&(Handle->Msg->SubAddr))) + i;
         IIC_SendByte(Handle);
         if (IIC_WaitAck(Handle) != IIC_OPER_OK)
         {
@@ -336,7 +292,8 @@ uint8_t IIC_Read(IIC_Handle_t Handle)
     IIC_Start(Handle);
     
     /* 第7步：发起控制字节，高7bit是地址，bit0是读写控制位，0表示写，1表示读 */
-    Handle->Msg->Flags = IIC_DRV_R;
+    Temp = Handle->Ops->SlaveAddr | IIC_DRV_R;
+    Handle->Msg->Data = &Temp;
     IIC_SendByte(Handle);	/* 此处是读指令 */
     
     /* 第8步：等待ACK */
@@ -345,16 +302,21 @@ uint8_t IIC_Read(IIC_Handle_t Handle)
         goto _return;	/* 器件无应答 */
     }
     
-    Handle->Msg->Offiset = 0;
     /* 第9步：循环读取数据 */
-    for (Handle->Msg->Offiset = 0; Handle->Msg->Offiset < Handle->Msg->DataSize - 1; Handle->Msg->Offiset++)
+    for (uint32_t i = 0; i < Handle->BufSize; i++)
     {
         Handle->Msg->Flags = IIC_NEED_ACK;
+        Handle->Msg->Data = Handle->Buf + i;
         IIC_ReadByte(Handle);	/* 读1个字节 */
+
+        if (i == Handle->BufSize - 1)
+        {
+            i++;
+            Handle->Msg->Flags = IIC_NEEDNT_ACK;
+            Handle->Msg->Data = Handle->Buf + i;
+            IIC_ReadByte(Handle);	/* 读1个字节 */
+        }
     }
-    
-    Handle->Msg->Flags = IIC_NEEDNT_ACK;
-    IIC_ReadByte(Handle);	/* 读1个字节 */
     
     /* 发送I2C总线停止信号 */
     IIC_Stop(Handle);
@@ -375,14 +337,16 @@ _return: /* 命令执行失败后，切记发送停止信号，避免影响I2C总线上其他设备 */
  */
 uint8_t IIC_Write(IIC_Handle_t Handle)
 {
-    uint16_t i, m;
-    
+    uint8_t Temp;
+    assert_param(Handle);
+
     /* 第1步：发起I2C总线启动信号 */
     IIC_Start(Handle);
     
     /* 第2步：发起控制字节，高7bit是地址，bit0是读写控制位，0表示写，1表示读 */
     /* 此处是写指令 */
-    Handle->Msg->Flags = IIC_DRV_WR;
+    Temp = Handle->Ops->SlaveAddr | IIC_DRV_WR;
+    Handle->Msg->Data = &Temp;
 
     /* 发送器件地址 */
     IIC_SendByte(Handle);	
@@ -393,8 +357,20 @@ uint8_t IIC_Write(IIC_Handle_t Handle)
         goto _return;    /* 器件无应答 */
     }
 
-    for (Handle->Msg->Offiset = 0; Handle->Msg->Offiset < Handle->Msg->DataSize; Handle->Msg->Offiset++)
+    /* 第4步：发送字节地址，判断地址的大小 */
+    for (uint32_t i = 0; i < Handle->Msg->SubAddrSize; i++)
     {
+        Handle->Msg->Data = ((uint8_t *)(&(Handle->Msg->SubAddr))) + i;
+        IIC_SendByte(Handle);
+        if (IIC_WaitAck(Handle) != IIC_OPER_OK)
+        {
+            goto _return;	/* 器件无应答 */
+        }
+    }
+
+    for (uint32_t i = 0; i < Handle->BufSize; i++)
+    {
+        Handle->Msg->Data = Handle->Buf + i;
         /* 发送器件地址 */
         IIC_SendByte(Handle);    
         /* 等待ACK */

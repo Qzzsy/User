@@ -18,14 +18,14 @@ void UserMainFunc(void)
 
     GuiClrScr(0x0000);
     
-    if (Bsp_eeCheckOk() == AT24XX_OK)
+    if (Bsp_eeInit() == AT24XX_OK)
     {
         GuiClrScr(0xf800);
     }
     
     GuiSetTextColor(BLACK, WHITE);
 
-    RTP_Adjust();
+    //RTP_Adjust();
         
     Bsp_eeWriteBytes(Buf, 0, 10);
 

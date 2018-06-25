@@ -44,7 +44,7 @@
 	#define EE_ADDR_BYTES		2			/* 地址字节个数 */
 #endif
 
-uint8_t Bsp_eeCheckOk(void);
+uint8_t Bsp_eeInit(void);
 uint8_t Bsp_eeReadBytes(uint8_t *_pReadBuf, uint16_t _usAddress, uint16_t _usSize);
 uint8_t Bsp_eeWriteBytes(uint8_t *_pWriteBuf, uint16_t _usAddress, uint16_t _usSize);
 

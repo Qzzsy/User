@@ -51,35 +51,33 @@
 
 typedef struct
 {
+    uint16_t Speed;
+    uint8_t SlaveAddr;
     uint32_t Delay_us;
     uint32_t Timeout;   /* in tick */
     void (* Set_SDA)(uint32_t State);
     void (* Set_SCL)(uint32_t State);
     void (* Set_SDA_DIR)(uint32_t State);
-    int8_t (*Get_SDA)(void);
-    int8_t (*Get_SCL)(void);
+    uint8_t (*Get_SDA)(void);
+    uint8_t (*Get_SCL)(void);
     void (*uDelay)(uint32_t us);
-}IIC_BitOps_t;
+}IIC_Ops_t;
 
-#pragma pack(4)
 typedef struct
 {
-    uint8_t SlaveAddr;
     uint32_t SubAddr;
     uint8_t SubAddrSize;
     uint8_t *Data;
-    uint32_t Offiset;
-    uint32_t DataSize;
     uint8_t Flags;
 }IIC_Msg_t;
-#pragma pack()
 
 typedef struct
 {
-    IIC_BitOps_t * Ops;
-    IIC_Msg_t * Msg;
+    IIC_Ops_t *Ops;
+    IIC_Msg_t *Msg;
+    uint8_t *Buf;
+    uint32_t BufSize;
     uint8_t Flags;
-    uint16_t Speed;
 }IIC_Device_t;
 
 typedef IIC_Device_t * IIC_Handle_t;
@@ -89,8 +87,8 @@ typedef IIC_Device_t * IIC_Handle_t;
 void IIC_Start(IIC_Handle_t Handle); 
 void IIC_Stop(IIC_Handle_t Handle);
 uint8_t IIC_WaitAck(IIC_Handle_t Handle);
-void IIC_SendByte(IIC_Handle_t Handle);
-void IIC_ReadByte(IIC_Handle_t Handle);
+uint8_t IIC_Read(IIC_Handle_t Handle);
+uint8_t IIC_Write(IIC_Handle_t Handle);
 uint8_t IIC_CheckDevice(IIC_Handle_t Handle);
 
 /* End Member Method APIs ---------------------------------------------------*/
