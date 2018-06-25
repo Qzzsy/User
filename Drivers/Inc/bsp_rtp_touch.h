@@ -10,11 +10,14 @@
 #define RTP_OK              0
 #define RTP_FAULT           1
 
+#define RTP_NEED_ADJ        0
+#define RTP_NEEDNT_ADJ      1
+
 #define RTP_PRESS           (1 << 0)
 #define RTP_LIFT_UP         (1 << 1)
 
 uint8_t RTP_Scan(void);
-void RTP_Adjust(void);
+void RTP_Adjust(uint8_t Flag);
 
 #endif
 

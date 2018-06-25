@@ -25,16 +25,7 @@ void UserMainFunc(void)
     
     GuiSetTextColor(BLACK, WHITE);
 
-    //RTP_Adjust();
-        
-    Bsp_eeWriteBytes(Buf, 0, 10);
-
-    for (int i = 0; i < 10; i++)
-    {
-        Buf[i] = 0;
-    }
-
-    Bsp_eeReadBytes(Buf, 0, 10);
+    RTP_Adjust(RTP_NEED_ADJ);
 
     while(true)
     {
