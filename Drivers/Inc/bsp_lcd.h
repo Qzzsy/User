@@ -125,6 +125,10 @@ typedef struct
     void (*PutPixelNoPos)(uint16_t pColor);
     
     uint16_t (*GetPixel)(uint16_t xCur, uint16_t yCur);
+
+    void (*Fill)(uint16_t xStart, uint16_t yStart, uint16_t xEnd, uint16_t yEnd, uint16_t pColor);
+
+    void (*FillColor)(uint16_t xStart, uint16_t yStart, uint16_t xEnd, uint16_t yEnd, uint16_t * pColor);
     
 }BspLCD_Func_t;
 

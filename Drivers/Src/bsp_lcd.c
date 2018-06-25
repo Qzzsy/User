@@ -1,17 +1,17 @@
 /**
  ******************************************************************************
  * @file      bsp_lcd.c
- * @author    é—¨ç¦å¼€å‘å°ç»„
+ * @author    ÃÅ½û¿ª·¢Ğ¡×é
  * @version   V1.0.3
  * @date      2018-01-26
- * @brief     è¿™ä¸ªæ–‡ä»¶æ˜¯æ¶²æ™¶åˆå§‹åŒ–æ–‡ä»¶ï¼Œåœ¨æ­¤æ–‡ä»¶å†…è¿›è¡Œæ¶²æ™¶çš„é…ç½®è¿˜æœ‰ä¸€äº›åŸºæœ¬çš„æ“ä½œ
-              æ¶²æ™¶çš„é©±åŠ¨èŠ¯ç‰‡ä¸ºR61529é©±åŠ¨èŠ¯ç‰‡
+ * @brief     Õâ¸öÎÄ¼şÊÇÒº¾§³õÊ¼»¯ÎÄ¼ş£¬ÔÚ´ËÎÄ¼şÄÚ½øĞĞÒº¾§µÄÅäÖÃ»¹ÓĞÒ»Ğ©»ù±¾µÄ²Ù×÷
+              Òº¾§µÄÇı¶¯Ğ¾Æ¬ÎªR61529Çı¶¯Ğ¾Æ¬
  * @History
  * Date           Author    version    		Notes
  * 2017-10-31       ZSY     V1.0.0      first version.
- * 2017-11-27       ZSY     V1.0.1      å¢åŠ LCDçš„æ“ä½œæ–¹æ³•ï¼Œå®Œå–„LCDé©±åŠ¨
- * 2018-01-16       ZSY     V1.0.2      æ’ç‰ˆæ ¼å¼åŒ–ï¼Œå¢å¼ºå¯è§†åŒ–
- * 2018-01-26       ZSY     V1.0.3      æ•´ç†éƒ¨åˆ†å®šä¹‰ï¼Œæ·»åŠ ç§æœ‰å’Œå…¬æœ‰å®å®šä¹‰
+ * 2017-11-27       ZSY     V1.0.1      Ôö¼ÓLCDµÄ²Ù×÷·½·¨£¬ÍêÉÆLCDÇı¶¯
+ * 2018-01-16       ZSY     V1.0.2      ÅÅ°æ¸ñÊ½»¯£¬ÔöÇ¿¿ÉÊÓ»¯
+ * 2018-01-26       ZSY     V1.0.3      ÕûÀí²¿·Ö¶¨Òå£¬Ìí¼ÓË½ÓĞºÍ¹«ÓĞºê¶¨Òå
  */
 	
 /* Includes ------------------------------------------------------------------*/
@@ -19,8 +19,8 @@
 
 /* Private macro Definition --------------------------------------------------*/
 
-/** ä½¿ç”¨NOR/SRAMçš„ Bank1.sector4,åœ°å€ä½HADDR[27,26]=11 A6ä½œä¸ºæ•°æ®å‘½ä»¤åŒºåˆ†çº¿
- * @note:è®¾ç½®æ—¶STM32å†…éƒ¨ä¼šå³ç§»ä¸€ä½å¯¹å…¶! 111 1110=0X7E	
+/** Ê¹ÓÃNOR/SRAMµÄ Bank1.sector4,µØÖ·Î»HADDR[27,26]=11 A6×÷ÎªÊı¾İÃüÁîÇø·ÖÏß
+ * @note:ÉèÖÃÊ±STM32ÄÚ²¿»áÓÒÒÆÒ»Î»¶ÔÆä! 111 1110=0X7E	
  */   
 #define LCD_BASE_ADDRESS        ((uint32_t)(0x6C000000 | 0x0000007E))
 
@@ -28,13 +28,13 @@
 
 /* global variable Declaration -----------------------------------------------*/
 
-/* LCDå‚æ•°å¯¹è±¡ */
+/* LCD²ÎÊı¶ÔÏó */
 BspLCD_Dev_t BspLCD_Dev;
 
-/* LCDæ“ä½œå¯¹è±¡ */
+/* LCD²Ù×÷¶ÔÏó */
 BspLCD_Func_t BspLCD;
 
-/* LCDå¯„å­˜å™¨å¯¹è±¡ */
+/* LCD¼Ä´æÆ÷¶ÔÏó */
 BspLCD_t* BspLCD_RW = ((BspLCD_t *)LCD_BASE_ADDRESS);
 /* User function Declaration --------------------------------------------------*/
 static uint32_t BspLCD_ReadId(void);
@@ -46,20 +46,20 @@ void BspLCD_ClrScr(uint16_t pColor);
 
 /**
  * @func    BspLCD_WriteComm
- * @brief   lcdå†™å‘½ä»¤åˆ°å¯„å­˜å™¨
- * @param   RegVal æŒ‡å®šçš„å¯„å­˜å™¨åœ°å€
- * @retval  æ— 
+ * @brief   lcdĞ´ÃüÁîµ½¼Ä´æÆ÷
+ * @param   RegVal Ö¸¶¨µÄ¼Ä´æÆ÷µØÖ·
+ * @retval  ÎŞ
  */
 static void BspLCD_WriteComm(__IO uint16_t RegVal)
 {   
-    BspLCD_RW->REG = RegVal;     /* å†™å…¥è¦å†™çš„å¯„å­˜å™¨åºå· */
+    BspLCD_RW->REG = RegVal;     /* Ğ´ÈëÒªĞ´µÄ¼Ä´æÆ÷ĞòºÅ */
 }
 
 /**
  * @func    BspLCD_WriteData
- * @brief   lcdå†™æ•°æ®
- * @param   Data è¦å†™å…¥çš„æ•°æ®
- * @retval  æ— 
+ * @brief   lcdĞ´Êı¾İ
+ * @param   Data ÒªĞ´ÈëµÄÊı¾İ
+ * @retval  ÎŞ
  */
 static void BspLCD_WriteData(__IO uint16_t  Data)
 {	  
@@ -68,10 +68,10 @@ static void BspLCD_WriteData(__IO uint16_t  Data)
 
 /**
  * @func    BspLCD_WR_Reg
- * @brief   å¾€æŒ‡å®šçš„å¯„å­˜å™¨å†™æ•°æ®
- * @param   Index å¯„å­˜å™¨
- * @param   congfig_temp æ•°æ®
- * @retval  æ— 
+ * @brief   ÍùÖ¸¶¨µÄ¼Ä´æÆ÷Ğ´Êı¾İ
+ * @param   Index ¼Ä´æÆ÷
+ * @param   congfig_temp Êı¾İ
+ * @retval  ÎŞ
  */
 static void BspLCD_WR_Reg(uint16_t Index, uint16_t CongfigTemp)
 {
@@ -81,33 +81,33 @@ static void BspLCD_WR_Reg(uint16_t Index, uint16_t CongfigTemp)
 
 /**
  * @func    BspLCD_ReadData
- * @brief   lcdè¯»æ•°æ®
- * @retval  è¯»åˆ°çš„æ•°æ®
+ * @brief   lcd¶ÁÊı¾İ
+ * @retval  ¶Áµ½µÄÊı¾İ
  */
 static uint16_t BspLCD_ReadData(void)
 {
-    __IO uint16_t Ram;                   //é˜²æ­¢è¢«ä¼˜åŒ–
+    __IO uint16_t Ram;                   //·ÀÖ¹±»ÓÅ»¯
     Ram = BspLCD_RW->RAM;	
     return Ram;	 
 }	
 
 /**
  * @func    BspLCD_ReadReg
- * @brief   lcdè¯»å¯„å­˜å™¨
- * @param   reg:å¯„å­˜å™¨åœ°å€
- * @retval  è¯»åˆ°çš„æ•°æ®
+ * @brief   lcd¶Á¼Ä´æÆ÷
+ * @param   reg:¼Ä´æÆ÷µØÖ·
+ * @retval  ¶Áµ½µÄÊı¾İ
  */
 static uint16_t BspLCD_ReadReg(uint16_t Reg)
 {										   
-    BspLCD_WriteComm(Reg);              //å†™å…¥è¦è¯»çš„å¯„å­˜å™¨åºå·
-    return BspLCD_ReadData();           //è¿”å›è¯»åˆ°çš„å€¼
+    BspLCD_WriteComm(Reg);              //Ğ´ÈëÒª¶ÁµÄ¼Ä´æÆ÷ĞòºÅ
+    return BspLCD_ReadData();           //·µ»Ø¶Áµ½µÄÖµ
 }  
 
 /**
  * @func    BspLCD_WR_RamPrepare
- * @brief   lcdå¼€å§‹å†™å…¥æ“ä½œ
- * @note    ä¸€èˆ¬åœ¨æ“ä½œç»“æŸæ—¶è°ƒç”¨
- * @retval  æ— 
+ * @brief   lcd¿ªÊ¼Ğ´Èë²Ù×÷
+ * @note    Ò»°ãÔÚ²Ù×÷½áÊøÊ±µ÷ÓÃ
+ * @retval  ÎŞ
  */
 static void BspLCD_WR_RamPrepare(void)
 {
@@ -116,9 +116,9 @@ static void BspLCD_WR_RamPrepare(void)
 
 /**
  * @func    BspLCD_Delay
- * @brief   lcdå¯åŠ¨å»¶æ—¶ï¼Œç”¨äºåˆå§‹åŒ–è¿‡ç¨‹
- * @param   nCount å»¶æ—¶çš„å¤§å°
- * @retval  æ— 
+ * @brief   lcdÆô¶¯ÑÓÊ±£¬ÓÃÓÚ³õÊ¼»¯¹ı³Ì
+ * @param   nCount ÑÓÊ±µÄ´óĞ¡
+ * @retval  ÎŞ
  */
 static void BspLCD_Delay(__IO uint32_t nCount)
 {	
@@ -130,9 +130,9 @@ static void BspLCD_Delay(__IO uint32_t nCount)
 
 ///**
 // * @func    LCDReset
-// * @brief   lcdå¤ä½æ“ä½œï¼Œç”¨äºå¤ä½lcdçš„æ‰€æœ‰å¯„å­˜å™¨
-// * @note    è¦å»¶æ—¶è¶³å¤Ÿçš„æ—¶é—´æ‰èƒ½è®©lcdå¤ä½
-// * @retval  æ— 
+// * @brief   lcd¸´Î»²Ù×÷£¬ÓÃÓÚ¸´Î»lcdµÄËùÓĞ¼Ä´æÆ÷
+// * @note    ÒªÑÓÊ±×ã¹»µÄÊ±¼ä²ÅÄÜÈÃlcd¸´Î»
+// * @retval  ÎŞ
 // */
 //static void LCDReset(void)
 //{		
@@ -153,8 +153,8 @@ static void BspLCD_Delay(__IO uint32_t nCount)
 
 /**
  * @func    BspLCD_ConfigLocal
- * @brief   æ ¹æ®ä¸åŒçš„LCDåŠ è½½ä¸åŒçš„å‚æ•°
- * @retval  æ— 
+ * @brief   ¸ù¾İ²»Í¬µÄLCD¼ÓÔØ²»Í¬µÄ²ÎÊı
+ * @retval  ÎŞ
  */
 static void BspLCD_ConfigLocal(void)
 {
@@ -176,15 +176,15 @@ static void BspLCD_ConfigLocal(void)
         BspLCD_Dev.DispOffCmd = 0x28;
     }
     
-    /* é»˜è®¤ä½¿ç”¨æ¨ªå± */
+    /* Ä¬ÈÏÊ¹ÓÃºáÆÁ */
     BspLCD_Dev.Height = BspLCD_Dev.pWidth;
     BspLCD_Dev.Width  = BspLCD_Dev.pHeight;
 }
 
 /**
  * @func    BspLCD_Init
- * @brief   å¯¹lcdè¿›è¡Œåˆå§‹åŒ–é…ç½®
- * @retva   æ— 
+ * @brief   ¶Ôlcd½øĞĞ³õÊ¼»¯ÅäÖÃ
+ * @retva   ÎŞ
  */
 void BspLCD_Init(void)
 {
@@ -231,14 +231,14 @@ void BspLCD_Init(void)
         BspLCD_WriteData(0x10);     //SAP[2:0];BT[3:0] 
         
         BspLCD_WriteComm(0xC5);     //VCM control 
-        BspLCD_WriteData(0x3e);     //å¯¹æ¯”åº¦è°ƒèŠ‚
+        BspLCD_WriteData(0x3e);     //¶Ô±È¶Èµ÷½Ú
         BspLCD_WriteData(0x28); 
         
         BspLCD_WriteComm(0xC7);     //VCM control2 
         BspLCD_WriteData(0x86);     //--
         
         BspLCD_WriteComm(0x36);     // Memory Access Control 
-        BspLCD_WriteData(0xE8);     //48 68ç«–å±//28 E8 æ¨ªå±
+        BspLCD_WriteData(0xE8);     //48 68ÊúÆÁ//28 E8 ºáÆÁ
         
         BspLCD_WriteComm(0x3A);    
         BspLCD_WriteData(0x55); 
@@ -310,17 +310,17 @@ void BspLCD_Init(void)
         BspLCD_WriteComm(0x2c); 
     }
     
-    /* é»˜è®¤æƒ…å†µä¸‹ä¸ºæ¨ªå±ï¼Œè®¾ç½®æ¨ªå± */
+    /* Ä¬ÈÏÇé¿öÏÂÎªºáÆÁ£¬ÉèÖÃºáÆÁ */
     BspLCD_SetDispDir(DIR_HORIZONTAL_NORMAL);
     
-    /* æ¸…å± */
+    /* ÇåÆÁ */
     BspLCD_ClrScr(0x0000);
 }
 
 /**
  * @func    BspLCD_ReadId
- * @brief   è¯»å–LCDçš„ID
- * @retval  LCDçš„ID
+ * @brief   ¶ÁÈ¡LCDµÄID
+ * @retval  LCDµÄID
  */
 __attribute__((unused)) static uint32_t BspLCD_ReadId(void)
 {
@@ -337,9 +337,9 @@ __attribute__((unused)) static uint32_t BspLCD_ReadId(void)
 
 /**
  * @func    BspLCD_SetDispDir
- * @brief   è®¾ç½®LCDçš„æ‰«ææ–¹å‘
- * @param   Dir éœ€è¦è®¾ç½®çš„æ–¹å‘
- * @retval  æ— 
+ * @brief   ÉèÖÃLCDµÄÉ¨Ãè·½Ïò
+ * @param   Dir ĞèÒªÉèÖÃµÄ·½Ïò
+ * @retval  ÎŞ
  */
 void BspLCD_SetDispDir(uint8_t Dir)
 {
@@ -374,12 +374,12 @@ void BspLCD_SetDispDir(uint8_t Dir)
 
 /**
  * @func    BspLCD_SetDispWin
- * @brief   é€‰å®šLCDä¸ŠæŒ‡å®šçš„çŸ©å½¢åŒºåŸŸï¼Œå³è®¾ç½®ä¸€ä¸ªçª—å£
- * @param   xCur xæ–¹å‘çš„èµ·å§‹ç‚¹
- * @param   yCur yæ–¹å‘çš„èµ·å§‹ç‚¹
- * @param   Width  çª—å£çš„å®½åº¦
- * @param   Height çª—å£çš„é«˜åº¦
- * @retval  æ— 
+ * @brief   Ñ¡¶¨LCDÉÏÖ¸¶¨µÄ¾ØĞÎÇøÓò£¬¼´ÉèÖÃÒ»¸ö´°¿Ú
+ * @param   xCur x·½ÏòµÄÆğÊ¼µã
+ * @param   yCur y·½ÏòµÄÆğÊ¼µã
+ * @param   Width  ´°¿ÚµÄ¿í¶È
+ * @param   Height ´°¿ÚµÄ¸ß¶È
+ * @retval  ÎŞ
  */
 void BspLCD_SetDispWin(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t Height)
 {
@@ -387,7 +387,7 @@ void BspLCD_SetDispWin(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t He
 
     StartPos.xyPos = xCur;
     EndPos.xyPos = xCur + Width - 1;
-    /* è®¾å®šXåæ ‡ */
+    /* Éè¶¨X×ø±ê */
     BspLCD_WriteComm(BspLCD_Dev.SetXCmd);
     BspLCD_WriteData(StartPos.Pos.hBit);
     BspLCD_WriteData(StartPos.Pos.lBit);                  
@@ -396,21 +396,21 @@ void BspLCD_SetDispWin(uint16_t xCur, uint16_t yCur, uint16_t Width, uint16_t He
     
     StartPos.xyPos = yCur;
     EndPos.xyPos = yCur + Height - 1;
-    /* è®¾å®šYåæ ‡ */
+    /* Éè¶¨Y×ø±ê */
     BspLCD_WriteComm(BspLCD_Dev.SetYCmd);
     BspLCD_WriteData(StartPos.Pos.hBit);
     BspLCD_WriteData(StartPos.Pos.lBit);
     BspLCD_WriteData(EndPos.Pos.hBit);
     BspLCD_WriteData(EndPos.Pos.lBit);
     
-    /* å¼€æ˜¾å­˜ */
+    /* ¿ªÏÔ´æ */
     BspLCD_WR_RamPrepare();
 }
 
 /**
  * @func    BspLCD_GetXSize
- * @brief   è·å–å±å¹•çš„å®½åº¦
- * @retval  è¿”å›å±å¹•çš„å®½åº¦
+ * @brief   »ñÈ¡ÆÁÄ»µÄ¿í¶È
+ * @retval  ·µ»ØÆÁÄ»µÄ¿í¶È
  */
 uint16_t BspLCD_GetXSize(void)
 {
@@ -419,8 +419,8 @@ uint16_t BspLCD_GetXSize(void)
 
 /**
  * @func    BspLCD_GetYSize
- * @brief   è·å–å±å¹•çš„é«˜åº¦
- * @retval  è¿”å›å±å¹•çš„é«˜åº¦
+ * @brief   »ñÈ¡ÆÁÄ»µÄ¸ß¶È
+ * @retval  ·µ»ØÆÁÄ»µÄ¸ß¶È
  */
 uint16_t BspLCD_GetYSize(void)
 {
@@ -428,10 +428,10 @@ uint16_t BspLCD_GetYSize(void)
 }
 /**
  * @func    BspLCD_SetDispCur
- * @brief   åœ¨LCDä¸ŠæŒ‡å®šçš„ä½ç½®è®¾ç½®å…‰æ ‡
- * @param   xPos xæ–¹å‘çš„èµ·å§‹ç‚¹
- * @param   yPos yæ–¹å‘çš„èµ·å§‹ç‚¹
- * @retval  æ— 
+ * @brief   ÔÚLCDÉÏÖ¸¶¨µÄÎ»ÖÃÉèÖÃ¹â±ê
+ * @param   xPos x·½ÏòµÄÆğÊ¼µã
+ * @param   yPos y·½ÏòµÄÆğÊ¼µã
+ * @retval  ÎŞ
  */
 void BspLCD_SetDispCur(uint16_t xPos, uint16_t yPos)
 {
@@ -439,7 +439,7 @@ void BspLCD_SetDispCur(uint16_t xPos, uint16_t yPos)
     
     xyInput.xyPos = xPos;
     
-    /* è®¾å®šXåæ ‡ */
+    /* Éè¶¨X×ø±ê */
     BspLCD_RW->REG = BspLCD_Dev.SetXCmd;
     BspLCD_RW->RAM = xyInput.Pos.hBit;
     BspLCD_RW->RAM = xyInput.Pos.lBit;
@@ -448,22 +448,22 @@ void BspLCD_SetDispCur(uint16_t xPos, uint16_t yPos)
     
     xyInput.xyPos = yPos;
     
-    /* è®¾å®šYåæ ‡ */
+    /* Éè¶¨Y×ø±ê */
     BspLCD_RW->REG = BspLCD_Dev.SetYCmd;
     BspLCD_RW->RAM = xyInput.Pos.hBit;
     BspLCD_RW->RAM = xyInput.Pos.lBit;
     BspLCD_RW->RAM = 0x01;
     BspLCD_RW->RAM = 0x3F;
     
-    /* å¼€æ˜¾å­˜ */
+    /* ¿ªÏÔ´æ */
     BspLCD_RW->REG = BspLCD_Dev.WramCmd;
 }
 
 /**
  * @func    BspLCD_BGR_ToRGB
- * @brief   å°†åƒç´ æ ¼å¼è¿›è¡Œè½¬æ¢
- * @param   Color è¦æ‰§è¡Œè½¬æ¢çš„åƒç´ 
- * @retval  RGB è½¬æ¢å®Œæˆçš„åƒç´ 
+ * @brief   ½«ÏñËØ¸ñÊ½½øĞĞ×ª»»
+ * @param   Color ÒªÖ´ĞĞ×ª»»µÄÏñËØ
+ * @retval  RGB ×ª»»Íê³ÉµÄÏñËØ
  */
 __attribute__((unused)) uint16_t BspLCD_BGR2RGB(uint16_t Color)
 {
@@ -480,8 +480,8 @@ __attribute__((unused)) uint16_t BspLCD_BGR2RGB(uint16_t Color)
 
 /**
  * @func    BspLCD_QuitWinMode
- * @brief   é€€å‡ºçª—å£æ˜¾ç¤ºæ¨¡å¼ï¼Œå˜ä¸ºå…¨å±æ˜¾ç¤ºæ¨¡å¼
- * @retval  æ— 
+ * @brief   ÍË³ö´°¿ÚÏÔÊ¾Ä£Ê½£¬±äÎªÈ«ÆÁÏÔÊ¾Ä£Ê½
+ * @retval  ÎŞ
  */
 __attribute__((unused)) static void BspLCD_QuitWinMode(void)
 {
@@ -490,8 +490,8 @@ __attribute__((unused)) static void BspLCD_QuitWinMode(void)
 
 /**
  * @func    BspLCD_DispOn
- * @brief   æ‰“å¼€æ˜¾ç¤º
- * @retval  æ— 
+ * @brief   ´ò¿ªÏÔÊ¾
+ * @retval  ÎŞ
  */
 void BspLCD_DispOn(void)
 {
@@ -500,8 +500,8 @@ void BspLCD_DispOn(void)
 
 /**
  * @func    BspLCD_DispOff
- * @brief   å…³é—­æ˜¾ç¤º
- * @retval  æ— 
+ * @brief   ¹Ø±ÕÏÔÊ¾
+ * @retval  ÎŞ
  */
 void BspLCD_DispOff(void)
 {
@@ -510,9 +510,9 @@ void BspLCD_DispOff(void)
 
 /**
  * @func    BspLCD_ClrScr
- * @brief   æ ¹æ®è¾“å…¥çš„é¢œè‰²å€¼æ¸…å±
- * @param   pColor èƒŒæ™¯è‰²
- * @retval  æ— 
+ * @brief   ¸ù¾İÊäÈëµÄÑÕÉ«ÖµÇåÆÁ
+ * @param   pColor ±³¾°É«
+ * @retval  ÎŞ
  */
 void BspLCD_ClrScr(uint16_t pColor)
 {
@@ -521,7 +521,7 @@ void BspLCD_ClrScr(uint16_t pColor)
     
     BspLCD_SetDispWin(0, 0, BspLCD_Dev.Width, BspLCD_Dev.Height);
     
-#if 1		/* ä¼˜åŒ–ä»£ç æ‰§è¡Œé€Ÿåº¦ */
+#if 1		/* ÓÅ»¯´úÂëÖ´ĞĞËÙ¶È */
     n = (BspLCD_Dev.Width * BspLCD_Dev.Height) / 8;
     for (i = 0; i < n; i++)
     {
@@ -544,24 +544,24 @@ void BspLCD_ClrScr(uint16_t pColor)
 
 /**
  * @func	BspLCD_PutPixel
- * @brief 	ç”»1ä¸ªåƒç´ 
- * @param	xCur åƒç´ xåæ ‡
- * @param	yCur åƒç´ yåæ ‡
- * @param	pColor åƒç´ é¢œè‰²
- * @retval	æ— 
+ * @brief 	»­1¸öÏñËØ
+ * @param	xCur ÏñËØx×ø±ê
+ * @param	yCur ÏñËØy×ø±ê
+ * @param	pColor ÏñËØÑÕÉ«
+ * @retval	ÎŞ
  */
 void BspLCD_PutPixel(uint16_t xCur, uint16_t yCur, uint16_t pColor)
 {
-    BspLCD_SetDispCur(xCur, yCur);/* è®¾ç½®å…‰æ ‡ä½ç½® */
+    BspLCD_SetDispCur(xCur, yCur);/* ÉèÖÃ¹â±êÎ»ÖÃ */
 	
 	BspLCD_RW->RAM = pColor;
 }
 
 /**
  * @func	BspLCD_PutPixelNoPos
- * @brief 	ç”»1ä¸ªåƒç´ 
- * @param	pColor åƒç´ é¢œè‰²
- * @retval	æ— 
+ * @brief 	»­1¸öÏñËØ
+ * @param	pColor ÏñËØÑÕÉ«
+ * @retval	ÎŞ
  */
 void BspLCD_PutPixelNoPos(uint16_t pColor)
 {
@@ -570,19 +570,19 @@ void BspLCD_PutPixelNoPos(uint16_t pColor)
 
 /**
  * @func    BspLCD_GetPixel
- * @brief   è¯»å–1ä¸ªåƒç´ 
- * @param   xCur åƒç´ xåæ ‡
- * @param   yCur åƒç´ yåæ ‡
- * @retval  è¯»åˆ°çš„åƒç´ ç‚¹çš„é¢œè‰²
+ * @brief   ¶ÁÈ¡1¸öÏñËØ
+ * @param   xCur ÏñËØx×ø±ê
+ * @param   yCur ÏñËØy×ø±ê
+ * @retval  ¶Áµ½µÄÏñËØµãµÄÑÕÉ«
  */
 uint16_t BspLCD_GetPixel(uint16_t xCur, uint16_t yCur)
 {
     RGB_t ReadData;
     
-    BspLCD_SetDispCur(xCur, yCur);	/* è®¾ç½®å…‰æ ‡ä½ç½® */
+    BspLCD_SetDispCur(xCur, yCur);	/* ÉèÖÃ¹â±êÎ»ÖÃ */
     
     BspLCD_RW->REG = 0x2E;
-    ReadData.RGB.R = BspLCD_RW->RAM; 	/* ç¬¬1ä¸ªå“‘è¯»ï¼Œä¸¢å¼ƒ */
+    ReadData.RGB.R = BspLCD_RW->RAM; 	/* µÚ1¸öÑÆ¶Á£¬¶ªÆú */
     ReadData.RGB.R = BspLCD_RW->RAM;
     ReadData.RGB.G = BspLCD_RW->RAM;
     ReadData.RGB.B = BspLCD_RW->RAM;
@@ -590,10 +590,44 @@ uint16_t BspLCD_GetPixel(uint16_t xCur, uint16_t yCur)
     return ReadData.Value;
 }
 
+void lv_flush_ready(void);
+void BspLCD_Fill(uint16_t xStart, uint16_t yStart, uint16_t xEnd, uint16_t yEnd, uint16_t pColor)
+{
+    uint32_t i;
+    
+    /* ??????? */
+    BspLCD_SetDispWin(xStart, yStart, xEnd - xStart + 1, yEnd - yStart + 1);
+    
+    i = (xEnd - xStart + 1) * (yEnd - yStart + 1);
+
+    /* ?????? */
+    while(i--)
+    {
+        BspLCD_RW->RAM = pColor;
+    }
+    lv_flush_ready();
+}
+
+void BspLCD_FillColor(uint16_t xStart, uint16_t yStart, uint16_t xEnd, uint16_t yEnd, uint16_t * pColor)
+{
+    uint32_t i;
+    
+    /* ??????? */
+    BspLCD_SetDispWin(xStart, yStart, xEnd - xStart + 1, yEnd - yStart + 1);
+    
+    i = (xEnd - xStart + 1) * (yEnd - yStart + 1);
+
+    /* ?????? */
+    while(i--)
+    {
+        BspLCD_RW->RAM = *pColor++;
+    }
+    lv_flush_ready();
+}
 /**
  * @func    BspLCD_FuncInit
- * @brief   LCDæ–¹æ³•æˆå‘˜åˆå§‹åŒ–
- * @retval  æ— 
+ * @brief   LCD·½·¨³ÉÔ±³õÊ¼»¯
+ * @retval  ÎŞ
  */
 void BspLCD_FuncInit(void)
 {
@@ -610,6 +644,8 @@ void BspLCD_FuncInit(void)
     BspLCD.SetDispDir = &BspLCD_SetDispDir;
     BspLCD.SetDispCur = &BspLCD_SetDispCur;
     BspLCD.SetDispWin = &BspLCD_SetDispWin;
+    BspLCD.Fill = &BspLCD_Fill;
+    BspLCD.FillColor = &BspLCD_FillColor;
 }
 
 

@@ -55,36 +55,6 @@
 /* 校准数据在EEPROM中的基地址 */
 #define SAVE_ADJ_DATA_BASE_ADDR         0X20
 
-#pragma pack(1)
-//触摸屏校准参数	
-struct _RTP_Param
-{
-    float xFac;				
-    float yFac;
-    short xOff;
-    short yOff;	   
-    uint8_t TouchType;
-    uint8_t AdjFlag;
-};
-#pragma pack()
-
-struct _RTP_Pos
-{
-    uint16_t x;
-    uint16_t y;
-};
-
-//触摸屏控制器
-typedef struct
-{
-    struct _RTP_Pos CurPos;
-    struct _RTP_Pos PrePos;
-    struct _RTP_Pos OriPos;
-    uint8_t xCmd;
-    uint8_t yCmd;
-    uint8_t  Sta;							
-    struct _RTP_Param RTP_Param;
-}RTP_Dev_t;
 
 RTP_Dev_t RTP_Dev;
 /**
@@ -269,6 +239,8 @@ uint8_t RTP_Scan(void)
         /* 读取物理坐标 */
         if (RTP_ReadXY(&ta, &tb) != RTP_OK) 
         {
+            RTP_Dev.CurPos.x = UINT16_MAX;
+            RTP_Dev.CurPos.y = UINT16_MAX;
             return RTP_FAULT;
         }
         if (RTP_Dev.Sta & RTP_LIFT_UP)
@@ -276,6 +248,7 @@ uint8_t RTP_Scan(void)
             RTP_Dev.Sta &= ~RTP_LIFT_UP;
             RTP_Dev.Sta |= RTP_PRESS;
         }
+        RTP_Dev.Flags = RTP_PRESS;
         RTP_Dev.PrePos.x = RTP_Dev.CurPos.x;
         RTP_Dev.PrePos.y = RTP_Dev.CurPos.y;
         RTP_Dev.CurPos.x = RTP_Dev.RTP_Param.xFac * ta + RTP_Dev.RTP_Param.xOff;
@@ -285,12 +258,19 @@ uint8_t RTP_Scan(void)
     }
     else if((T_PEN_READ == 1) && !(RTP_Dev.Sta & RTP_LIFT_UP))
     {
+        RTP_Dev.Flags = RTP_LIFT_UP;
         RTP_Dev.Sta &= ~RTP_PRESS;
         RTP_Dev.Sta |= RTP_LIFT_UP;
         RTP_Dev.CurPos.x = UINT16_MAX;
         RTP_Dev.CurPos.y = UINT16_MAX;
     }
     return RTP_OK;
+}
+
+RTP_Dev_t * RTP_GetXY(void)
+{
+    RTP_Scan();
+    return &RTP_Dev;
 }
 
 /**

@@ -4,6 +4,10 @@
 #include "bsp_rtp_touch.h"
 #include "bsp_eeprom_24xx.h"
 #include "GUIDr.h"
+#include "lvgl.h"
+#include "lv_tft.h"
+#include "lv_touchpad.h"
+#include "lv_demo.h"
 
 uint8_t bsp_TestExtSRAM(void);
 
@@ -13,7 +17,7 @@ void UserMainFunc(void)
     uint16_t ta, tb, x, y;
     BspLCD_FuncInit();
     BspLCD.Init();
-
+    
     GuiSetDeviceAPI(BspLCD_PutPixelNoXY, BspLCD.PutPixel, BspLCD.SetDispWin);
 
     GuiClrScr(0x0000);
@@ -23,16 +27,20 @@ void UserMainFunc(void)
         GuiClrScr(0xf800);
     }
     
+    RTP_Adjust(RTP_NEEDNT_ADJ);
+    
     GuiSetTextColor(BLACK, WHITE);
 
-    RTP_Adjust(RTP_NEED_ADJ);
+    lv_init();
+    LCD_LvglInit();
+    TouchpadInit();
 
+    demo_create();
     while(true)
     {
-        if(RTP_Scan())//读取屏幕坐标
-        {
-        } 
-        HAL_Delay(5);
+        lv_tick_inc(10);
+		lv_task_handler();
+        HAL_Delay(10);
     }
 }
 

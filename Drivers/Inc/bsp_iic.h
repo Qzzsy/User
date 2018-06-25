@@ -84,9 +84,6 @@ typedef IIC_Device_t * IIC_Handle_t;
 
 /* UserCode start ------------------------------------------------------------*/
 /* Member method APIs --------------------------------------------------------*/
-void IIC_Start(IIC_Handle_t Handle); 
-void IIC_Stop(IIC_Handle_t Handle);
-uint8_t IIC_WaitAck(IIC_Handle_t Handle);
 uint8_t IIC_Read(IIC_Handle_t Handle);
 uint8_t IIC_Write(IIC_Handle_t Handle);
 uint8_t IIC_CheckDevice(IIC_Handle_t Handle);
