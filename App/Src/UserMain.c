@@ -8,6 +8,7 @@
 #include "lv_tft.h"
 #include "lv_touchpad.h"
 #include "lv_demo.h"
+#include "arm_math.h"
 
 uint8_t bsp_TestExtSRAM(void);
 
@@ -17,9 +18,18 @@ void UserMainFunc(void)
     uint16_t ta, tb, x, y;
     BspLCD_FuncInit();
     BspLCD.Init();
-    
+
     GuiSetDeviceAPI(BspLCD_PutPixelNoXY, BspLCD.PutPixel, BspLCD.SetDispWin);
 
+    float a;
+    
+    arm_sqrt_q15(10000, &a);
+    
+    a++;
+    
+    if (a >= 0)
+    ta = a;
+    
     GuiClrScr(0x0000);
     
     if (Bsp_eeInit() == AT24XX_OK)
@@ -38,9 +48,9 @@ void UserMainFunc(void)
     demo_create();
     while(true)
     {
-        lv_tick_inc(10);
+        lv_tick_inc(5);
 		lv_task_handler();
-        HAL_Delay(10);
+        HAL_Delay(5);
     }
 }
 

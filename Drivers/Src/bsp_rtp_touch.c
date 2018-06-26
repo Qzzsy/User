@@ -13,7 +13,7 @@
  */
 
 #include "bsp_rtp_touch.h"
-#include "math.h"
+#include "arm_math.h"
 #include "stdlib.h"
 #include "gpio.h"
 #include "bsp_lcd.h"
@@ -65,7 +65,7 @@ RTP_Dev_t RTP_Dev;
  */
 void BspRTP_Delay(__IO uint32_t Number)
 {
-    uint32_t i = 0;
+    __IO uint32_t i = 0;
 
     while (Number--)
     {
@@ -403,13 +403,13 @@ void RTP_Adjust(uint8_t Flag)
                 tem2 = abs(PosTemp[0][1] - PosTemp[1][1]);      /* y1 - y2 */
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d1 = sqrt(tem1 + tem2);
+                d1 = __sqrtf(tem1 + tem2);
 
                 tem1 = abs(PosTemp[2][0] - PosTemp[3][0]);      /* x3 - x4 */
                 tem2 = abs(PosTemp[2][1] - PosTemp[3][1]);      /* y3 - y4 */
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d2 = sqrt(tem1 + tem2);     /* 得到3, 4的距离 */
+                d2 = __sqrtf(tem1 + tem2);  /* 得到3, 4的距离 */
                 fac = (float)d1 / d2;
                 if (fac < 0.95 || fac > 1.05 || d1 == 0 || d2 == 0) /* 不合格 */
                 {
@@ -422,13 +422,13 @@ void RTP_Adjust(uint8_t Flag)
                 tem2 = abs(PosTemp[0][1] - PosTemp[2][1]); /* y1 - y3 */
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d1 = sqrt(tem1 + tem2); /* 得到1, 3的距离 */
+                d1 = __sqrtf(tem1 + tem2); /* 得到1, 3的距离 */
 
                 tem1 = abs(PosTemp[1][0] - PosTemp[3][0]); /* x2 - x4 */
                 tem2 = abs(PosTemp[1][1] - PosTemp[3][1]); /* y2 - y4 */
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d2 = sqrt(tem1 + tem2); /* 得到2, 4的距离 */
+                d2 = __sqrtf(tem1 + tem2); /* 得到2, 4的距离 */
                 fac = (float)d1 / d2;
                 if (fac < 0.95 || fac > 1.05) /* 不合格 */
                 {
@@ -443,13 +443,13 @@ void RTP_Adjust(uint8_t Flag)
                 tem2 = abs(PosTemp[1][1] - PosTemp[2][1]); /* y1 - y3 */
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d1 = sqrt(tem1 + tem2); /* 得到1, 4的距离 */
+                d1 = __sqrtf(tem1 + tem2); /* 得到1, 4的距离 */
 
                 tem1 = abs(PosTemp[0][0] - PosTemp[3][0]); /* x2 - x4 */
                 tem2 = abs(PosTemp[0][1] - PosTemp[3][1]); /* y2 - y4 */
                 tem1 *= tem1;
                 tem2 *= tem2;
-                d2 = sqrt(tem1 + tem2); /* 得到2, 3的距离 */
+                d2 = __sqrtf(tem1 + tem2); /* 得到2, 3的距离 */
                 fac = (float)d1 / d2;
                 if (fac < 0.95 || fac > 1.05) /* 不合格 */
                 {
