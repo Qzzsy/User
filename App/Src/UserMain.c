@@ -9,6 +9,7 @@
 #include "lv_touchpad.h"
 #include "lv_demo.h"
 #include "arm_math.h"
+#include "Bsp_W25QXX.h"
 
 uint8_t bsp_TestExtSRAM(void);
 
@@ -18,17 +19,9 @@ void UserMainFunc(void)
     uint16_t ta, tb, x, y;
     BspLCD_FuncInit();
     BspLCD.Init();
-
+    BspW25QXX_Init();
+    
     GuiSetDeviceAPI(BspLCD_PutPixelNoXY, BspLCD.PutPixel, BspLCD.SetDispWin);
-
-    float a;
-    
-    arm_sqrt_q15(10000, &a);
-    
-    a++;
-    
-    if (a >= 0)
-    ta = a;
     
     GuiClrScr(0x0000);
     
