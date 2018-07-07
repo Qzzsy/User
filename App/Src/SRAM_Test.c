@@ -1,8 +1,8 @@
 #include "stm32f4xx.h"
 
-#define SRAM_ADDR       0x68000000
+#define SRAM_ADDR       0x68040000
 
-uint32_t EXT_SRAM_SIZE = 0x1000;
+uint32_t EXT_SRAM_SIZE = 0x100000;
 ///*
 //*********************************************************************************************************
 //*	函 数 名: bsp_TestExtSRAM
@@ -11,28 +11,29 @@ uint32_t EXT_SRAM_SIZE = 0x1000;
 //*	返 回 值: 0 表示测试通过； 大于0表示错误单元的个数。
 //*********************************************************************************************************
 //*/
-uint32_t data[2048] __attribute__((section(".ARM.__at_0x68000000"))) = {0};
+uint16_t data[4096] __attribute__((section(".ARM.__at_0x68040000"))) = {0};
 uint8_t bsp_TestExtSRAM(void)
 {
 	uint32_t i;
 	uint32_t *pSRAM;
+    uint16_t *pSRAM16; 
 	uint8_t *pBytes;
 	uint32_t err;
 	const uint8_t ByteBuf[4] = {0x55, 0xA5, 0x5A, 0xAA};
 
 	/* 写SRAM */
-	pSRAM = (uint32_t *)SRAM_ADDR;
+	pSRAM16 = (uint16_t *)SRAM_ADDR;
 	for (i = 0; i < EXT_SRAM_SIZE / 4; i++)
 	{
-		*pSRAM++ = i;
+		*pSRAM16++ = i;
 	}
 
 	/* 读SRAM */
 	err = 0;
-	pSRAM = (uint32_t *)SRAM_ADDR;
+	pSRAM16 = (uint16_t *)SRAM_ADDR;
 	for (i = 0; i < EXT_SRAM_SIZE / 4; i++)
 	{
-		if (*pSRAM++ != i)
+		if (*pSRAM16++ != i)
 		{
 			err++;
 		}

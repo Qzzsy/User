@@ -10,6 +10,7 @@
 #include "lv_demo.h"
 #include "arm_math.h"
 #include "Bsp_W25QXX.h"
+#include "lv_test_theme.h"
 
 uint8_t bsp_TestExtSRAM(void);
 
@@ -20,7 +21,7 @@ void UserMainFunc(void)
     BspLCD_FuncInit();
     BspLCD.Init();
     BspW25QXX_Init();
-    
+    bsp_TestExtSRAM();
     GuiSetDeviceAPI(BspLCD_PutPixelNoXY, BspLCD.PutPixel, BspLCD.SetDispWin);
     
     GuiClrScr(0x0000);
@@ -38,7 +39,9 @@ void UserMainFunc(void)
     LCD_LvglInit();
     TouchpadInit();
 
-    demo_create();
+//    demo_create();
+    lv_theme_t *th = lv_theme_templ_init(21, &lv_font_dejavu_20);
+    lv_test_theme_1(th);
     while(true)
     {
         lv_tick_inc(5);

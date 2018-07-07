@@ -175,6 +175,20 @@ static void BspLCD_ConfigLocal(void)
         BspLCD_Dev.DispOnCmd  = 0x29;
         BspLCD_Dev.DispOffCmd = 0x28;
     }
+    else if (LCD_ID == 0x61529)
+    {
+        BspLCD_Dev.WramCmd  = 0x2C;
+        BspLCD_Dev.SetXCmd  = 0x2A;
+        BspLCD_Dev.SetYCmd  = 0x2B;
+        BspLCD_Dev.MemoryAccContCmd  = 0x36;
+        BspLCD_Dev.DirHorNormalData  = 0xA0;
+        BspLCD_Dev.DirHorReverseData = 0x60;
+        BspLCD_Dev.DirVerNormalData  = 0x00;
+        BspLCD_Dev.DirVerReverseData = 0xC0;
+        
+        BspLCD_Dev.DispOnCmd  = 0x29;
+        BspLCD_Dev.DispOffCmd = 0x28;
+    }
     
     /* 默认使用横屏 */
     BspLCD_Dev.Height = BspLCD_Dev.pWidth;
@@ -190,6 +204,8 @@ void BspLCD_Init(void)
 {
     BspLCD_ConfigLocal();
     
+    BspLCD_Delay(10000);
+    BspLCD_Delay(10000);
 //    LCDReset();
     if (LCD_ID == 0x9341)
     {
@@ -309,7 +325,196 @@ void BspLCD_Init(void)
         BspLCD_WriteComm(0x29);    //Display on 
         BspLCD_WriteComm(0x2c); 
     }
-    
+    else if (LCD_ID == 0x61529)
+    {
+        /* config tft regval	*/
+        BspLCD_WriteComm(0xB0);
+        BspLCD_WriteData(0x04);
+        
+        BspLCD_WriteComm(0x36);    
+        BspLCD_WriteData(0x00);    
+        
+        BspLCD_WriteComm(0x3A);    
+        BspLCD_WriteData(0x55);   
+        
+        BspLCD_WriteComm(0xB4);    
+        BspLCD_WriteData(0x00); 
+        
+        BspLCD_WriteComm(0xC0);
+        BspLCD_WriteData(0x03);//0013
+        BspLCD_WriteData(0xDF);//480
+        BspLCD_WriteData(0x40);
+        BspLCD_WriteData(0x12);
+        BspLCD_WriteData(0x00);
+        BspLCD_WriteData(0x01);
+        BspLCD_WriteData(0x00);
+        BspLCD_WriteData(0x43);
+        
+        
+        BspLCD_WriteComm(0xC1);//frame frequency
+        BspLCD_WriteData(0x05);//BCn,DIVn[1:0
+        BspLCD_WriteData(0x2f);//RTNn[4:0] 
+        BspLCD_WriteData(0x08);// BPn[7:0]
+        BspLCD_WriteData(0x08);// FPn[7:0]
+        BspLCD_WriteData(0x00);
+        
+        
+        
+        BspLCD_WriteComm(0xC4);
+        BspLCD_WriteData(0x63);
+        BspLCD_WriteData(0x00);
+        BspLCD_WriteData(0x08);
+        BspLCD_WriteData(0x08);
+        
+        BspLCD_WriteComm(0xC8);//Gamma
+        BspLCD_WriteData(0x06);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x16);
+        BspLCD_WriteData(0x24);//26
+        BspLCD_WriteData(0x30);//32 
+        BspLCD_WriteData(0x48);
+        BspLCD_WriteData(0x3d);
+        BspLCD_WriteData(0x28);
+        BspLCD_WriteData(0x20);
+        BspLCD_WriteData(0x14);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x04);
+        
+        BspLCD_WriteData(0x06);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x16);
+        BspLCD_WriteData(0x24);
+        BspLCD_WriteData(0x30);
+        BspLCD_WriteData(0x48);
+        BspLCD_WriteData(0x3d);
+        BspLCD_WriteData(0x28);
+        BspLCD_WriteData(0x20);
+        BspLCD_WriteData(0x14);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x04);
+        
+        
+        BspLCD_WriteComm(0xC9);//Gamma
+        BspLCD_WriteData(0x06);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x16);
+        BspLCD_WriteData(0x24);//26
+        BspLCD_WriteData(0x30);//32 
+        BspLCD_WriteData(0x48);
+        BspLCD_WriteData(0x3d);
+        BspLCD_WriteData(0x28);
+        BspLCD_WriteData(0x20);
+        BspLCD_WriteData(0x14);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x04);
+        
+        BspLCD_WriteData(0x06);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x16);
+        BspLCD_WriteData(0x24);
+        BspLCD_WriteData(0x30);
+        BspLCD_WriteData(0x48);
+        BspLCD_WriteData(0x3d);
+        BspLCD_WriteData(0x28);
+        BspLCD_WriteData(0x20);
+        BspLCD_WriteData(0x14);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x04);
+        
+        
+        BspLCD_WriteComm(0xCA);//Gamma
+        BspLCD_WriteData(0x06);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x16);
+        BspLCD_WriteData(0x24);//26
+        BspLCD_WriteData(0x30);//32 
+        BspLCD_WriteData(0x48);
+        BspLCD_WriteData(0x3d);
+        BspLCD_WriteData(0x28);
+        BspLCD_WriteData(0x20);
+        BspLCD_WriteData(0x14);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x04);
+        
+        BspLCD_WriteData(0x06);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x16);
+        BspLCD_WriteData(0x24);
+        BspLCD_WriteData(0x30);
+        BspLCD_WriteData(0x48);
+        BspLCD_WriteData(0x3d);
+        BspLCD_WriteData(0x28);
+        BspLCD_WriteData(0x20);
+        BspLCD_WriteData(0x14);
+        BspLCD_WriteData(0x0c);
+        BspLCD_WriteData(0x04);
+        
+        
+        BspLCD_WriteComm(0xD0);
+        BspLCD_WriteData(0x95);
+        BspLCD_WriteData(0x06);
+        BspLCD_WriteData(0x08);
+        BspLCD_WriteData(0x10);
+        BspLCD_WriteData(0x3f);
+        
+        
+        BspLCD_WriteComm(0xD1);
+        BspLCD_WriteData(0x02);
+        BspLCD_WriteData(0x28);
+        BspLCD_WriteData(0x28);
+        BspLCD_WriteData(0x40);
+        
+        BspLCD_WriteComm(0xE1);    
+        BspLCD_WriteData(0x00);    
+        BspLCD_WriteData(0x00);    
+        BspLCD_WriteData(0x00);    
+        BspLCD_WriteData(0x00);    
+        BspLCD_WriteData(0x00);   
+        BspLCD_WriteData(0x00);   
+        
+        BspLCD_WriteComm(0xE2);    
+        BspLCD_WriteData(0x80);    
+        
+        BspLCD_WriteComm(0x2A);    
+        BspLCD_WriteData(0x00);    
+        BspLCD_WriteData(0x00);    
+        BspLCD_WriteData(0x01);    
+        BspLCD_WriteData(0x3F);    
+        
+        BspLCD_WriteComm(0x2B);    
+        BspLCD_WriteData(0x00);    
+        BspLCD_WriteData(0x00);    
+        BspLCD_WriteData(0x01);    
+        BspLCD_WriteData(0xDF);    
+        
+        BspLCD_WriteComm(0x11);
+        
+        BspLCD_Delay(120);
+        
+        BspLCD_WriteComm(0x29);
+        
+        BspLCD_WriteComm(0xC1);//frame frequency
+        BspLCD_WriteData(0x05);//BCn,DIVn[1:0]
+        BspLCD_WriteData(0x2f);//RTNn[4:0] 
+        BspLCD_WriteData(0x08);// BPn[7:0]
+        BspLCD_WriteData(0x08);// FPn[7:0]
+        BspLCD_WriteData(0x00);
+      
+        BspLCD_WriteComm(0x20);
+        
+        /**	横竖屏以及显示方向设置
+         * bit D7-page address order	0的话输入和输出方向相同，1的话输入和输出上下颠倒
+         * bit D6-column address order 0的话输出和输出方向相同，1的话输出和输出左右颠倒
+         * bit D5-page/column addressing order 0的话正常，1的话行列调换
+         * bit D4-display device line refresh order 	预留，默认设置为0
+         * bit D3-RGB/BGR order 0为RGB，1为BGR
+         * bit D2-display data latch order 预留，默认设置为0
+         * bit D1-flip horizontal 预留 默认设置为0
+         * bit D0-flip vertic 0正常，1上下对调
+         */
+        BspLCD_WriteComm(0x36);    
+        BspLCD_WriteData(0xA0);
+    }
     /* 默认情况下为横屏，设置横屏 */
     BspLCD_SetDispDir(DIR_HORIZONTAL_NORMAL);
     

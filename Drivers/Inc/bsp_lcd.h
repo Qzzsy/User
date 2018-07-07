@@ -10,8 +10,8 @@
 /* Public macro Definition ---------------------------------------------------*/
 
 /* 定义LCD的大小 */
-#define LCD_HEIGHT          320
-#define LCD_WDITH           240
+#define LCD_HEIGHT          480
+#define LCD_WDITH           320
 
 /* 宏定义LCD的扫描方向 */
 #define DIR_HORIZONTAL_NORMAL           0x01
@@ -35,7 +35,7 @@
 /* 定义是否使用手动输入LCD_ID */
 #define USING_LCD_ID
 #ifdef USING_LCD_ID
-#define LCD_ID      0x9341
+#define LCD_ID      0x61529
 #endif
 /* End public macro Definition -----------------------------------------------*/
 

@@ -21,8 +21,8 @@
 #include "Font.h"
 
 /* 屏幕的宽度和高度 */
-#define LCD_WIDTH           320
-#define LCD_HEIGHT          240
+#define LCD_WIDTH           480
+#define LCD_HEIGHT          320
 
 /* 点阵数据缓存, 必须大于等于单个字模需要的存储空间*/ 
 #define BYTES_PER_FONT      512 
