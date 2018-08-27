@@ -1,46 +1,42 @@
 #include "MyString.h"
 
-#ifdef  __cplusplus
-#define _ADDRESSOF(v)   ( &reinterpret_cast<const char &>(v) )
+#ifdef __cplusplus
+#define _ADDRESSOF(v) (&reinterpret_cast<const char &>(v))
 #else
-#define _ADDRESSOF(v)   ( &(v) )
+#define _ADDRESSOF(v) (&(v))
 #endif
 
+#define _INTSIZEOF(n) ((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))
 
-#define _INTSIZEOF(n)   ( (sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1) )
-
-
-#define _crt_va_start(ap, v)  ( ap = (va_list)_ADDRESSOF(v) + _INTSIZEOF(v) )
-#define _crt_va_arg(ap, t)    ( *(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t)) )
-#define _crt_va_end(ap)      ( ap = (va_list)0 )
-
+#define _crt_va_start(ap, v) (ap = (va_list)_ADDRESSOF(v) + _INTSIZEOF(v))
+#define _crt_va_arg(ap, t) (*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t)))
+#define _crt_va_end(ap) (ap = (va_list)0)
 
 #define _va_start _crt_va_start /* windows stdarg.h */
 #define _va_arg _crt_va_arg
 #define _va_end _crt_va_end
 
+#define ZEROPAD (1 << 0) /* pad with zero */
+#define SIGN (1 << 1)    /* unsigned/signed long */
+#define PLUS (1 << 2)    /* show plus */
+#define SPACE (1 << 3)   /* space if plus */
+#define LEFT (1 << 4)    /* left justified */
+#define SPECIAL (1 << 5) /* 0x */
+#define LARGE (1 << 6)   /* use 'ABCDEF' instead of 'abcdef' */
 
-#define ZEROPAD     (1 << 0)      /* pad with zero */
-#define SIGN        (1 << 1)      /* unsigned/signed long */
-#define PLUS        (1 << 2)      /* show plus */
-#define SPACE       (1 << 3)      /* space if plus */
-#define LEFT        (1 << 4)      /* left justified */
-#define SPECIAL     (1 << 5)      /* 0x */
-#define LARGE       (1 << 6)      /* use 'ABCDEF' instead of 'abcdef' */
-
-typedef signed   char                   int8_t;  
-typedef signed   short                  int16_t; 
-typedef signed   long                   int32_t; 
-typedef unsigned char                   uint8_t; 
-typedef unsigned short                  uint16_t;
-typedef unsigned long                   uint32_t;
-typedef int                             bool_t;  
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef signed long int32_t;
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned long uint32_t;
+typedef int bool_t;
 
 /* 32bit CPU */
-typedef long                            base_t;  
-typedef unsigned long                   ubase_t; 
+typedef long base_t;
+typedef unsigned long ubase_t;
 
-typedef char *  va_list;
+typedef char *va_list;
 
 /**
  * This function will set the content of memory to specified value
@@ -53,9 +49,9 @@ typedef char *  va_list;
  */
 void *my_memset(void *s, int c, ubase_t count)
 {
-#define LBLOCKSIZE      (sizeof(int32_t))
-#define UNALIGNED(X)    ((int32_t)X & (LBLOCKSIZE - 1))
-#define TOO_SMALL(LEN)  ((LEN) < LBLOCKSIZE)
+#define LBLOCKSIZE (sizeof(int32_t))
+#define UNALIGNED(X) ((int32_t)X & (LBLOCKSIZE - 1))
+#define TOO_SMALL(LEN) ((LEN) < LBLOCKSIZE)
 
     int i;
     char *m = (char *)s;
@@ -79,7 +75,7 @@ void *my_memset(void *s, int c, ubase_t count)
         else
         {
             buffer = 0;
-            for (i = 0; i < LBLOCKSIZE; i ++)
+            for (i = 0; i < LBLOCKSIZE; i++)
                 buffer = (buffer << 8) | d;
         }
 
@@ -126,12 +122,12 @@ void *my_memset(void *s, int c, ubase_t count)
  */
 void *my_memcpy(void *dst, const void *src, ubase_t count)
 {
-#define UNALIGNED(X, Y)                                         \
-                        (((int32_t)X & (sizeof(int32_t) - 1)) | \
-                         ((int32_t)Y & (sizeof(int32_t) - 1)))
-#define BIGBLOCKSIZE    (sizeof(int32_t) << 2)
+#define UNALIGNED(X, Y)                     \
+    (((int32_t)X & (sizeof(int32_t) - 1)) | \
+     ((int32_t)Y & (sizeof(int32_t) - 1)))
+#define BIGBLOCKSIZE (sizeof(int32_t) << 2)
 #define LITTLEBLOCKSIZE (sizeof(int32_t))
-#define TOO_SMALL(LEN)  ((LEN) < BIGBLOCKSIZE)
+#define TOO_SMALL(LEN) ((LEN) < BIGBLOCKSIZE)
 
     char *dst_ptr = (char *)dst;
     char *src_ptr = (char *)src;
@@ -230,7 +226,6 @@ int32_t my_memcmp(const void *cs, const void *ct, ubase_t count)
     return res;
 }
 
-
 /**
  * The  strnlen()  function  returns the number of characters in the
  * string pointed to by s, excluding the terminating null byte ('\0'),
@@ -288,10 +283,10 @@ char *my_strstr(const char *s1, const char *s2)
     l1 = my_strlen(s1);
     while (l1 >= l2)
     {
-        l1 --;
+        l1--;
         if (!my_memcmp(s1, s2, l2))
             return (char *)s1;
-        s1 ++;
+        s1++;
     }
 
     return NULL;
@@ -304,15 +299,15 @@ char *my_strstr_r(const char *s1, const char *s2, uint32_t n)
     l2 = my_strlen(s2);
     if (!l2)
         return (char *)s1;
-    
+
     l1 = n;
-    
+
     while (l1 >= l2)
     {
-        l1 --;
+        l1--;
         if (!my_memcmp(s1, s2, l2))
             return (char *)s1;
-        s1 ++;
+        s1++;
     }
 
     return NULL;
@@ -337,8 +332,7 @@ uint32_t my_strcasecmp(const char *a, const char *b)
             ca += 'a' - 'A';
         if (cb >= 'A' && cb <= 'Z')
             cb += 'a' - 'A';
-    }
-    while (ca == cb && ca != '\0');
+    } while (ca == cb && ca != '\0');
 
     return ca - cb;
 }
@@ -389,7 +383,7 @@ long my_strncmp(const char *cs, const char *ct, long count)
     {
         if ((__res = *cs - *ct++) != 0 || !*cs++)
             break;
-        count --;
+        count--;
     }
 
     return __res;
@@ -419,41 +413,40 @@ long my_strcmp(const char *cs, const char *ct)
  * @note  	
  * @retval  返回第一段字符串的首地址，返回RT_NULL为没有分割字符串
  */
-void * my_strtok_r(char * str, const char * delimiters, char ** saveptr)
+void *my_strtok_r(char *str, const char *delimiters, char **saveptr)
 {
-    char * start_str = str;
-    
+    char *start_str = str;
+
     uint16_t cnt = 0, offiset = 0, len = 0;
-    
+
     /* 计算分割符的长度 */
     len = my_strlen(delimiters);
-    
+
     while (*(str + cnt) != '\0')
     {
         if (*(str + cnt) == *(delimiters + offiset))
         {
             offiset++;
-           
+
             if (offiset == len)
             {
                 /* 分割 */
                 start_str[++cnt - offiset] = 0;
-                
+
                 *saveptr = start_str + cnt;
-                
+
                 /* 分割成功返回第一段的首地址 */
                 return start_str;
             }
         }
         else
         {
-          offiset = 0;  
+            offiset = 0;
         }
         cnt++;
     }
-    
+
     return NULL;
-    
 }
 /**
  * @func    my_strtok
@@ -464,32 +457,31 @@ void * my_strtok_r(char * str, const char * delimiters, char ** saveptr)
  * @note  	需要释放内存
  * @retval  字符串第一段的首地址的指针的指针，返回RT_NULL为没有分割字符串
  */
-void * my_strtok(char * str, const char * delimiters, char * cnt)
+void *my_strtok(char *str, const char *delimiters, char *cnt)
 {
     static char *s;
-    char * result = NULL;
-    
+    char *result = NULL;
+
     if (str != NULL)
     {
         s = str;
     }
-    
+
     result = (char *)my_strtok_r(s, delimiters, &s);
-    
+
     /* 返回分割后的数组指针 */
     return result;
 }
 
-static inline int _div(long* n, unsigned base)
+static inline int _div(long *n, unsigned base)
 {
     int __res;
-    __res = ((unsigned long) * n) % (unsigned) base;
-    *n = ((unsigned long) * n) / (unsigned) base;
+    __res = ((unsigned long)*n) % (unsigned)base;
+    *n = ((unsigned long)*n) / (unsigned)base;
     return __res;
 }
 
-#define do_div(n,base) _div(&n, base)
-
+#define do_div(n, base) _div(&n, base)
 
 static inline int isdigit(int ch)
 {
@@ -519,22 +511,22 @@ static long skip_atol(const char **s)
 }
 
 int my_atoi(const char *s)
-{    
+{
     return skip_atoi(&s);
 }
 
 long my_atol(const char *s)
-{    
+{
     return skip_atol(&s);
 }
 
 static char *print_number(char *buf,
-                         char *end,
-                         long num,
-                         int base,
-                         int size,
-                         int precision,
-                         int type)
+                          char *end,
+                          long num,
+                          int base,
+                          int size,
+                          int precision,
+                          int type)
 {
     char c, sign, tmp[66];
     const char *digits = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -597,7 +589,7 @@ static char *print_number(char *buf,
     {
         if ((sign) && (size > 0))
             size--;
-        
+
         while (size-- > 0)
             *buf++ = ' ';
     }
@@ -607,9 +599,9 @@ static char *print_number(char *buf,
         if (buf <= end)
         {
             *buf = sign;
-            -- size;
+            --size;
         }
-        ++ buf;
+        ++buf;
     }
 
     if (type & SPECIAL)
@@ -618,16 +610,16 @@ static char *print_number(char *buf,
         {
             if (buf <= end)
                 *buf = '0';
-            ++ buf;
+            ++buf;
         }
         else if (base == 16)
         {
             if (buf <= end)
                 *buf = '0';
-            ++ buf;
+            ++buf;
             if (buf <= end)
                 *buf = type & LARGE ? 'X' : 'x';
-            ++ buf;
+            ++buf;
         }
     }
 
@@ -637,7 +629,7 @@ static char *print_number(char *buf,
         {
             if (buf <= end)
                 *buf = c;
-            ++ buf;
+            ++buf;
         }
     }
 
@@ -645,21 +637,21 @@ static char *print_number(char *buf,
     {
         if (buf <= end)
             *buf = '0';
-        ++ buf;
+        ++buf;
     }
 
     while (i-- > 0)
     {
         if (buf <= end)
             *buf = tmp[i];
-        ++ buf;
+        ++buf;
     }
 
     while (size-- > 0)
     {
         if (buf <= end)
             *buf = ' ';
-        ++ buf;
+        ++buf;
     }
     return buf;
 }
@@ -672,54 +664,54 @@ static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
     char *str, *end, c;
     const char *s;
 
-    int flags;      /* flags to Test_number() */
+    int flags; /* flags to Test_number() */
 
-    int field_width;    /* width of output field */
-    int precision;      /* min. # of digits for integers; max
+    int field_width; /* width of output field */
+    int precision;   /* min. # of digits for integers; max
                   Test_number of chars for from string */
-    int qualifier;      /* 'h', 'l', or 'L' for integer fields */
-    
+    int qualifier;   /* 'h', 'l', or 'L' for integer fields */
+
     str = buf;
     end = buf + size - 1;
-    
+
     /* Make sure end is always >= buf */
     if (end < buf)
     {
-        end  = ((char *) - 1);
+        end = ((char *)-1);
         size = end - buf;
     }
-    
+
     for (; *fmt; ++fmt)
     {
         if (*fmt != '%')
         {
             if (str <= end)
                 *str = *fmt;
-            ++ str;
+            ++str;
             continue;
         }
 
         /* process flags */
         flags = 0;
-repeat:
-        ++fmt;      /* this also skips first '%' */
+    repeat:
+        ++fmt; /* this also skips first '%' */
         switch (*fmt)
         {
-            case '-':
-                flags |= LEFT;
-                goto repeat;
-            case '+':
-                flags |= PLUS;
-                goto repeat;
-            case ' ':
-                flags |= SPACE;
-                goto repeat;
-            case '#':
-                flags |= SPECIAL;
-                goto repeat;
-            case '0':
-                flags |= ZEROPAD;
-                goto repeat;
+        case '-':
+            flags |= LEFT;
+            goto repeat;
+        case '+':
+            flags |= PLUS;
+            goto repeat;
+        case ' ':
+            flags |= SPACE;
+            goto repeat;
+        case '#':
+            flags |= SPECIAL;
+            goto repeat;
+        case '0':
+            flags |= ZEROPAD;
+            goto repeat;
         }
 
         /* get field width */
@@ -751,7 +743,7 @@ repeat:
                 /* it's the next argument */
                 precision = _va_arg(args, int);
             }
-            
+
             if (precision < 0)
                 precision = 0;
         }
@@ -769,127 +761,129 @@ repeat:
 
         switch (*fmt)
         {
-            case 'c':
-                if (!(flags & LEFT))
-                {
-                    while (--field_width > 0)
-                    {
-                        if (str <= end) *str = ' ';
-                        ++ str;
-                    }
-                }
-                *str++ = (unsigned char)_va_arg(args, int);
-                
-                if (str <= end)
-                    *str = c;
-                ++ str;
-                
+        case 'c':
+            if (!(flags & LEFT))
+            {
                 while (--field_width > 0)
                 {
-                    if (str <= end) *str = ' ';
-                    ++ str;
-                }
-                continue;
-    
-            case 's':
-                s = _va_arg(args, char *);
-
-                if (!s)
-                    s = "(NULL)";
-            
-                len = my_strlen(s);
-    
-                if (precision > 0 && len > precision)
-                    len = precision;
-                
-                if (!(flags & LEFT))
-                {
-                    while (len < field_width--)
-                    {
-                        if (str <= end)
-                            *str = ' ';
-                        ++ str;
-                    }
-                }
-                
-                for (i = 0; i < len; ++i)
-                {
                     if (str <= end)
-                        *str = *s;
-                    ++ str;
-                    ++ s;
+                        *str = ' ';
+                    ++str;
                 }
+            }
+            *str++ = (unsigned char)_va_arg(args, int);
+
+            if (str <= end)
+                *str = c;
+            ++str;
+
+            while (--field_width > 0)
+            {
+                if (str <= end)
+                    *str = ' ';
+                ++str;
+            }
+            continue;
+
+        case 's':
+            s = _va_arg(args, char *);
+
+            if (!s)
+                s = "(NULL)";
+
+            len = my_strlen(s);
+
+            if (precision > 0 && len > precision)
+                len = precision;
+
+            if (!(flags & LEFT))
+            {
                 while (len < field_width--)
                 {
                     if (str <= end)
                         *str = ' ';
-                    ++ str;
+                    ++str;
                 }
-                continue;
-    
-            case 'p':
-                if (field_width == -1)
-                {
-                    field_width = sizeof(void *) << 1;
-                    flags |= ZEROPAD;
-                }
-                str = print_number(str, end,
-                                (unsigned long)_va_arg(args, void *), 16,
-                                field_width, precision, flags);
-                continue;
-    
-            case 'n':
-                if (qualifier == 'l')
-                {
-                    long *ip = _va_arg(args, long *);
-                    *ip = (str - buf);
-                }
-                else
-                {
-                    int *ip = _va_arg(args, int *);
-                    *ip = (str - buf);
-                }
-                continue;
-    
-            case '%':
+            }
+
+            for (i = 0; i < len; ++i)
+            {
                 if (str <= end)
-                    *str = '%';
-                ++ str;
-                continue;
-    
-            /* integer Test_number formats - set up the flags and "break" */
-            case 'o':
-                base = 8;
-                break;
-    
-            case 'X':
-                flags |= LARGE;
-            case 'x':
-                base = 16;
-                break;
-    
-            case 'd':
-            case 'i':
-                flags |= SIGN;
-            case 'u':
-                break;
-    
-            default:
+                    *str = *s;
+                ++str;
+                ++s;
+            }
+            while (len < field_width--)
+            {
                 if (str <= end)
-                    *str = '%';
-                ++ str;
-    
-                if (*fmt)
-                {
-                    if (str <= end)
-                        *str = *fmt;
-                    ++ str;
-                }
-                else
-                {
-                    -- fmt;
-                }
-                continue;
+                    *str = ' ';
+                ++str;
+            }
+            continue;
+
+        case 'p':
+            if (field_width == -1)
+            {
+                field_width = sizeof(void *) << 1;
+                flags |= ZEROPAD;
+            }
+            str = print_number(str, end,
+                               (unsigned long)_va_arg(args, void *), 16,
+                               field_width, precision, flags);
+            continue;
+
+        case 'n':
+            if (qualifier == 'l')
+            {
+                long *ip = _va_arg(args, long *);
+                *ip = (str - buf);
+            }
+            else
+            {
+                int *ip = _va_arg(args, int *);
+                *ip = (str - buf);
+            }
+            continue;
+
+        case '%':
+            if (str <= end)
+                *str = '%';
+            ++str;
+            continue;
+
+        /* integer Test_number formats - set up the flags and "break" */
+        case 'o':
+            base = 8;
+            break;
+
+        case 'X':
+            flags |= LARGE;
+        case 'x':
+            base = 16;
+            break;
+
+        case 'd':
+        case 'i':
+            flags |= SIGN;
+        case 'u':
+            break;
+
+        default:
+            if (str <= end)
+                *str = '%';
+            ++str;
+
+            if (*fmt)
+            {
+                if (str <= end)
+                    *str = *fmt;
+                ++str;
+            }
+            else
+            {
+                --fmt;
+            }
+            continue;
         }
         if (qualifier == 'l')
         {
@@ -913,18 +907,18 @@ repeat:
         }
         str = print_number(str, end, num, base, field_width, precision, flags);
     }
-    
+
     if (str <= end)
         *str = '\0';
     else
         *end = '\0';
-    
+
     return str - buf;
 }
 
 static int _vsprintf(char *buf, const char *format, va_list arg_ptr)
 {
-    return _vsnprintf(buf, (int) - 1, format, arg_ptr);
+    return _vsnprintf(buf, (int)-1, format, arg_ptr);
 }
 
 long my_snprintf(char *buf, long size, const char *fmt, ...)
@@ -942,14 +936,42 @@ long my_snprintf(char *buf, long size, const char *fmt, ...)
 long my_sprintf(char *buf, const char *fmt, ...)
 {
     long n;
-    
+
     //记录fmt对应的地址
     va_list args;
-    
+
     //得到首个%对应的字符地址
     _va_start(args, fmt);
     n = _vsprintf(buf, fmt, args);
     _va_end(args);
+
+    return n;
+}
+
+static void (*ConsoleOutFunc)(const char *buf, uint32_t Length);
+void SetConsoleDevice(void (*ConsoleOut)(const char *buf, uint32_t Length))
+{
+    ConsoleOutFunc = ConsoleOut;
+}
+
+static char PrintfSendBuf[PRINTF_SEND_BUF_SIZE] = {'\0'};
+long my_printf(const char *fmt, ...)
+{
+    long n;
+    //记录fmt对应的地址
+    va_list args;
     
+    if (ConsoleOutFunc == NULL)
+    {
+        return NULL;
+    }
+
+    //得到首个%对应的字符地址
+    _va_start(args, fmt);
+    n = _vsprintf(PrintfSendBuf, fmt, args);
+    _va_end(args);
+
+    ConsoleOutFunc(PrintfSendBuf, n);
+
     return n;
 }

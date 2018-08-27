@@ -1,6 +1,9 @@
 #ifndef _MY_STRING_H_
 #define _MY_STRING_H_
 
+/* 开辟4K的空间用于发送字符串 */
+#define PRINTF_SEND_BUF_SIZE        4096
+
 #ifndef NULL
 #define NULL        0
 #endif
@@ -27,6 +30,8 @@ int my_atoi(const char *s);
 long my_atol(const char *s);
 long my_snprintf(char *buf, long size, const char *fmt, ...);
 long my_sprintf(char *buf, const char *fmt, ...);
+void SetConsoleDevice(void (* ConsoleOut)(const char *buf, unsigned long Length));
+long my_printf(const char *fmt, ...);
 
 #endif
 
