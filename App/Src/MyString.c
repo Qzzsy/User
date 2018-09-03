@@ -8,33 +8,33 @@
 
 #define _INTSIZEOF(n) ((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))
 
-#define _crt_va_start(ap, v) (ap = (va_list)_ADDRESSOF(v) + _INTSIZEOF(v))
-#define _crt_va_arg(ap, t) (*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t)))
-#define _crt_va_end(ap) (ap = (va_list)0)
+#define _crt_va_start(ap, v)    (ap = (va_list)_ADDRESSOF(v) + _INTSIZEOF(v))
+#define _crt_va_arg(ap, t)      (*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t)))
+#define _crt_va_end(ap)         (ap = (va_list)0)
 
-#define _va_start _crt_va_start /* windows stdarg.h */
-#define _va_arg _crt_va_arg
-#define _va_end _crt_va_end
+#define _va_start   _crt_va_start /* windows stdarg.h */
+#define _va_arg     _crt_va_arg
+#define _va_end     _crt_va_end
 
-#define ZEROPAD (1 << 0) /* pad with zero */
-#define SIGN (1 << 1)    /* unsigned/signed long */
-#define PLUS (1 << 2)    /* show plus */
-#define SPACE (1 << 3)   /* space if plus */
-#define LEFT (1 << 4)    /* left justified */
-#define SPECIAL (1 << 5) /* 0x */
-#define LARGE (1 << 6)   /* use 'ABCDEF' instead of 'abcdef' */
+#define ZEROPAD (1 << 0)    /* pad with zero */
+#define SIGN    (1 << 1)    /* unsigned/signed long */
+#define PLUS    (1 << 2)    /* show plus */
+#define SPACE   (1 << 3)    /* space if plus */
+#define LEFT    (1 << 4)    /* left justified */
+#define SPECIAL (1 << 5)    /* 0x */
+#define LARGE   (1 << 6)    /* use 'ABCDEF' instead of 'abcdef' */
 
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef signed long int32_t;
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned long uint32_t;
-typedef int bool_t;
+typedef signed char     int8_t;
+typedef signed short    int16_t;
+typedef signed long     int32_t;
+typedef unsigned char   uint8_t;
+typedef unsigned short  uint16_t;
+typedef unsigned long   uint32_t;
+typedef int             bool_t;
 
 /* 32bit CPU */
-typedef long base_t;
-typedef unsigned long ubase_t;
+typedef long            base_t;
+typedef unsigned long   ubase_t;
 
 typedef char *va_list;
 
@@ -949,7 +949,7 @@ long my_sprintf(char *buf, const char *fmt, ...)
 }
 
 static void (*ConsoleOutFunc)(const char *buf, uint32_t Length);
-void SetConsoleDevice(void (*ConsoleOut)(const char *buf, uint32_t Length))
+void SetConsoleOutFunc(void (*ConsoleOut)(const char *buf, uint32_t Length))
 {
     ConsoleOutFunc = ConsoleOut;
 }
@@ -960,7 +960,7 @@ long my_printf(const char *fmt, ...)
     long n;
     //记录fmt对应的地址
     va_list args;
-    
+
     if (ConsoleOutFunc == NULL)
     {
         return NULL;

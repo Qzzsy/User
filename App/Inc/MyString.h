@@ -30,7 +30,7 @@ int my_atoi(const char *s);
 long my_atol(const char *s);
 long my_snprintf(char *buf, long size, const char *fmt, ...);
 long my_sprintf(char *buf, const char *fmt, ...);
-void SetConsoleDevice(void (* ConsoleOut)(const char *buf, unsigned long Length));
+void SetConsoleOutFunc(void (* ConsoleOut)(const char *buf, unsigned long Length));
 long my_printf(const char *fmt, ...);
 
 #endif
