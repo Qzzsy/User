@@ -8,17 +8,18 @@
  * @History
  * Date           Author    version    		   Notes
  * 2018-06-22      ZSY      V1.0.0          first version.
- * 2018-08-27      ZSY      V1.0.1          添加对LED控制的宏定义，可以单独使用其中的一个LED
  */
 /* Includes ------------------------------------------------------------------*/
 #include "led.h"
 
 /* 若使用LL库，请定义USER_EFFI为1 */
-#define USER_EFFI           0
+#ifndef USER_EFFI
+#define USER_EFFI 0
+#endif
 
 /* 定义使用的LED */
 #define USER_LED0
-#define USER_LED1
+//#define USER_LED1
 
 #ifdef USER_LED0
 /**
@@ -101,12 +102,12 @@ void LED_TickInc(void)
         if (Flag == true)
         {
             Flag = false;
-            LED1_Off();
+            LED0_Off();
         }
         else
         {
             Flag = true;
-            LED1_On();
+            LED0_On();
         }
     }
 }
