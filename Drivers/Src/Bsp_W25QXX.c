@@ -13,12 +13,22 @@
 /* Includes ------------------------------------------------------------------*/
 #include "Bsp_W25QXX.h"
 
+/* 若使用LL库，请定义USER_EFFI为1 */
+#ifndef USER_EFFI
+#define USER_EFFI 0
+#endif
+
 #define W25QXX_SPIX SPI1
 #define W25QXX_CS_PORT Flash_CS_GPIO_Port
 #define W25QXX_CS_PIN Flash_CS_Pin
 
+#if USER_EFFI == 1
 #define W25QXX_CS_WRITE_H LL_GPIO_SetOutputPin(W25QXX_CS_PORT, W25QXX_CS_PIN)
 #define W25QXX_CS_WRITE_L LL_GPIO_ResetOutputPin(W25QXX_CS_PORT, W25QXX_CS_PIN)
+#else
+#define W25QXX_CS_WRITE_H HAL_GPIO_WritePin(W25QXX_CS_PORT, W25QXX_CS_PIN, GPIO_PIN_SET)
+#define W25QXX_CS_WRITE_L HAL_GPIO_WritePin(W25QXX_CS_PORT, W25QXX_CS_PIN, GPIO_PIN_RESET)
+#endif
 
 //指令表
 #define W25X_WriteEnable		0x06 

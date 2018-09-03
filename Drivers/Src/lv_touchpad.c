@@ -10,6 +10,7 @@
 #include "bsp_rtp_touch.h"
 #include "lv_touchpad.h"
 #ifdef STM32F1
+#include "stm32f10x.h"
 #elif defined STM32F4
 #include "stm32f4xx.h"
 #elif defined STM32F7
