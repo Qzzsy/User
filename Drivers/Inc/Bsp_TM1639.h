@@ -33,5 +33,6 @@ void TM1639_Control(uint8_t Cmd);
 void TM1639_DispOn(void);
 void TM1639_DispOff(void);
 void TM1639_Disp(uint8_t * Data, uint8_t Mode);
+void TM1639_ReadKeyValue(uint32_t * KeyValue);
 
 #endif

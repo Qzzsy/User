@@ -13,7 +13,14 @@
 	
 /* Includes ------------------------------------------------------------------*/
 #include "bsp_key.h"
+
+#if defined STM32F1
+#include "STM32F10x.h"
+#elif defined STM32F4
 #include "stm32f4xx.h"
+#endif
+
+#include "Bsp_TM1639.h"
 
 /* 定义按键错误的类型 */
 #define KEY_ERROR					(-1)
@@ -44,13 +51,23 @@ Key_t KeyEvent = {
  */
 uint32_t GetKeyValue(void)
 {
-	uint32_t Value = UINT32_MAX;
+	__IO uint32_t Value = 0;
+	uint32_t KeyValue = 0;
 
-    Value &= 0xfffffff8;
-    Value |= 0xfffffff9 & (~HAL_GPIO_ReadPin(KEY2_GPIO_Port, KEY2_Pin));
-    Value |= HAL_GPIO_ReadPin(KEY3_GPIO_Port, KEY3_Pin) << 1;
+	TM1639_ReadKeyValue(&KeyValue);
 
-	return ~Value;
+	switch (KeyValue)
+	{
+		case 1 << 3: Value |= 1 << 0; break;
+		case 1 << 7: Value |= 1 << 1; break;
+		case 1 << 2: Value |= 1 << 2; break;
+		case 1 << 6: Value |= 1 << 3; break;
+		case 1 << 11: Value |= 1 << 4; break;
+		case 1 << 10: Value |= 1 << 5; break;
+		default:break;
+	}
+
+	return Value;
 }
 
 /**

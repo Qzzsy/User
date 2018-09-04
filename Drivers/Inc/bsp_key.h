@@ -18,7 +18,7 @@
 #define KEY_USE_LONGPRESS					/*!< 定义使能长按 */
 #define KEY_USE_DOUBLE_CLICK				/*!< 定义使能双击 */
 
-#define KEY_NUM						(2)		/*!< 按键数量 */
+#define KEY_NUM						(6)		/*!< 按键数量 */
 #define KEY_LONGPRESS_TIME			100		/*!< 扫面周期 */
 #define KEY_DOUBLECLICK_TIME		100		/*!< 双击最大间隔时间 */
 
@@ -29,8 +29,12 @@ typedef union
 
 	struct
 	{
-		unsigned int OK : 1;
-		unsigned int Back : 1;
+		unsigned int Mode : 1;
+		unsigned int Stup : 1;
+		unsigned int M1	  : 1;
+		unsigned int M2   : 1;
+        unsigned int UP   : 1;
+        unsigned int Down : 1;
 	}Key;
 }KeyEvent_t;
 

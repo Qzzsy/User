@@ -54,8 +54,8 @@
 #define SET_TM1639_DIO_OUT() {TM1639_DIO_PORT->CRH &= 0XFFFF0FFF; TM1639_DIO_PORT->CRH |= (uint32_t)3 << 12;}
 #elif defined STM32F4
 /* IO·½ÏòÉèÖÃ */
-#define SET_TM1639_DIO_IN()  {TM1639_DIO_PORT->MODER &= ~(3 << (9 * 2)); TM1639_DIO_PORT->MODER |= (0 << (9 * 2));}	//PB12??????
-#define SET_TM1639_DIO_OUT() {TM1639_DIO_PORT->MODER &= ~(3 << (9 * 2)); TM1639_DIO_PORT->MODER |= (1 << (9 * 2));} 
+#define SET_TM1639_DIO_IN()  {TM1639_DIO_PORT->MODER &= ~(3 << (5 * 2)); TM1639_DIO_PORT->MODER |= (0 << (5 * 2));}
+#define SET_TM1639_DIO_OUT() {TM1639_DIO_PORT->MODER &= ~(3 << (5 * 2)); TM1639_DIO_PORT->MODER |= (1 << (5 * 2));} 
 #endif
 
 const uint8_t Dofly[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x7f, 0x6f, 0x77, 0x7c, 0x58, 0x5e, 0x79, 0x71};
@@ -75,11 +75,11 @@ void TM1639_SendData(uint8_t Data)
         else
             TM1639_DIO_WL;
         
-        for (int j = 200; j > 0; j--);
+        for (int j = 10; j > 0; j--);
 
         TM1639_CLK_WH;
         
-        for (int j = 200; j > 0; j--);
+        for (int j = 10; j > 0; j--);
     }
 }
 
@@ -92,16 +92,17 @@ uint8_t TM1639_ReadData(void)
     for (i = 0; i < 8; i++)
     {
         TM1639_CLK_WL;
+        
+        for (int j = 10; j > 0; j--);
+        TM1639_CLK_WH;
 
         if (TM1639_DIO_R)
             RevData |= 1 << i;
         
-        for (int j = 200; j > 0; j--);
-
-        TM1639_CLK_WH;
-        
-        for (int j = 200; j > 0; j--);
+        for (int j = 10; j > 0; j--);
     }
+
+    return RevData;
 }
 
 void TM1639_Start(void)
@@ -170,8 +171,26 @@ void TM1639_Disp(uint8_t * Data, uint8_t Mode)
     TM1639_Control(LEVEL_1);
 }
 
-void TM1639_ReadKeyValue(void)
+#include "mystring.h"
+
+void TM1639_ReadKeyValue(uint32_t * KeyValue)
 {
-    TM1639_Control(CMD_READ_KEY);
+    uint8_t * Temp = (uint8_t *)KeyValue;
+    
+    TM1639_Control(CMD_AUTO_ADDR);
+
+    TM1639_Start();
+
+    TM1639_SendData(CMD_READ_KEY);
+
+    for (int j = 10; j > 0; j--);
+    
+    Temp[0] = TM1639_ReadData();
+    Temp[1] = TM1639_ReadData();
+    
+    TM1639_Stop();
+    
+    if (Temp[0] != 0x00 || Temp[1] != 0x00)
+        my_printf("The key num is: %d %d\n", Temp[0], Temp[1]);
 }
 
