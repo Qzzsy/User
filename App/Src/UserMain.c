@@ -65,7 +65,7 @@ void UserMainFunc(void)
     static uint8_t Mode = Mode1_1;
     static uint8_t DispLED = 0x00, StupLock = false;
     static uint16_t MotorSpeed = 0;
-    static uint32_t Speed = 0;
+    static uint32_t Speed = 0, LastMode1Speed, LastMode2Speed, LastMode3Speed;
     static float Ratio = 1;
     static uint16_t DIG_DispCoe = 0;
     static uint8_t MotorFR_Flag = false;
@@ -88,6 +88,9 @@ void UserMainFunc(void)
 
     TM1639_DispOn();
 
+    LastMode1Speed = 100;
+    LastMode2Speed = 2000;
+    LastMode3Speed = 10000;
     Ratio = 1;
     Speed = 2000;
     DIG_DispCoe = 1000;
@@ -115,7 +118,8 @@ void UserMainFunc(void)
             case Mode16_1:
                 DispLED |= 0x01;
                 Ratio = 16;
-                Speed = 100;
+                LastMode3Speed = Speed;
+                Speed = LastMode1Speed;
                 DIG_DispCoe = 100;
                 MotorSpeed = Speed * Ratio;
 
@@ -125,7 +129,8 @@ void UserMainFunc(void)
             case Mode1_1:
                 DispLED |= 0x02;
                 Ratio = 1;
-                Speed = 2000;
+                LastMode1Speed = Speed;
+                Speed = LastMode2Speed;
                 DIG_DispCoe = 1000;
                 MotorSpeed = Speed * Ratio;
 
@@ -135,7 +140,8 @@ void UserMainFunc(void)
             case Mode1_5:
                 DispLED |= 0x04;
                 Ratio = 1.0 / 5.0;
-                Speed = 10000;
+                LastMode2Speed = Speed;
+                Speed = LastMode3Speed;
                 DIG_DispCoe = 10000;
                 MotorSpeed = Speed * Ratio;
 
@@ -147,6 +153,7 @@ void UserMainFunc(void)
             }
 
             TM1639_Disp(&DispLED, TM_MODE_DISP_LED);
+            PackgeData(hUart, MotorSpeed, MotorStartFlag, MotorFR_Flag);
         }
         if (KeyEvent->pLong.Key.Stup == true)
         {
@@ -155,14 +162,13 @@ void UserMainFunc(void)
             {
                 MotorStartFlag = false;
                 my_printf("Motor Stop!\n");
-                PackgeData(hUart, Speed, MotorStartFlag, MotorFR_Flag);
             }
             else if (MotorStartFlag == false)
             {
                 MotorStartFlag = true;
-                my_printf("Motor Stup!\n");
-                PackgeData(hUart, Speed, MotorStartFlag, MotorFR_Flag);
+                my_printf("Motor Start!\n");
             }
+            PackgeData(hUart, MotorSpeed, MotorStartFlag, MotorFR_Flag);
         }
         else if (KeyEvent->rShort.Key.Stup == true)
         {
@@ -170,7 +176,7 @@ void UserMainFunc(void)
             {
                 StupLock = false;
             }
-            else if (StupLock == false && MotorStartFlag == true)
+            else if (StupLock == false && MotorStartFlag == false)
             {
                 DispLED &= 0xE7;
 
@@ -191,6 +197,7 @@ void UserMainFunc(void)
 
                 TM1639_Disp(&DispLED, TM_MODE_DISP_LED);
             }
+            PackgeData(hUart, MotorSpeed, MotorStartFlag, MotorFR_Flag);
         }
         if (KeyEvent->pShort.Key.UP == true)
         {
@@ -216,7 +223,7 @@ void UserMainFunc(void)
             DIG_Disp(Speed, DIG_DispCoe);
             my_printf("The speed is:%d \n", Speed);
             my_printf("The motor speed is:%d\n", MotorSpeed);
-            PackgeData(hUart, Speed, MotorStartFlag, MotorFR_Flag);
+            PackgeData(hUart, MotorSpeed, MotorStartFlag, MotorFR_Flag);
         }
         else if (KeyEvent->pShort.Key.Down == true)
         {
@@ -242,6 +249,7 @@ void UserMainFunc(void)
             DIG_Disp(Speed, DIG_DispCoe);
             my_printf("The speed is:%d \n", Speed);
             my_printf("The motor speed is:%d\n", MotorSpeed);
+            PackgeData(hUart, MotorSpeed, MotorStartFlag, MotorFR_Flag);
         }
         if (KeyEvent->pShort.Key.M1 == true)
         {
