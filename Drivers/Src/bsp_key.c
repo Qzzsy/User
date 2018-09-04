@@ -36,6 +36,7 @@
 /* 初始化按键的事件 */
 Key_t KeyEvent = {
 	0,
+	0,
 #ifdef KEY_USE_LONGPRESS
 	0,
 #endif
@@ -80,6 +81,7 @@ void KeyScan(void)
     __IO uint8_t i = 0;
 	static Key_t KeyCount= {
 		0,
+		0,
 #ifdef KEY_USE_LONGPRESS
 		0,
 #endif
@@ -106,6 +108,8 @@ void KeyScan(void)
 
 	KeyEvent.pShort.v = KeyValue & (KeyValue ^ KeyCount.pShort.v);
 	KeyCount.pShort.v = KeyValue;
+	KeyEvent.rShort.v = KeyCount.rShort.v & (KeyValue ^ KeyCount.rShort.v);
+	KeyCount.rShort.v = KeyCount.pShort.v;
 
 #ifdef KEY_USE_LONGPRESS
 	for (i = 0; i < KEY_NUM; i++)

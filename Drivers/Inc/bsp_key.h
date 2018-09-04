@@ -42,6 +42,7 @@ typedef union
 typedef struct
 {
 	KeyEvent_t pShort;
+    KeyEvent_t rShort;
 #ifdef KEY_USE_LONGPRESS
 	KeyEvent_t pLong;
 #endif
