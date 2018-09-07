@@ -14,7 +14,11 @@
 #ifndef _BSP_UART_H_
 #define _BSP_UART_H_
 
+#if defined STM32F1
+#include "stm32f1xx.h"
+#elif defined STM32F4
 #include "stm32f4xx.h"
+#endif
 
 HAL_StatusTypeDef SetConsoleDevice(UART_HandleTypeDef * hUart);
 UART_HandleTypeDef * Uart1_GetHandle(void);

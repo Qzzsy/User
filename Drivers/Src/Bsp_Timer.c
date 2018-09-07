@@ -15,9 +15,28 @@ void TimerStart(TIM_HandleTypeDef * tim_baseHandle)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef * tim_baseHandle)
 {
-    if(tim_baseHandle->Instance == TIM10)
+    if (tim_baseHandle->Instance == TIM1)
+    {
+        /* code */
+        return ;
+    }
+    else if (tim_baseHandle->Instance == TIM2)
+    {
+        /* code */
+        return ;
+    }
+    else if (tim_baseHandle->Instance == TIM3)
     {
         LED_TickInc();
         KeyScan();
+        /* code */
+        return ;
     }
+    else if (tim_baseHandle->Instance == TIM4)
+    {
+        /* code */
+        return ;
+    }
+    
+    /*!< more Timer add in this; */
 }
