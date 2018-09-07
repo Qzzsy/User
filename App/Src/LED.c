@@ -8,6 +8,7 @@
  * @History
  * Date           Author    version    		   Notes
  * 2018-06-22      ZSY      V1.0.0          first version.
+ * 2018-09-07      ZSY      V1.0.1          继续完善LED方法，提高可以移植性.
  */
 /* Includes ------------------------------------------------------------------*/
 #include "led.h"
@@ -22,6 +23,15 @@
 //#define USER_LED1
 
 #ifdef USER_LED0
+#define _LED0_GPIO_PORT              LED0_GPIO_Port
+#define _LED0_PIN                    LED0_Pin
+#endif
+#ifdef USER_LED1
+#define _LED1_GPIO_PORT              LED1_GPIO_Port
+#define _LED1_PIN                    LED1_Pin
+#endif
+
+#ifdef USER_LED0
 /**
  * @func    LED0_On
  * @brief   LED0打开
@@ -31,9 +41,9 @@
 void LED0_On(void)
 {
 #if USER_EFFI == 1
-    LL_GPIO_ResetOutputPin(LED0_GPIO_Port, LED0_Pin);
+    LL_GPIO_ResetOutputPin(_LED0_GPIO_PORT, _LED0_PIN);
 #else
-    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(_LED0_GPIO_PORT, _LED0_PIN, GPIO_PIN_RESET);
 #endif
 }
 
@@ -46,9 +56,9 @@ void LED0_On(void)
 void LED0_Off(void)
 {
 #if USER_EFFI == 1
-    LL_GPIO_SetOutputPin(LED0_GPIO_Port, LED0_Pin);
+    LL_GPIO_SetOutputPin(_LED0_GPIO_PORT, _LED0_PIN);
 #else
-    HAL_GPIO_WritePin(LED0_GPIO_Port, LED0_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(_LED0_GPIO_PORT, _LED0_PIN, GPIO_PIN_SET);
 #endif
 }
 #endif
@@ -57,15 +67,15 @@ void LED0_Off(void)
 /**
  * @func    LED1_On
  * @brief   LED1打开
- * @note    LED0为低电平打开，若使用高电平打开，请修改GPIO_PIN_RESET为GPIO_PIN_SET
+ * @note    LED1为低电平打开，若使用高电平打开，请修改GPIO_PIN_RESET为GPIO_PIN_SET
  * @retval  无
  */
 void LED1_On(void)
 {
 #if USER_EFFI == 1
-    LL_GPIO_ResetOutputPin(LED0_GPIO_Port, LED1_Pin);
+    LL_GPIO_ResetOutputPin(_LED1_GPIO_PORT, _LED1_PIN);
 #else
-    HAL_GPIO_WritePin(LED0_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(_LED1_GPIO_PORT, _LED1_PIN, GPIO_PIN_RESET);
 #endif
 }
 
@@ -78,9 +88,9 @@ void LED1_On(void)
 void LED1_Off(void)
 {
 #if USER_EFFI == 1
-    LL_GPIO_SetOutputPin(LED0_GPIO_Port, LED1_Pin);
+    LL_GPIO_SetOutputPin(_LED1_GPIO_PORT, _LED1_PIN);
 #else
-    HAL_GPIO_WritePin(LED0_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(_LED1_GPIO_PORT, _LED1_PIN, GPIO_PIN_SET);
 #endif
 }
 #endif
