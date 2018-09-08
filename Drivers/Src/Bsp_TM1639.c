@@ -50,15 +50,15 @@
 
 #if defined STM32F1
 /* IO方向设置 */
-#define SET_TM1639_DIO_IN()  {TM1639_DIO_PORT->CRH &= 0XFFFF0FFF; TM1639_DIO_PORT->CRH |= (uint32_t)8 << 12;}
-#define SET_TM1639_DIO_OUT() {TM1639_DIO_PORT->CRH &= 0XFFFF0FFF; TM1639_DIO_PORT->CRH |= (uint32_t)3 << 12;}
+#define SET_TM1639_DIO_IN()  {TM1639_DIO_PORT->CRL &= 0X0FFFFFFF; TM1639_DIO_PORT->CRL |= (uint32_t)8 << 28;}
+#define SET_TM1639_DIO_OUT() {TM1639_DIO_PORT->CRL &= 0X0FFFFFFF; TM1639_DIO_PORT->CRL |= (uint32_t)3 << 28;}
 #elif defined STM32F4
 /* IO方向设置 */
-#define SET_TM1639_DIO_IN()  {TM1639_DIO_PORT->MODER &= ~(3 << (9 * 2)); TM1639_DIO_PORT->MODER |= (0 << (9 * 2));}	//PB12??????
-#define SET_TM1639_DIO_OUT() {TM1639_DIO_PORT->MODER &= ~(3 << (9 * 2)); TM1639_DIO_PORT->MODER |= (1 << (9 * 2));} 
+#define SET_TM1639_DIO_IN()  {TM1639_DIO_PORT->MODER &= ~(3 << (5 * 2)); TM1639_DIO_PORT->MODER |= (0 << (5 * 2));}
+#define SET_TM1639_DIO_OUT() {TM1639_DIO_PORT->MODER &= ~(3 << (5 * 2)); TM1639_DIO_PORT->MODER |= (1 << (5 * 2));} 
 #endif
 
-const uint8_t Dofly[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x7f, 0x6f, 0x77, 0x7c, 0x58, 0x5e, 0x79, 0x71};
+const uint8_t Dofly[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f, 0x77, 0x7c, 0x58, 0x5e, 0x79, 0x71};
 
 void TM1639_SendData(uint8_t Data)
 {
@@ -75,11 +75,11 @@ void TM1639_SendData(uint8_t Data)
         else
             TM1639_DIO_WL;
         
-        for (int j = 200; j > 0; j--);
+        for (int j = 10; j > 0; j--);
 
         TM1639_CLK_WH;
         
-        for (int j = 200; j > 0; j--);
+        for (int j = 10; j > 0; j--);
     }
 }
 
@@ -92,16 +92,17 @@ uint8_t TM1639_ReadData(void)
     for (i = 0; i < 8; i++)
     {
         TM1639_CLK_WL;
+        
+        for (int j = 10; j > 0; j--);
+        TM1639_CLK_WH;
 
         if (TM1639_DIO_R)
             RevData |= 1 << i;
         
-        for (int j = 200; j > 0; j--);
-
-        TM1639_CLK_WH;
-        
-        for (int j = 200; j > 0; j--);
+        for (int j = 10; j > 0; j--);
     }
+
+    return RevData;
 }
 
 void TM1639_Start(void)
@@ -141,6 +142,8 @@ void TM1639_Disp(uint8_t * Data, uint8_t Mode)
 {
     uint8_t i;
 
+    __disable_fault_irq();
+
     TM1639_Control(CMD_AUTO_ADDR);
 
     TM1639_Start();
@@ -149,6 +152,7 @@ void TM1639_Disp(uint8_t * Data, uint8_t Mode)
     {
         TM1639_SendData(DIG0);
 
+        for (int j = 10; j > 0; j--);
         for (i = 0; i < 2; i++)
         {
             TM1639_SendData(Dofly[Data[i]] & 0x0f);
@@ -158,8 +162,9 @@ void TM1639_Disp(uint8_t * Data, uint8_t Mode)
     }
     else if (Mode == TM_MODE_DISP_LED)
     {
-        TM1639_SendData(DIG1);
+        TM1639_SendData(DIG2);
 
+        for (int j = 10; j > 0; j--);
         TM1639_SendData((*Data) & 0x0f);
         
         TM1639_SendData(((*Data) >> 4) & 0x0f);
@@ -168,10 +173,29 @@ void TM1639_Disp(uint8_t * Data, uint8_t Mode)
     TM1639_Stop();
 
     TM1639_Control(LEVEL_1);
+    
+    __enable_fault_irq();
 }
 
-void TM1639_ReadKeyValue(void)
+void TM1639_ReadKeyValue(uint32_t * KeyValue)
 {
-    TM1639_Control(CMD_READ_KEY);
+    uint8_t * Temp = (uint8_t *)KeyValue;
+
+    __disable_fault_irq();
+
+    TM1639_Control(CMD_AUTO_ADDR);
+
+    TM1639_Start();
+
+    TM1639_SendData(CMD_READ_KEY);
+
+    for (int j = 10; j > 0; j--);
+    
+    Temp[0] = TM1639_ReadData();
+    Temp[1] = TM1639_ReadData();
+    
+    TM1639_Stop();
+
+    __enable_fault_irq();
 }
 
