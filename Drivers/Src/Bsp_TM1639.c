@@ -1,3 +1,16 @@
+/**
+ ******************************************************************************
+ * @file      Bsp_TM1639.c
+ * @author    ZSY
+ * @version   V1.0.0
+ * @date      2018-09-14
+ * @brief     该文件提供了TM1639操作相关的驱动以及API
+ * @History
+ * Date           Author    version    		Notes
+ * 2018-09-14       ZSY     V1.0.0      first version.
+ */
+
+/* Includes ------------------------------------------------------------------*/
 #include "Bsp_TM1639.h"
 
 /* 若使用LL库，请定义USER_EFFI为1 */
@@ -60,6 +73,12 @@
 
 const uint8_t Dofly[] = {0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f, 0x77, 0x7c, 0x58, 0x5e, 0x79, 0x71};
 
+/**
+ * @func    TM1639_SendData
+ * @brief   向TM1639发送数据
+ * @param   Data 要发送的数据
+ * @retval  无
+ */
 void TM1639_SendData(uint8_t Data)
 {
     uint8_t i;
@@ -83,6 +102,11 @@ void TM1639_SendData(uint8_t Data)
     }
 }
 
+/**
+ * @func    TM1639_ReadData
+ * @brief   从TM1639中读取数据
+ * @retval  读取到的数据
+ */
 uint8_t TM1639_ReadData(void)
 {
     uint8_t i, RevData = 0x00;
@@ -105,6 +129,11 @@ uint8_t TM1639_ReadData(void)
     return RevData;
 }
 
+/**
+ * @func    TM1639_Start
+ * @brief   使能TM1639
+ * @retval  无
+ */
 void TM1639_Start(void)
 {
     TM1639_CS_WL;
@@ -112,6 +141,11 @@ void TM1639_Start(void)
     TM1639_CLK_WH;
 }
 
+/**
+ * @func    TM1639_Stop
+ * @brief   失能TM1639
+ * @retval  无
+ */
 void TM1639_Stop(void)
 {
     TM1639_CS_WH;
@@ -119,6 +153,12 @@ void TM1639_Stop(void)
     TM1639_CLK_WH;
 }
 
+/**
+ * @func    TM1639_Control
+ * @brief   想TM1639写控制信号
+ * @param   Cmd 命令
+ * @retval  无
+ */
 void TM1639_Control(uint8_t Cmd)
 {
     TM1639_Start();
@@ -128,16 +168,33 @@ void TM1639_Control(uint8_t Cmd)
     TM1639_Stop();
 }
 
+/**
+ * @func    TM1639_DispOn
+ * @brief   TM1639打开显示
+ * @retval  无
+ */
 void TM1639_DispOn(void)
 {
     TM1639_Control(CMD_DISP_ON);
 }
 
+/**
+ * @func    TM1639_DispOff
+ * @brief   TM1639关闭显示
+ * @retval  无
+ */
 void TM1639_DispOff(void)
 {
     TM1639_Control(CMD_DISP_OFF);
 }
 
+/**
+ * @func    TM1639_Disp
+ * @brief   TM1639刷新数码管显示的内容
+ * @param   Data 数据的指针
+ * @param   Mode 显示的模式
+ * @retval  无
+ */
 void TM1639_Disp(uint8_t * Data, uint8_t Mode)
 {
     uint8_t i;
@@ -177,6 +234,12 @@ void TM1639_Disp(uint8_t * Data, uint8_t Mode)
     __enable_fault_irq();
 }
 
+/**
+ * @func    TM1639_ReadKeyValue
+ * @brief   读取按键的有效值
+ * @param   KeyValue 按键值
+ * @retval  无
+ */
 void TM1639_ReadKeyValue(uint32_t * KeyValue)
 {
     uint8_t * Temp = (uint8_t *)KeyValue;

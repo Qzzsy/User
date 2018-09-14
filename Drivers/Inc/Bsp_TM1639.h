@@ -1,12 +1,26 @@
+/**
+ ******************************************************************************
+ * @file      bsp_TM1639.h
+ * @author    ZSY
+ * @version   V1.0.0
+ * @date      2018-09-14
+ * @brief     该文件包含了TM1639的一些API，通过这些API实现对片上的TM1639进行造作
+ * @History
+ * Date           Author    version    		Notes
+ * 2018-09-14       ZSY     V1.0.0      first version.
+ */
+
+/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef _BSP_TM1639_H_
 #define _BSP_TM1639_H_
 
 #if defined STM32F1
-#include "stm32f10x.h"
+#include "stm32f1xx.h"
 #elif defined STM32F4
 #include "stm32f4xx.h"
 #endif
 
+/*!< Definition */
 #define TM_MODE_DISP_DIG    0x01
 #define TM_MODE_DISP_LED    0x02
 
@@ -29,10 +43,10 @@
 #define LEVEL_13            0x8E
 #define LEVEL_14            0x8F
 
+/*!< APIs */
 void TM1639_Control(uint8_t Cmd);
 void TM1639_DispOn(void);
 void TM1639_DispOff(void);
 void TM1639_Disp(uint8_t * Data, uint8_t Mode);
-void TM1639_ReadKeyValue(uint32_t * KeyValue);
 
 #endif
