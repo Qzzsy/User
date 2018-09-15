@@ -1,14 +1,30 @@
+/**
+ ******************************************************************************
+ * @file      BatVoltage.c
+ * @author    ZSY
+ * @version   V1.0.0
+ * @date      2018-09-14
+ * @brief     实现了电池电压的获取
+ * @History
+ * Date           Author    version    		Notes
+ * 2018-09-14       ZSY     V1.0.0      first version.
+ */
+
+/* Includes ------------------------------------------------------------------*/
 #include "BatVoltage.h"
 #include "Bsp_ADC.h"
 
+/*!< 是否使用内部基准电压 */
 #define USE_VREFINT
 
 #ifdef USE_VREFINT
-#define VREFINT_VOLTAGE         1200
+/*!< 内部基准电压的大小（mV） */
+#define VREFINT_VOLTAGE         1185
 #else
 #define VCC_VOLTAGE             3300
 #endif
 
+/*!< 测量电池电压的ADC 通道 */
 #define BAT_ADC_CHANNEL         ADC_CHANNEL_9
 
 uint16_t FilterBuf[30] = {0};
@@ -49,11 +65,22 @@ uint16_t Filter(uint16_t input)
     return (arvg / 25.0);
 }
 
+/**
+ * @func    GetRealVol
+ * @brief   获取当前真实的电压
+ * @param   AdcVol 测量到的电压
+ * @retval  返回真实的电压
+ */
 uint32_t GetRealVol(uint16_t AdcVol)
 {
-    return AdcVol * (22.0 / 39.0) + 2500;
+    return AdcVol * (22.0 / 39.0) + 2495;
 }
 
+/**
+ * @func    GetBatVoltage
+ * @brief   获取ADC的电压
+ * @retval  返回测量得到的电压
+ */
 uint16_t GetBatVoltage(void)
 {
     uint16_t Voltage;

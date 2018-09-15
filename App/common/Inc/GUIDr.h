@@ -3,8 +3,8 @@
  * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
  * @filename      GUIDr.h
  * @author        ZSY
- * @version       V1.0.1
- * @date          2018-06-22
+ * @version       V1.0.2
+ * @date          2018-09-15
  * @Description   集成了液晶的基本操作，实现汉字、英文和中英文混合显示，实现各类基本的
  *                2D图像绘制。
  * @Others
@@ -12,6 +12,7 @@
  * Date           Author    version    		    Notes
  * 2018-06-22      ZSY      V1.0.0          first version.
  * 2018-06-22      ZSY      V1.0.1          添加对外部字库的支持.
+ * 2018-09-15      ZSY      V1.0.2          更改部分结构，简化流程.
  */
 	
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -21,8 +22,8 @@
 #include "Font.h"
 
 /* 屏幕的宽度和高度 */
-#define LCD_WIDTH           480
-#define LCD_HEIGHT          320
+#define LCD_WIDTH           96
+#define LCD_HEIGHT          64
 
 /* 点阵数据缓存, 必须大于等于单个字模需要的存储空间*/ 
 #define BYTES_PER_FONT      512 
@@ -113,23 +114,23 @@ typedef union _GUI_RGB565Color
 
 /* 扩展字体类型 */
 #ifdef USING_CN_16_CHAR
-extern const paCharInfo_t FontCn16;
+extern const paCharsInfo_t FontCn16;
 #endif
 #ifdef USING_CN_16_CHAR
-extern const paCharInfo_t FontCn24;
+extern const paCharsInfo_t FontCn24;
 #endif
 #ifdef USING_CN_16_CHAR
-extern const paCharInfo_t FontCn32;
+extern const paCharsInfo_t FontCn32;
 #endif
 #ifdef USING_CN_16_CHAR
-extern const paCharInfo_t FontCn40;
+extern const paCharsInfo_t FontCn40;
 #endif
 #ifdef USING_CN_16_CHAR
-extern const paCharInfo_t FontCn48;
+extern const paCharsInfo_t FontCn48;
 #endif
 
 /* API 接口 */
-void GuiSetTextFont(const paCharInfo_t * CharInfo);
+void GuiSetTextFont(const paCharsInfo_t * CharInfo);
 void GuiSetTextColor(unsigned short int WordColor, unsigned short int BackColor);
 void GuiSetDeviceAPI(void (* PutPixelNoPos)(unsigned short int pColor),
                      void (* PutPixel)(unsigned short int xCur, unsigned short int yCur, unsigned short int pColor),

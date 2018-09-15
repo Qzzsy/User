@@ -2,8 +2,8 @@
  ******************************************************************************
  * @file      Font.c
  * @author    ZSY
- * @version   V1.0.0
- * @date      2018-06-22
+ * @version   V1.0.1
+ * @date      2018-09-15
  * @brief     本文件用于存放字库内容。新加文字按照已有的格式进行添加即可，本文件的内容
  *            放于芯片内部的FLASH，芯片FLASH太小的话慎用，以防FLASH不足。
  *            取模方式为：
@@ -14,6 +14,7 @@
  * @History
  * Date           Author    version    		   Notes
  * 2018-06-22      ZSY      V1.0.0          first version.
+ * 2018-09-15      ZSY      V1.0.1          更改部分结构，简化流程.
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -22,7 +23,7 @@
 #ifdef USE_CN_INT_LIB
 #ifdef USING_CN_16_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfo_t FontCn16 = 
+const paCharsInfo_t FontCn16 = 
 {
     {8,  16, 8,  "A16"},
     {16, 16, 16, "H16"},
@@ -48,7 +49,7 @@ const Cn16Data_t HanZi16Data[] =
 
 #ifdef USING_CN_24_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfo_t FontCn24 = 
+const paCharsInfo_t FontCn24 = 
 {
     {16, 24, 12, "A24"},
     {24, 24, 24, "H24"},
@@ -139,7 +140,7 @@ const Cn24Data_t HanZi24Data[] =
 
 #ifdef USING_CN_32_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfo_t FontCn32 = 
+const paCharsInfo_t FontCn32 = 
 {
     {16, 32, 16, "A32"},
     {32, 32, 32, "H32"},
@@ -374,7 +375,7 @@ const Cn32Data_t HanZi32Data[] =
 
 #ifdef USING_CN_40_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfo_t FontCn40 = 
+const paCharsInfo_t FontCn40 = 
 {
     {24, 40, 20, "A40"},
     {40, 40, 40, "H40"},
@@ -506,7 +507,7 @@ const Cn40Data_t HanZi40Data[] =
 
 #ifdef USING_CN_48_CHAR
 /* 字体信息参数，不需要更改 */
-const paCharInfo_t FontCn48 = 
+const paCharsInfo_t FontCn48 = 
 {
     {24, 48, 24, "A48"},
     {48, 48, 48, "H48"},

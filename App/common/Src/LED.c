@@ -23,8 +23,8 @@
 //#define USER_LED1
 
 #ifdef USER_LED0
-#define _LED0_GPIO_PORT              LED0_GPIO_Port
-#define _LED0_PIN                    LED0_Pin
+#define _LED0_GPIO_PORT              LED_GPIO_Port
+#define _LED0_PIN                    LED_Pin
 #endif
 #ifdef USER_LED1
 #define _LED1_GPIO_PORT              LED1_GPIO_Port

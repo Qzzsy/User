@@ -3,13 +3,14 @@
  * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
  * @filename      font.h
  * @author        ZSY
- * @version       V1.0.0
- * @date          2018-06-22
+ * @version       V1.0.1
+ * @date          2018-09-15
  * @Description   字库内容的一些结构体定义，实现了文字的保存与显示
  * @Others
  * @History
  * Date           Author    version    		Notes
  * 2018-06-22      ZSY      V1.0.0      first version.
+ * 2018-09-15      ZSY      V1.0.1          更改部分结构，简化流程.
  */
 	
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -30,33 +31,24 @@
 // #define USE_CN_EXT_LIB
 // #define USE_ASCII_EXT_LIB
 
-/* 英文字符信息 */
-typedef struct _paAsciiData
+/* 字符的信息 */
+typedef struct
 {
     unsigned char Width;
     unsigned char Hight;
     unsigned char PerLinePixels;
-    char * ASCII;
-}paAsciiData_t;
-
-/* 中文字符的信息 */
-typedef struct _paHanziData
-{
-    unsigned char Width;
-    unsigned char Hight;
-    unsigned char PerLinePixels;
-    char * Hanzi;
-}paHanziData_t;
+    char * Char;
+}paCnInfo_t;
 
 /* 字体信息 */
-typedef struct _paCharInfo
+typedef struct
 {
-    paAsciiData_t paAsciiData;
-    paHanziData_t paHanziData;
-}paCharInfo_t;
+    paCnInfo_t paAsciiInfo;
+    paCnInfo_t paHanziInfo;
+}paCharsInfo_t;
 
 /* 汉字内码索引,一个汉字占两个字节 */
-typedef struct _CnChar
+typedef struct
 {
 	unsigned char  Index[2];	
 }CnChar_t;
