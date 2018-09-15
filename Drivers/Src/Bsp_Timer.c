@@ -33,13 +33,49 @@ __weak void KeyScan(void)
 
 /**
  * @func    TimerStart
+ * @brief   开启定时器，会触发中断
+ * @param   tim_baseHandle 定时器的句柄
+ * @retval  无
+ */
+void TimerStartIT(TIM_HandleTypeDef * tim_baseHandle)
+{
+    HAL_TIM_Base_Start_IT(tim_baseHandle);
+}
+
+/**
+ * @func    TimerStart
  * @brief   开启定时器
  * @param   tim_baseHandle 定时器的句柄
  * @retval  无
  */
 void TimerStart(TIM_HandleTypeDef * tim_baseHandle)
 {
-    HAL_TIM_Base_Start_IT(tim_baseHandle);
+    HAL_TIM_Base_Start(tim_baseHandle);
+}
+
+/**
+ * @func    TimerStartPWM
+ * @brief   开启对应通道的PWM
+ * @param   tim_baseHandle 定时器的句柄
+ * @param   Channel 通道
+ * @retval  无
+ */
+void TimerStartPWM(TIM_HandleTypeDef * tim_baseHandle, uint16_t Channel)
+{
+    HAL_TIM_PWM_Start(tim_baseHandle, Channel);
+}
+
+/**
+ * @func    PwmSetCompare
+ * @brief   设置PWM的占空比
+ * @param   tim_baseHandle 定时器的句柄
+ * @param   Channel 通道
+ * @param   IndexWave 占空比
+ * @retval  无
+ */
+void PwmSetCompare(TIM_HandleTypeDef * tim_baseHandle, uint16_t Channel, uint16_t IndexWave)
+{
+    __HAL_TIM_SET_COMPARE(tim_baseHandle, Channel, IndexWave);
 }
 
 /**

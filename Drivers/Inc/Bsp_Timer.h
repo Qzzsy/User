@@ -22,7 +22,10 @@
 #include "tim.h"
 
 /*!< APIs */
-void TimerStart(TIM_HandleTypeDef* tim_baseHandle);
+void TimerStart(TIM_HandleTypeDef * tim_baseHandle);
+void TimerStartIT(TIM_HandleTypeDef * tim_baseHandle);
+void TimerStartPWM(TIM_HandleTypeDef * tim_baseHandle, uint16_t Channel);
+void PwmSetCompare(TIM_HandleTypeDef * tim_baseHandle, uint16_t Channel, uint16_t IndexWave);
 
 #endif
 
