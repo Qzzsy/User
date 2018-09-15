@@ -4,7 +4,7 @@
  * @author    ZSY
  * @version   V1.0.0
  * @date      2018-09-14
- * @brief     è¯¥æ–‡ä»¶æä¾›äº†ADCæ“ä½œç›¸å…³çš„APIï¼Œä½¿å¾—åº•å±‚ä¸åº”ç”¨å±‚æ›´åŠ åˆ†ç¦»
+ * @brief     ¸ÃÎÄ¼şÌá¹©ÁËADC²Ù×÷Ïà¹ØµÄAPI£¬Ê¹µÃµ×²ãÓëÓ¦ÓÃ²ã¸ü¼Ó·ÖÀë
  * @History
  * Date           Author    version    		Notes
  * 2018-09-14       ZSY     V1.0.0      first version.
@@ -14,15 +14,15 @@
 #include "Bsp_ADC.h"
 #include "adc.h"
 
-/*!< å®šä¹‰æ˜¯å¦ä½¿ç”¨å¯¹åº”çš„ADC */
+/*!< ¶¨ÒåÊÇ·ñÊ¹ÓÃ¶ÔÓ¦µÄADC */
 #define USE_ADC1
 #define USE_ADC2
 
 #ifdef USE_ADC1
 /**
  * @func    GetAdc1Handle
- * @brief   è·å–ADC1çš„å¥æŸ„
- * @retval  ADC1çš„å¥æŸ„
+ * @brief   »ñÈ¡ADC1µÄ¾ä±ú
+ * @retval  ADC1µÄ¾ä±ú
  */
 ADC_HandleTypeDef *GetAdc1Handle(void)
 {
@@ -33,8 +33,8 @@ ADC_HandleTypeDef *GetAdc1Handle(void)
 #ifdef USE_ADC2
 /**
  * @func    GetAdc2Handle
- * @brief   è·å–ADC2çš„å¥æŸ„
- * @retval  ADC2çš„å¥æŸ„
+ * @brief   »ñÈ¡ADC2µÄ¾ä±ú
+ * @retval  ADC2µÄ¾ä±ú
  */
 ADC_HandleTypeDef *GetAdc2Handle(void)
 {
@@ -44,10 +44,10 @@ ADC_HandleTypeDef *GetAdc2Handle(void)
 
 /**
  * @func    SetAdcConvChannel
- * @brief   è®¾ç½®ADCçš„è½¬æ¢é€šé“
- * @param   _Handle ADCçš„å¥æŸ„
- * @param   Channel é€šé“
- * @param   SamplingTime è½¬æ¢æ—¶é—´
+ * @brief   ÉèÖÃADCµÄ×ª»»Í¨µÀ
+ * @param   _Handle ADCµÄ¾ä±ú
+ * @param   Channel Í¨µÀ
+ * @param   SamplingTime ×ª»»Ê±¼ä
  * @retval  HAL_OK
  */
 uint8_t SetAdcConvChannel(ADC_HandleTypeDef * _Handle, uint32_t Channel, uint32_t SamplingTime)
@@ -65,9 +65,9 @@ uint8_t SetAdcConvChannel(ADC_HandleTypeDef * _Handle, uint32_t Channel, uint32_
 
 /**
  * @func    GetAdcValue
- * @brief   è·å–ADCçš„è½¬æ¢å€¼
- * @param   _Handle ADCçš„å¥æŸ„
- * @retval  ADCé‡‡é›†åˆ°çš„å€¼
+ * @brief   »ñÈ¡ADCµÄ×ª»»Öµ
+ * @param   _Handle ADCµÄ¾ä±ú
+ * @retval  ADC²É¼¯µ½µÄÖµ
  */
 uint16_t GetAdcValue(ADC_HandleTypeDef *_Handle)
 {
