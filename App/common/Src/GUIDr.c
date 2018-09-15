@@ -308,6 +308,7 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
                 & (HanZi16Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi16Data[i].Msk;
+                return ;
             }
         }
         
@@ -323,6 +324,7 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
                 & (HanZi24Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi24Data[i].Msk;
+                return ;
             }
         }
         
@@ -338,6 +340,7 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
                 & (HanZi32Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi32Data[i].Msk;
+                return ;
             }
         }
         
@@ -353,6 +356,7 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
                 & (HanZi40Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi40Data[i].Msk;
+                return ;
             }
         }
         
@@ -368,6 +372,7 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
                 & (HanZi48Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi48Data[i].Msk;
+                return ;
             }
         }
         
@@ -1618,8 +1623,33 @@ void GuiDrawTranText(const char * Cn, uint16_t xStart, uint16_t yStart, uint16_t
         GuiDrawTranStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.PerLinePixels * nLen) / 2,
                                 yEnd - _paCharInfo.paAsciiInfo.Hight);
     }
+    else if ((Align & TOP_ALIGN) && (Align & LEFT_ALIGN))
+    {
+        /* ÏÔÊ¾×Ö·û´® */
+        GuiDrawTranStringAt(Cn, xStart,
+                                yStart);        
+    }
+    else if ((Align & TOP_ALIGN) && (Align & RIGHT_ALIGN))
+    {
+        /* ÏÔÊ¾×Ö·û´® */
+        GuiDrawTranStringAt(Cn, xEnd - (_paCharInfo.paAsciiInfo.PerLinePixels * nLen),
+                                yStart);        
+    }
+    else if ((Align & BOTTOM_ALIGN) && (Align & LEFT_ALIGN))
+    {
+        /* ÏÔÊ¾×Ö·û´® */
+        GuiDrawTranStringAt(Cn, xStart,
+                                yEnd - _paCharInfo.paAsciiInfo.Hight);        
+    }
+    else if ((Align & BOTTOM_ALIGN) && (Align & RIGHT_ALIGN))
+    {
+        /* ÏÔÊ¾×Ö·û´® */
+        GuiDrawTranStringAt(Cn, xEnd - (_paCharInfo.paAsciiInfo.PerLinePixels * nLen),
+                                yEnd - _paCharInfo.paAsciiInfo.Hight);        
+    }
     else if (Align & CENTER_ALIGN)
-    {        /* ÏÔÊ¾×Ö·û´® */
+    {        
+        /* ÏÔÊ¾×Ö·û´® */
         GuiDrawTranStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.PerLinePixels * nLen) / 2,
                                 yStart + ((yEnd - yStart) - _paCharInfo.paAsciiInfo.Hight) / 2);
     }
