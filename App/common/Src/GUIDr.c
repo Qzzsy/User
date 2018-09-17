@@ -921,16 +921,16 @@ static inline void _GuiDrawVerLine(uint16_t xCur, uint16_t yCur, uint16_t Lenght
 static inline void _GuiDrawRect(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, uint16_t pColor)
 {
     /* 顶 */
-    _GuiDrawLine(xCur, yCur, xCur + dWidth, yCur, pColor);	
+    _GuiDrawLine(xCur, yCur, xCur + dWidth - 1, yCur, pColor);	
     
     /* 底 */
-    _GuiDrawLine(xCur, yCur + dHeight, xCur + dWidth, yCur + dHeight, pColor);	
+    _GuiDrawLine(xCur, yCur + dHeight - 1, xCur + dWidth - 1, yCur + dHeight - 1, pColor);	
     
     /* 左 */
-    _GuiDrawLine(xCur, yCur, xCur, yCur + dHeight, pColor);	
+    _GuiDrawLine(xCur, yCur, xCur, yCur + dHeight - 1, pColor);	
     
     /* 右 */
-    _GuiDrawLine(xCur + dWidth, yCur, xCur + dWidth, yCur + dHeight, pColor);	
+    _GuiDrawLine(xCur + dWidth - 1, yCur, xCur + dWidth - 1, yCur + dHeight, pColor);	
 }
 
 /**
@@ -1006,13 +1006,13 @@ static inline void _GuiDrawRectRound(uint16_t xCur, uint16_t yCur, uint16_t dWid
     _GuiDrawLine(xCur + Round, yCur, xCur + dWidth - Round, yCur, pColor);	
     
     /* 底 */
-    _GuiDrawLine(xCur + Round, yCur + dHeight, xCur + dWidth - Round, yCur + dHeight, pColor);	
+    _GuiDrawLine(xCur + Round, yCur + dHeight - 1, xCur + dWidth - Round, yCur + dHeight - 1, pColor);	
     
     /* 左 */
     _GuiDrawLine(xCur, yCur + Round, xCur, yCur + dHeight - Round, pColor);	
     
     /* 右 */
-    _GuiDrawLine(xCur + dWidth, yCur + Round, xCur + dWidth, yCur + dHeight - Round, pColor);    
+    _GuiDrawLine(xCur + dWidth - 1, yCur + Round, xCur + dWidth - 1, yCur + dHeight - Round, pColor);    
         
     /* 补充四个圆弧 */
     while (nxCur <= nyCur)
@@ -1021,15 +1021,15 @@ static inline void _GuiDrawRectRound(uint16_t xCur, uint16_t yCur, uint16_t dWid
         _GUI_DeviceAPI.PutPixel(xCur + Round - nxCur, yCur + Round - nyCur, pColor);        
         _GUI_DeviceAPI.PutPixel(xCur + Round - nyCur, yCur + Round - nxCur, pColor);
         /* 右上角 */
-        _GUI_DeviceAPI.PutPixel(xCur - Round + dWidth + nxCur, yCur + Round - nyCur, pColor);
-        _GUI_DeviceAPI.PutPixel(xCur - Round + dWidth + nyCur, yCur + Round - nxCur, pColor);
+        _GUI_DeviceAPI.PutPixel(xCur - Round + dWidth - 1 + nxCur, yCur + Round - nyCur, pColor);
+        _GUI_DeviceAPI.PutPixel(xCur - Round + dWidth - 1 + nyCur, yCur + Round - nxCur, pColor);
         
         /* 左下角 */
-        _GUI_DeviceAPI.PutPixel(xCur + Round - nxCur, yCur - Round + dHeight + nyCur, pColor);
-        _GUI_DeviceAPI.PutPixel(xCur + Round - nyCur, yCur - Round + dHeight + nxCur, pColor);
+        _GUI_DeviceAPI.PutPixel(xCur + Round - nxCur, yCur - Round + dHeight - 1 + nyCur, pColor);
+        _GUI_DeviceAPI.PutPixel(xCur + Round - nyCur, yCur - Round + dHeight - 1 + nxCur, pColor);
         /* 右下角 */
-        _GUI_DeviceAPI.PutPixel(xCur - Round + dWidth + nxCur, yCur - Round + dHeight + nyCur, pColor);
-        _GUI_DeviceAPI.PutPixel(xCur - Round + dWidth + nyCur, yCur - Round + dHeight + nxCur, pColor);        
+        _GUI_DeviceAPI.PutPixel(xCur - Round + dWidth - 1 + nxCur, yCur - Round + dHeight - 1 + nyCur, pColor);
+        _GUI_DeviceAPI.PutPixel(xCur - Round + dWidth - 1 + nyCur, yCur - Round + dHeight - 1 + nxCur, pColor);        
         
         /* 圆弧插补 */
         if (D < 0)
@@ -1140,8 +1140,11 @@ void _GuiDrawFillRectRound(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16
     nxCur = 0;
     nyCur = Round;
     
-    /* 首先填充一个矩形 */
-    _GuiDrawFillRect(xCur, yCur + Round, dWidth, dHeight - 2 * Round, pColor);
+    if (dHeight > 2 * Round)
+    {
+        /* 首先填充一个矩形 */
+        _GuiDrawFillRect(xCur, yCur + Round, dWidth, dHeight - 2 * Round, pColor);
+    }
     
     /* 补充其余部分 */
     while (nxCur <= nyCur)
@@ -1151,8 +1154,8 @@ void _GuiDrawFillRectRound(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16
         _GuiDrawHorLine(xCur + Round - nyCur, yCur + Round - nxCur, dWidth - 2 * Round + 2 * nyCur, pColor);
         
         /* 用画线条的方式填充下半部分 */
-        _GuiDrawHorLine(xCur + Round - nxCur, yCur - Round + dHeight + nyCur, dWidth - 2 * Round + 2 * nxCur, pColor);
-        _GuiDrawHorLine(xCur + Round - nyCur, yCur - Round + dHeight + nxCur, dWidth - 2 * Round + 2 * nyCur, pColor);
+        _GuiDrawHorLine(xCur + Round - nxCur, yCur - Round + dHeight - 1 + nyCur, dWidth - 2 * Round + 2 * nxCur, pColor);
+        _GuiDrawHorLine(xCur + Round - nyCur, yCur - Round + dHeight - 1 + nxCur, dWidth - 2 * Round + 2 * nyCur, pColor);
 
         /* 圆弧插补法计算圆弧的x，y */
         if (D < 0)
