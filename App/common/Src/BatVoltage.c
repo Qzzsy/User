@@ -13,19 +13,20 @@
 /* Includes ------------------------------------------------------------------*/
 #include "BatVoltage.h"
 #include "Bsp_ADC.h"
+#include "GUIDr.h"
 
 /*!< 是否使用内部基准电压 */
 #define USE_VREFINT
 
 #ifdef USE_VREFINT
 /*!< 内部基准电压的大小（mV） */
-#define VREFINT_VOLTAGE         1185
+#define VREFINT_VOLTAGE 1185
 #else
-#define VCC_VOLTAGE             3300
+#define VCC_VOLTAGE 3300
 #endif
 
 /*!< 测量电池电压的ADC 通道 */
-#define BAT_ADC_CHANNEL         ADC_CHANNEL_9
+#define BAT_ADC_CHANNEL ADC_CHANNEL_9
 
 uint16_t FilterBuf[30] = {0};
 uint16_t Filter(uint16_t input)
@@ -93,7 +94,7 @@ uint16_t GetBatVoltage(void)
 #ifdef USE_VREFINT
     SetAdcConvChannel(_hAdc, ADC_CHANNEL_VREFINT, ADC_SAMPLETIME_239CYCLES_5);
     vAdcVal = GetAdcValue(_hAdc);
-#endif   
+#endif
 
     SetAdcConvChannel(_hAdc, BAT_ADC_CHANNEL, ADC_SAMPLETIME_239CYCLES_5);
     AdcVal = GetAdcValue(_hAdc);
@@ -105,4 +106,77 @@ uint16_t GetBatVoltage(void)
 #endif
 
     return (uint16_t)GetRealVol(Voltage);
+}
+
+void BatElecDisp(void)
+{
+    static uint8_t _FirstDispFlag = true, Cnt = 0, LastDispSize = 0;
+    uint16_t _BatVolgate = 0, _BatVolgateFir = 0;
+    uint8_t DispSize = 0;
+
+    if (_FirstDispFlag == true)
+    {
+        _FirstDispFlag = false;
+
+        GuiDrawRectRound(78, 1, 15, 8, 0xffff, 3);
+        GuiDrawFillRectRound(93, 3, 3, 4, 0xffff, 1);
+    }
+
+    _BatVolgate = GetBatVoltage();
+    _BatVolgateFir = Filter(_BatVolgate);
+
+    if (_BatVolgateFir >= 4150 || _BatVolgate >= 4150)
+    {
+        _BatVolgateFir = 4150;
+        _BatVolgate = 4150;
+    }
+    else if (_BatVolgateFir <= 3400 || _BatVolgate <= 3400)
+    {
+        _BatVolgateFir = 3400;
+        _BatVolgate = 3400;
+    }
+
+    if (Cnt >= 100)
+    {
+        DispSize = (13.0 / 750.0) * (_BatVolgateFir - 3400);
+        
+        if (DispSize < LastDispSize)
+        {
+            GuiDrawFillRect(79 + DispSize, 2, LastDispSize - DispSize, 7, 0x0000);
+            GuiDrawRectRound(78, 1, 15, 8, 0xffff, 3);
+            GuiDrawFillRectRound(93, 3, 3, 4, 0xffff, 1);
+        }
+        if (_BatVolgateFir >= 3700)
+        {
+            GuiDrawFillRectRound(79, 2, DispSize, 6, 0x07e0, 1);
+        }
+        else
+        {
+            GuiDrawFillRectRound(79, 2, DispSize, 6, 0xfc00, 1);
+        }
+    }
+    else
+    {
+        DispSize = (13.0 / 750.0) * (_BatVolgate - 3400);
+
+        if (DispSize < LastDispSize)
+        {
+            GuiDrawFillRect(79 + DispSize, 2, LastDispSize - DispSize, 6, 0x0000);
+            GuiDrawRectRound(78, 1, 15, 8, 0xffff, 3);
+            GuiDrawFillRectRound(93, 3, 3, 4, 0xffff, 1);
+        }
+        if (_BatVolgate >= 3700)
+        {
+            GuiDrawFillRectRound(79, 2, DispSize, 6, 0x07e0, 1);
+        }
+        else
+        {
+            GuiDrawFillRectRound(79, 2, DispSize, 6, 0xfc00, 1);
+        }
+    }
+
+    LastDispSize = DispSize;
+
+    if (Cnt < 100)
+        Cnt++;
 }

@@ -8,5 +8,6 @@
 #endif
 
 uint16_t GetBatVoltage(void);
+void BatElecDisp(void);
 
 #endif
