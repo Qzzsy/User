@@ -1,5 +1,19 @@
+/**
+ ******************************************************************************
+ * @file      Bsp_OLED_SSD1331.c
+ * @author    ZSY
+ * @version   V1.0.0
+ * @date      2018-09-17
+ * @brief     实现了对SSD1331的驱动
+ * @History
+ * Date           Author    version    		Notes
+ * 2018-09-17       ZSY     V1.0.0      first version.
+ */
+	
+/* Includes ------------------------------------------------------------------*/
 #include "Bsp_OLED_SSD1331.h"
 
+/* Private macro Definition --------------------------------------------------*/
 #define OLED_WRITE_CS_H     HAL_GPIO_WritePin(OLED_CS_GPIO_Port, OLED_CS_Pin, GPIO_PIN_SET)
 #define OLED_WRITE_CS_L     HAL_GPIO_WritePin(OLED_CS_GPIO_Port, OLED_CS_Pin, GPIO_PIN_RESET)
 
@@ -17,6 +31,13 @@
 
 #define GPIO_WRITE(_data)   GPIOA->ODR = (GPIOA->ODR & 0xffffff00) | (_data & 0xff)
 
+/* User functions -------------------------------------------------------------*/
+/**
+ * @func    _ssd1331WriteCmd
+ * @brief   lcd写命令到寄存器
+ * @param   _cmd 命令
+ * @retval  无
+ */
 void _ssd1331WriteCmd(uint8_t _cmd)
 {
     OLED_WRITE_DC_L;
@@ -26,6 +47,12 @@ void _ssd1331WriteCmd(uint8_t _cmd)
     OLED_WRITE_WR_H;
 }
 
+/**
+ * @func    _ssd1331WriteData
+ * @brief   lcd写数据到寄存器
+ * @param   _data 数据
+ * @retval  无
+ */
 void _ssd1331WriteData(uint8_t _data)
 {
     OLED_WRITE_DC_H;
@@ -35,6 +62,11 @@ void _ssd1331WriteData(uint8_t _data)
     OLED_WRITE_WR_H;
 }
 
+/**
+ * @func    OLED_SSD1331_Init
+ * @brief   lcd初始化
+ * @retval  无
+ */
 void OLED_SSD1331_Init(void)
 {
     HAL_GPIO_WritePin(SX1308_EN_GPIO_Port, SX1308_EN_Pin, GPIO_PIN_SET);
@@ -108,6 +140,14 @@ void OLED_SSD1331_Init(void)
     OLED_WRITE_CS_H;
 }
 
+/**
+ * @func    ssd1331PutPixel
+ * @brief   lcd在屏幕上打点
+ * @param   _xPos x坐标
+ * @param   _yPos y坐标
+ * @param   _hwColor 点的颜色
+ * @retval  无
+ */
 void ssd1331PutPixel(uint16_t _xPos, uint16_t _yPos, uint16_t _hwColor)
 {
     OLED_WRITE_CS_L;
@@ -126,6 +166,12 @@ void ssd1331PutPixel(uint16_t _xPos, uint16_t _yPos, uint16_t _hwColor)
     OLED_WRITE_CS_H;
 }
 
+/**
+ * @func    ssd1331ClrScreen
+ * @brief   lcd清屏方法
+ * @param   Color 清屏的颜色
+ * @retval  无
+ */
 void ssd1331ClrScreen(uint16_t Color)
 {
     uint16_t i, j;
@@ -139,6 +185,15 @@ void ssd1331ClrScreen(uint16_t Color)
     }
 }
 
+/**
+ * @func    ssd1331SetWin
+ * @brief   lcd设置窗口坐标
+ * @param   _xPos x的起点坐标
+ * @param   _yPos y的起点坐标
+ * @param   _Width 窗口的宽
+ * @param   _Height 窗口的高
+ * @retval  无
+ */
 void ssd1331SetWin(uint16_t _xPos, uint16_t _yPos, uint16_t _Width, uint16_t _Height)
 {
     OLED_WRITE_CS_L;
@@ -154,6 +209,12 @@ void ssd1331SetWin(uint16_t _xPos, uint16_t _yPos, uint16_t _Width, uint16_t _He
     OLED_WRITE_CS_H;
 }
 
+/**
+ * @func    ssd1331PutPixelNoPos
+ * @brief   lcd在屏幕上打点
+ * @param   _hwColor 点的颜色
+ * @retval  无
+ */
 void ssd1331PutPixelNoPos(uint16_t _hwColor)
 {
     OLED_WRITE_CS_L;
