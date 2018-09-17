@@ -2035,6 +2035,8 @@ void GuiDrawLine(uint16_t xStart, uint16_t yStart, uint16_t xEnd, uint16_t yEnd,
  */
 void GuiDrawHorLine(uint16_t xCur, uint16_t yCur, uint16_t Lenght, uint16_t pColor)
 {
+    if (Lenght == 0)
+        return ;
     _GuiDrawHorLine(xCur, yCur, Lenght, pColor);
 }
 
@@ -2050,6 +2052,8 @@ void GuiDrawHorLine(uint16_t xCur, uint16_t yCur, uint16_t Lenght, uint16_t pCol
  */
 void GuiDrawVerLine(uint16_t xCur, uint16_t yCur, uint16_t Lenght, uint16_t pColor)
 {
+    if (Lenght == 0)
+        return ;
     _GuiDrawVerLine(xCur, yCur, Lenght, pColor);
 }
 
@@ -2065,6 +2069,8 @@ void GuiDrawVerLine(uint16_t xCur, uint16_t yCur, uint16_t Lenght, uint16_t pCol
  */
 void GuiDrawHorColorLine(uint16_t xCur, uint16_t yCur, uint16_t dWidth, const uint16_t *pColor)
 {
+    if (dWidth == 0)
+        return ;
     _GuiDrawHorColorLine(xCur, yCur, dWidth, pColor);
 }
 
@@ -2121,6 +2127,8 @@ void GuiDrawCircle(uint16_t xCur, uint16_t yCur, uint16_t rRadius, uint16_t pCol
  */
 void GuiDrawRect(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, uint16_t pColor)
 {
+    if (dWidth == 0 || dHeight == 0)
+        return ;
     _GuiDrawRect(xCur, yCur, dWidth, dHeight, pColor);
 }
 
@@ -2153,6 +2161,8 @@ void GuiDrawFillCircle(uint16_t xCur, uint16_t yCur, uint16_t rRadius, uint16_t 
  */
 void GuiDrawRectRound(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, uint16_t pColor, uint16_t Round)
 {
+    if (dWidth == 0 || dHeight == 0)
+        return ;
     _GuiDrawRectRound(xCur, yCur, dWidth, dHeight, pColor, Round);
 }
 
@@ -2174,6 +2184,8 @@ void GuiDrawRectRound(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dH
  */
 void GuiDrawFillRect(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, uint16_t pColor)
 {
+    if (dWidth == 0 || dHeight == 0)
+        return ;
 	_GuiDrawFillRect(xCur, yCur, dWidth, dHeight, pColor);
 }
 
@@ -2191,6 +2203,8 @@ void GuiDrawFillRect(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHe
  */
 void GuiDrawFillRectRound(uint16_t xCur, uint16_t yCur, uint16_t dWidth, uint16_t dHeight, uint16_t pColor, uint16_t Round)
 {
+    if (dWidth == 0 || dHeight == 0)
+        return ;
     _GuiDrawFillRectRound(xCur, yCur, dWidth, dHeight, pColor, Round);
 }
 

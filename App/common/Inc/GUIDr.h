@@ -116,16 +116,16 @@ typedef union _GUI_RGB565Color
 #ifdef USING_CN_16_CHAR
 extern const paCharsInfo_t FontCn16;
 #endif
-#ifdef USING_CN_16_CHAR
+#ifdef USING_CN_24_CHAR
 extern const paCharsInfo_t FontCn24;
 #endif
-#ifdef USING_CN_16_CHAR
+#ifdef USING_CN_32_CHAR
 extern const paCharsInfo_t FontCn32;
 #endif
-#ifdef USING_CN_16_CHAR
+#ifdef USING_CN_40_CHAR
 extern const paCharsInfo_t FontCn40;
 #endif
-#ifdef USING_CN_16_CHAR
+#ifdef USING_CN_48_CHAR
 extern const paCharsInfo_t FontCn48;
 #endif
 
