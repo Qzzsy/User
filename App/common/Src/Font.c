@@ -20,14 +20,43 @@
 /* Includes ------------------------------------------------------------------*/
 #include "Font.h"
 
-#ifdef USE_CN_INT_LIB
-#ifdef USING_CN_16_CHAR
 /* 字体信息参数，不需要更改 */
 const paCharsInfo_t FontCn16 = 
 {
     {8,  16, 8,  "A16"},
     {16, 16, 16, "H16"},
 };
+
+/* 字体信息参数，不需要更改 */
+const paCharsInfo_t FontCn24 = 
+{
+    {16, 24, 12, "A24"},
+    {24, 24, 24, "H24"},
+};
+
+/* 字体信息参数，不需要更改 */
+const paCharsInfo_t FontCn32 = 
+{
+    {16, 32, 16, "A32"},
+    {32, 32, 32, "H32"},
+};
+
+/* 字体信息参数，不需要更改 */
+const paCharsInfo_t FontCn40 = 
+{
+    {24, 40, 20, "A40"},
+    {40, 40, 40, "H40"},
+};
+
+/* 字体信息参数，不需要更改 */
+const paCharsInfo_t FontCn48 = 
+{
+    {24, 48, 24, "A48"},
+    {48, 48, 48, "H48"},
+};
+
+#ifdef USE_CN_INT_LIB
+#ifdef USING_CN_16_CHAR
 
 /* 需要添加字模请在这个添加汉字，然后在下面对应的地方添加字模 */
 const CnChar_t HanZi16Index[] = 
@@ -48,12 +77,6 @@ const Cn16Data_t HanZi16Data[] =
 #endif /* USING_CN_16_CHAR */
 
 #ifdef USING_CN_24_CHAR
-/* 字体信息参数，不需要更改 */
-const paCharsInfo_t FontCn24 = 
-{
-    {16, 24, 12, "A24"},
-    {24, 24, 24, "H24"},
-};
 
 /* 需要添加字模请在这个添加汉字，然后在下面对应的地方添加字模 */
 const CnChar_t HanZi24Index[] = 
@@ -139,12 +162,6 @@ const Cn24Data_t HanZi24Data[] =
 #endif /* USING_CN_24_CHAR */
 
 #ifdef USING_CN_32_CHAR
-/* 字体信息参数，不需要更改 */
-const paCharsInfo_t FontCn32 = 
-{
-    {16, 32, 16, "A32"},
-    {32, 32, 32, "H32"},
-};
 
 /* 需要添加字模请在这个添加汉字，然后在下面对应的地方添加字模 */
 const CnChar_t HanZi32Index[] = 
@@ -374,12 +391,6 @@ const Cn32Data_t HanZi32Data[] =
 #endif /* USING_CN_32_CHAR */
 
 #ifdef USING_CN_40_CHAR
-/* 字体信息参数，不需要更改 */
-const paCharsInfo_t FontCn40 = 
-{
-    {24, 40, 20, "A40"},
-    {40, 40, 40, "H40"},
-};
 
 /* 需要添加字模请在这个添加汉字，然后在下面对应的地方添加字模 */
 const CnChar_t HanZi40Index[] = 
@@ -506,12 +517,6 @@ const Cn40Data_t HanZi40Data[] =
 #endif /* USING_CN_40_CHAR */
 
 #ifdef USING_CN_48_CHAR
-/* 字体信息参数，不需要更改 */
-const paCharsInfo_t FontCn48 = 
-{
-    {24, 48, 24, "A48"},
-    {48, 48, 48, "H48"},
-};
 
 const CnChar_t HanZi48Index[] = 
 {   
