@@ -26,9 +26,9 @@
 #define GB2312_FONT         0x01
 #define NONE_FONT           0xff
 
-#define GUI_ERROR           (uint8_t)(-1)
-#define GUI_OK              0x00
-#define GUI_NO_FIND_FONT    0x01
+#define GUI_ERROR           (uint32_t)(-1)
+#define GUI_OK              (uint32_t)(-2)
+#define GUI_NO_FIND_FONT    (uint32_t)(-3)
 
 /* 扩展声明变量 */
 typedef unsigned char       uint8_t;
@@ -68,7 +68,7 @@ typedef struct _GUI_CnInfo
     GUI_TextColor_t Color;
     uint8_t        *FontDataBuf;
     paCnInfo_t      paCnInfo;
-    uint8_t         ERROR_CODE;
+    uint32_t         ERROR_CODE;
 }GUI_CnInfo_t;
 
 /* 底层应该提供的4个API接口 */
@@ -304,8 +304,8 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
     { 
         for (i = 0; i < ChAR_NUM_MAX; i++)        //循环查询内码，查找汉字的数据
         {
-            if((HanZi16Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
-                & (HanZi16Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            if((HanZi16Index[i].Index[1] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi16Index[i].Index[0] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi16Data[i].Msk;
                 return ;
@@ -320,8 +320,8 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
     {
         for (i = 0; i < ChAR_NUM_MAX; i++)
         {
-            if((HanZi24Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
-                & (HanZi24Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            if((HanZi24Index[i].Index[1] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi24Index[i].Index[0] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi24Data[i].Msk;
                 return ;
@@ -336,8 +336,8 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
     {
         for (i = 0; i < ChAR_NUM_MAX; i++)
         {
-            if((HanZi32Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
-                & (HanZi32Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            if((HanZi32Index[i].Index[1] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi32Index[i].Index[0] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi32Data[i].Msk;
                 return ;
@@ -352,8 +352,8 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
     {
         for (i = 0; i < ChAR_NUM_MAX; i++)
         {
-            if((HanZi40Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
-                & (HanZi40Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            if((HanZi40Index[i].Index[1] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi40Index[i].Index[0] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi40Data[i].Msk;
                 return ;
@@ -368,8 +368,8 @@ static inline void _GetCN_FontData(GUI_CnInfo_t * GUI_CnInfo)
     {
         for (i = 0; i < ChAR_NUM_MAX; i++)
         {
-            if((HanZi48Index[i].Index[0] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
-                & (HanZi48Index[i].Index[1] == (GUI_CnInfo->Cn & 0xff)))
+            if((HanZi48Index[i].Index[1] == ((GUI_CnInfo->Cn >> 8) & 0xff))		
+                & (HanZi48Index[i].Index[0] == (GUI_CnInfo->Cn & 0xff)))
             {
                 GUI_CnInfo->FontDataBuf = (uint8_t *)HanZi48Data[i].Msk;
                 return ;
@@ -538,14 +538,14 @@ static inline void _DispChar(GUI_CnInfo_t * GUI_CnInfo)
     if (GUI_CnInfo->ERROR_CODE == GUI_ERROR)
     {
         _FontDataBuf = _GUI_FontDefaultDataBuf;
+        return ;
     }
-    
     /* 判断是否需要背景透明显示 */
     if (GUI_CnInfo->TransFlag == CHAR_NO_TRANS)
     {
         /* 设置窗口 */
         _GUI_DeviceAPI.SetDispWin(GUI_CnInfo->tPos.x, GUI_CnInfo->tPos.y, GUI_CnInfo->paCnInfo.Width, GUI_CnInfo->paCnInfo.Hight);
-        
+       
         /* 循环取数据进行显示 */
         for (Cnt = 0; Cnt < GUI_CnInfo->SumBytes; Cnt++)
         {
@@ -625,7 +625,7 @@ static inline void _GuiDrawString(const char * Cn, uint16_t xCur, uint16_t yCur,
         {
             /* 载入一些信息，显示需要 */
             GUI_CnInfo->Cn = Ch;
-            GUI_CnInfo->SumBytes = _paCharInfo.paAsciiInfo.Hight * _paCharInfo.paAsciiInfo.Width / 8;
+            GUI_CnInfo->SumBytes = _paCharInfo.paAsciiInfo.Hight * _paCharInfo.paAsciiInfo.PerLineBytes;
                        
             /* 载入显示字体的信息 */
             GUI_CnInfo->paCnInfo = _paCharInfo.paAsciiInfo;
@@ -638,12 +638,12 @@ static inline void _GuiDrawString(const char * Cn, uint16_t xCur, uint16_t yCur,
             Cn++;
             
             /* x坐标跳转一个字符的宽度 */
-            xCur += GUI_CnInfo->paCnInfo.PerLinePixels;
+            xCur += GUI_CnInfo->paCnInfo.Width;
         }
         else
         {
-            GUI_CnInfo->Cn = (*Cn << 8) | *(Cn + 1);
-            GUI_CnInfo->SumBytes = _paCharInfo.paHanziInfo.Hight * _paCharInfo.paHanziInfo.Width / 8;
+            GUI_CnInfo->Cn = *(uint16_t *)Cn;
+            GUI_CnInfo->SumBytes = _paCharInfo.paHanziInfo.Hight * _paCharInfo.paHanziInfo.PerLineBytes;
             GUI_CnInfo->paCnInfo = _paCharInfo.paHanziInfo;
             
             /* 载入显示的坐标 */
@@ -654,7 +654,7 @@ static inline void _GuiDrawString(const char * Cn, uint16_t xCur, uint16_t yCur,
             Cn += 2;
             
             /* x坐标跳转一个字符的宽度 */
-            xCur += GUI_CnInfo->paCnInfo.PerLinePixels;
+            xCur += GUI_CnInfo->paCnInfo.Width;
         }
 
         GUI_CnInfo->Color = _GUI_TextColor;
@@ -1531,24 +1531,24 @@ void GuiDrawText(const char * Cn, uint16_t xStart, uint16_t yStart, uint16_t xEn
     else if ((Align & RIGHT_ALIGN) && (Align & CENTER_ALIGN))
     {
         /* 显示字符串 */
-        GuiDrawStringAt(Cn, xEnd - _paCharInfo.paAsciiInfo.PerLinePixels * nLen,
+        GuiDrawStringAt(Cn, xEnd - _paCharInfo.paAsciiInfo.Width * nLen,
                             yStart + ((yEnd - yStart) - _paCharInfo.paAsciiInfo.Hight) / 2);
     }
     else if ((Align & TOP_ALIGN) && (Align & CENTER_ALIGN))
     {
         /* 显示字符串 */
-        GuiDrawStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.PerLinePixels * nLen) / 2,
+        GuiDrawStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.Width * nLen) / 2,
                             yStart);
     }
     else if ((Align & BOTTOM_ALIGN) && (Align & CENTER_ALIGN))
     {
         /* 显示字符串 */
-        GuiDrawStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.PerLinePixels * nLen) / 2,
+        GuiDrawStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.Width * nLen) / 2,
                             yEnd - _paCharInfo.paAsciiInfo.Hight);
     }
     else if (Align & CENTER_ALIGN)
     {        /* 显示字符串 */
-        GuiDrawStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.PerLinePixels * nLen) / 2,
+        GuiDrawStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.Width * nLen) / 2,
                             yStart + ((yEnd - yStart) - _paCharInfo.paAsciiInfo.Hight) / 2);
     }
     else if (Align & LEFT_ALIGN)
@@ -1559,7 +1559,7 @@ void GuiDrawText(const char * Cn, uint16_t xStart, uint16_t yStart, uint16_t xEn
     else if (Align & RIGHT_ALIGN)
     {
         /* 显示字符串 */
-        GuiDrawStringAt(Cn, xEnd - _paCharInfo.paAsciiInfo.PerLinePixels * nLen, yStart);
+        GuiDrawStringAt(Cn, xEnd - _paCharInfo.paAsciiInfo.Width * nLen, yStart);
     }
     else if (Align & TOP_ALIGN)
     {
@@ -1611,19 +1611,19 @@ void GuiDrawTranText(const char * Cn, uint16_t xStart, uint16_t yStart, uint16_t
     else if ((Align & RIGHT_ALIGN) && (Align & CENTER_ALIGN))
     {
         /* 显示字符串 */
-        GuiDrawTranStringAt(Cn, xEnd - _paCharInfo.paAsciiInfo.PerLinePixels * nLen,
+        GuiDrawTranStringAt(Cn, xEnd - _paCharInfo.paAsciiInfo.Width * nLen,
                                 yStart + ((yEnd - yStart) - _paCharInfo.paAsciiInfo.Hight) / 2);
     }
     else if ((Align & TOP_ALIGN) && (Align & CENTER_ALIGN))
     {
         /* 显示字符串 */
-        GuiDrawTranStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.PerLinePixels * nLen) / 2,
+        GuiDrawTranStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.Width * nLen) / 2,
                                 yStart);
     }
     else if ((Align & BOTTOM_ALIGN) && (Align & CENTER_ALIGN))
     {
         /* 显示字符串 */
-        GuiDrawTranStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.PerLinePixels * nLen) / 2,
+        GuiDrawTranStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.Width * nLen) / 2,
                                 yEnd - _paCharInfo.paAsciiInfo.Hight);
     }
     else if ((Align & TOP_ALIGN) && (Align & LEFT_ALIGN))
@@ -1635,7 +1635,7 @@ void GuiDrawTranText(const char * Cn, uint16_t xStart, uint16_t yStart, uint16_t
     else if ((Align & TOP_ALIGN) && (Align & RIGHT_ALIGN))
     {
         /* 显示字符串 */
-        GuiDrawTranStringAt(Cn, xEnd - (_paCharInfo.paAsciiInfo.PerLinePixels * nLen),
+        GuiDrawTranStringAt(Cn, xEnd - (_paCharInfo.paAsciiInfo.Width * nLen),
                                 yStart);        
     }
     else if ((Align & BOTTOM_ALIGN) && (Align & LEFT_ALIGN))
@@ -1647,13 +1647,13 @@ void GuiDrawTranText(const char * Cn, uint16_t xStart, uint16_t yStart, uint16_t
     else if ((Align & BOTTOM_ALIGN) && (Align & RIGHT_ALIGN))
     {
         /* 显示字符串 */
-        GuiDrawTranStringAt(Cn, xEnd - (_paCharInfo.paAsciiInfo.PerLinePixels * nLen),
+        GuiDrawTranStringAt(Cn, xEnd - (_paCharInfo.paAsciiInfo.Width * nLen),
                                 yEnd - _paCharInfo.paAsciiInfo.Hight);        
     }
     else if (Align & CENTER_ALIGN)
     {        
         /* 显示字符串 */
-        GuiDrawTranStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.PerLinePixels * nLen) / 2,
+        GuiDrawTranStringAt(Cn, xStart + ((xEnd - xStart) - _paCharInfo.paAsciiInfo.Width * nLen) / 2,
                                 yStart + ((yEnd - yStart) - _paCharInfo.paAsciiInfo.Hight) / 2);
     }
     else if (Align & LEFT_ALIGN)
@@ -1664,7 +1664,7 @@ void GuiDrawTranText(const char * Cn, uint16_t xStart, uint16_t yStart, uint16_t
     else if (Align & RIGHT_ALIGN)
     {
         /* 显示字符串 */
-        GuiDrawTranStringAt(Cn, xEnd - _paCharInfo.paAsciiInfo.PerLinePixels * nLen, yStart);
+        GuiDrawTranStringAt(Cn, xEnd - _paCharInfo.paAsciiInfo.Width * nLen, yStart);
     }
     else if (Align & TOP_ALIGN)
     {

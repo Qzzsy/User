@@ -20,9 +20,9 @@
 /* 定义对应的宏定义显示对应大小的字体 */
 #define USING_CN_16_CHAR
 #define USING_CN_24_CHAR
-#define USING_CN_32_CHAR
-#define USING_CN_40_CHAR
-#define USING_CN_48_CHAR
+//#define USING_CN_32_CHAR
+//#define USING_CN_40_CHAR
+//#define USING_CN_48_CHAR
 
 /* 选择使用内部的字库还是外部字库 */
 #define USE_CN_INT_LIB
@@ -36,7 +36,7 @@ typedef struct
 {
     unsigned char Width;
     unsigned char Hight;
-    unsigned char PerLinePixels;
+    unsigned char PerLineBytes;
     char * Char;
 }paCnInfo_t;
 
