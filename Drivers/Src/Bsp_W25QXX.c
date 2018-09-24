@@ -18,38 +18,60 @@
 #define USER_EFFI 0
 #endif
 
-#define W25QXX_SPIX SPI1
-#define W25QXX_CS_PORT Flash_CS_GPIO_Port
-#define W25QXX_CS_PIN Flash_CS_Pin
+#define SF_SPIX SPI1
+#define SF_CS_PORT Flash_CS_GPIO_Port
+#define SF_CS_PIN Flash_CS_Pin
 
 #if USER_EFFI == 1
-#define W25QXX_CS_WRITE_H LL_GPIO_SetOutputPin(W25QXX_CS_PORT, W25QXX_CS_PIN)
-#define W25QXX_CS_WRITE_L LL_GPIO_ResetOutputPin(W25QXX_CS_PORT, W25QXX_CS_PIN)
+#define SF_CS_WRITE_H LL_GPIO_SetOutputPin(SF_CS_PORT, SF_CS_PIN)
+#define SF_CS_WRITE_L LL_GPIO_ResetOutputPin(SF_CS_PORT, SF_CS_PIN)
 #else
-#define W25QXX_CS_WRITE_H HAL_GPIO_WritePin(W25QXX_CS_PORT, W25QXX_CS_PIN, GPIO_PIN_SET)
-#define W25QXX_CS_WRITE_L HAL_GPIO_WritePin(W25QXX_CS_PORT, W25QXX_CS_PIN, GPIO_PIN_RESET)
+#define SF_CS_WRITE_H HAL_GPIO_WritePin(SF_CS_PORT, SF_CS_PIN, GPIO_PIN_SET)
+#define SF_CS_WRITE_L HAL_GPIO_WritePin(SF_CS_PORT, SF_CS_PIN, GPIO_PIN_RESET)
 #endif
 
+/*!< 指令表 */
+#define SF_CMD_AAI 0xAD        /* AAI 连续编程指令(FOR SST25VF016B) */
+#define SF_CMD_DISWR 0x04      /* 禁止写, 退出AAI状态 */
+#define SF_CMD_EWRSR 0x50      /* 允许写状态寄存器的命令 */
+#define SF_CMD_WRSR 0x01       /* 写状态寄存器命令 */
+#define SF_CMD_WREN 0x06       /* 写使能命令 */
+#define SF_CMD_READ 0x03       /* 读数据区命令 */
+#define SF_CMD_RDSR 0x05       /* 读状态寄存器命令 */
+#define SF_CMD_RDID 0x9F       /* 读器件ID命令 */
+#define SF_CMD_SE 0x20         /* 擦除扇区命令 */
+#define SF_CMD_BE 0xC7         /* 批量擦除命令 */
+#define SF_CMD_DUMMY_BYTE 0xA5 /* 哑命令，可以为任意值，用于读操作 */
+
+#define SF_WIP_FLAG 0x01 /* 状态寄存器中的正在编程标志（WIP) */
+
 //指令表
-#define W25X_WriteEnable		0x06 
-#define W25X_WriteDisable		0x04 
-#define W25X_ReadStatusReg		0x05 
-#define W25X_WriteStatusReg		0x01 
-#define W25X_ReadData           0x03 
-#define W25X_FastReadData		0x0B 
-#define W25X_FastReadDual		0x3B 
-#define W25X_PageProgram		0x02 
-#define W25X_BlockErase			0xD8 
-#define W25X_SectorErase		0x20 
-#define W25X_ChipErase			0xC7 
-#define W25X_PowerDown			0xB9 
-#define W25X_ReleasePowerDown	0xAB 
-#define W25X_DeviceID           0xAB 
-#define W25X_ManufactDeviceID	0x90 
-#define W25X_JedecDeviceID		0x9F 
+#define W25X_WriteEnable 0x06
+#define W25X_WriteDisable 0x04
+#define W25X_ReadStatusReg 0x05
+#define W25X_WriteStatusReg 0x01
+#define W25X_ReadData 0x03
+#define W25X_FastReadData 0x0B
+#define W25X_FastReadDual 0x3B
+#define W25X_PageProgram 0x02
+#define W25X_BlockErase 0xD8
+#define W25X_SectorErase 0x20
+#define W25X_ChipErase 0xC7
+#define W25X_PowerDown 0xB9
+#define W25X_ReleasePowerDown 0xAB
+#define W25X_DeviceID 0xAB
+#define W25X_ManufactDeviceID 0x90
+#define W25X_JedecDeviceID 0x9F
 
 /* 定义使用的是否为W25Q256 */
 //#define USING_W25Q256
+
+#ifdef USING_W25Q256
+#define FLASH_CMD_ENTER_4_BYTE_MODE (0XB7) /* 进入4字节地址模式 */
+#define FLASH_CMD_EXIT_4_BYTE_MODE (0XE9)  /* 退出4字节地址模式 */
+#define FLASH_CMD_READ_32B_ADDR (0X13)     /* Read Data 32bit address */
+static void BspW25QXX_Wnter4ByteMode(void);
+#endif /* USING_W25Q256 */
 
 /* 定义地址结构体 */
 typedef union {
@@ -62,13 +84,6 @@ typedef union {
         uint8_t HH;
     } Addr;
 } BspFlashAddr_t;
-
-#ifdef USING_W25Q256
-#define FLASH_CMD_ENTER_4_BYTE_MODE (0XB7) /* 进入4字节地址模式 */
-#define FLASH_CMD_EXIT_4_BYTE_MODE (0XE9)  /* 退出4字节地址模式 */
-#define FLASH_CMD_READ_32B_ADDR (0X13)     /* Read Data 32bit address */
-static void BspW25QXX_Wnter4ByteMode(void);
-#endif /* USING_W25Q256 */
 
 uint16_t BspW25QXX_ReadID(void);    /* 读取FLASH ID */
 uint8_t BspW25QXX_ReadSR(void);     /* 读取状态寄存器 */
@@ -109,9 +124,9 @@ void BspW25QXX_Delay(__IO uint32_t us)
 void BspW25QXX_Init(void)
 {
     LL_SPI_Enable(W25QXX_SPIX);
-    
+
     /* 读取FLASH ID. */
-    BspW25QXX_TYPE = BspW25QXX_ReadID(); 
+    BspW25QXX_TYPE = BspW25QXX_ReadID();
 
 #ifdef USING_W25Q256
     BspW25QXX_Wnter4ByteMode();
@@ -195,10 +210,10 @@ static void BspW25QXX_Wnter4ByteMode(void)
 uint8_t BspW25QXX_ReadSR(void)
 {
     uint8_t byte = 0;
-    W25QXX_CS_WRITE_L;                      
+    W25QXX_CS_WRITE_L;
     BspW25QXX_ReadWriteData(W25X_ReadStatusReg); /* 发送读取状态寄存器命令 */
     byte = BspW25QXX_ReadWriteData(0xff);        /* 读取一个字节 */
-    W25QXX_CS_WRITE_H;                        
+    W25QXX_CS_WRITE_H;
     return byte;
 }
 
@@ -211,10 +226,10 @@ uint8_t BspW25QXX_ReadSR(void)
  */
 void BspW25QXX_WriteSR(uint8_t SR)
 {
-    W25QXX_CS_WRITE_L;                            
+    W25QXX_CS_WRITE_L;
     BspW25QXX_ReadWriteData(W25X_WriteStatusReg); /* 发送写取状态寄存器命令 */
     BspW25QXX_ReadWriteData(SR);                  /* 写入一个字节 */
-    W25QXX_CS_WRITE_H;                            
+    W25QXX_CS_WRITE_H;
 }
 
 /**
@@ -224,9 +239,9 @@ void BspW25QXX_WriteSR(uint8_t SR)
  */
 void BspW25QXX_WriteEnable(void)
 {
-    W25QXX_CS_WRITE_L;                         
-    BspW25QXX_ReadWriteData(W25X_WriteEnable); 
-    W25QXX_CS_WRITE_H;                         
+    W25QXX_CS_WRITE_L;
+    BspW25QXX_ReadWriteData(W25X_WriteEnable);
+    W25QXX_CS_WRITE_H;
 }
 
 /**
@@ -236,9 +251,9 @@ void BspW25QXX_WriteEnable(void)
  */
 void BspW25QXX_WriteDisable(void)
 {
-    W25QXX_CS_WRITE_L;                          
-    BspW25QXX_ReadWriteData(W25X_WriteDisable); 
-    W25QXX_CS_WRITE_H;                          
+    W25QXX_CS_WRITE_L;
+    BspW25QXX_ReadWriteData(W25X_WriteDisable);
+    W25QXX_CS_WRITE_H;
 }
 
 /**
@@ -248,9 +263,9 @@ void BspW25QXX_WriteDisable(void)
  */
 uint16_t BspW25QXX_ReadID(void)
 {
-    __IO uint16_t W25QXX_ID = 0;
+    __IO uint16_t uiID = 0;
 
-    W25QXX_CS_WRITE_L;
+    SF_CS_WRITE_L;
     BspW25QXX_ReadWriteData(0x90); /* 发送读取ID命令 */
     BspW25QXX_ReadWriteData(0x00);
     BspW25QXX_ReadWriteData(0x00);
@@ -259,7 +274,7 @@ uint16_t BspW25QXX_ReadID(void)
     W25QXX_ID = BspW25QXX_ReadWriteData(0xff) << 8;
     W25QXX_ID |= BspW25QXX_ReadWriteData(0xff);
 
-    W25QXX_CS_WRITE_H;
+    SF_CS_WRITE_H;
     return W25QXX_ID;
 }
 
@@ -278,17 +293,17 @@ void BspW25QXX_Read(uint8_t *pBuffer, uint32_t ReadAddr, uint16_t NumByteToRead)
     BspFlashAddr_t FlashAddr;
     FlashAddr.AddrValue = ReadAddr;
 
-    W25QXX_CS_WRITE_L;    
+    W25QXX_CS_WRITE_L;
 
     /* 发送读取命令 */
-    BspW25QXX_ReadWriteData(W25X_ReadData); 
+    BspW25QXX_ReadWriteData(W25X_ReadData);
 #ifdef USING_W25Q256
     BspW25QXX_ReadWriteData(FlashAddr.Addr.HH); /* 发送32bit地址 */
     BspW25QXX_ReadWriteData(FlashAddr.Addr.H);
     BspW25QXX_ReadWriteData(FlashAddr.Addr.L);
     BspW25QXX_ReadWriteData(FlashAddr.Addr.LL);
 #else
-    BspW25QXX_ReadWriteData(FlashAddr.Addr.H);  /* 发送24bit地址 */
+    BspW25QXX_ReadWriteData(FlashAddr.Addr.H); /* 发送24bit地址 */
     BspW25QXX_ReadWriteData(FlashAddr.Addr.L);
     BspW25QXX_ReadWriteData(FlashAddr.Addr.LL);
 #endif
@@ -315,19 +330,19 @@ void BspW25QXX_WritePage(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumByteT
     FlashAddr.AddrValue = WriteAddr;
 
     /* SET WEL */
-    BspW25QXX_WriteEnable(); 
+    BspW25QXX_WriteEnable();
 
     W25QXX_CS_WRITE_L;
 
     /* 发送写页命令 */
-    BspW25QXX_ReadWriteData(W25X_PageProgram); 
+    BspW25QXX_ReadWriteData(W25X_PageProgram);
 #ifdef USING_W25Q256
     BspW25QXX_ReadWriteData(FlashAddr.Addr.HH); /* 发送32bit地址 */
     BspW25QXX_ReadWriteData(FlashAddr.Addr.H);
     BspW25QXX_ReadWriteData(FlashAddr.Addr.L);
     BspW25QXX_ReadWriteData(FlashAddr.Addr.LL);
 #else
-    BspW25QXX_ReadWriteData(FlashAddr.Addr.H);  /* 发送24bit地址 */
+    BspW25QXX_ReadWriteData(FlashAddr.Addr.H); /* 发送24bit地址 */
     BspW25QXX_ReadWriteData(FlashAddr.Addr.L);
     BspW25QXX_ReadWriteData(FlashAddr.Addr.LL);
 #endif
@@ -336,10 +351,10 @@ void BspW25QXX_WritePage(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumByteT
     {
         BspW25QXX_ReadWriteData(pBuffer[i]); /* 循环写数 */
     }
-    W25QXX_CS_WRITE_H;   
+    W25QXX_CS_WRITE_H;
 
     /* 等待写入结束 */
-    BspW25QXX_WaitBusy(); 
+    BspW25QXX_WaitBusy();
 }
 
 /**
@@ -358,7 +373,7 @@ void BspW25QXX_WriteNoCheck(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumBy
 
     if (NumByteToWrite <= pageremain)
     {
-        pageremain = NumByteToWrite;    /* 不大于256个字节 */
+        pageremain = NumByteToWrite; /* 不大于256个字节 */
     }
 
     while (1)
@@ -373,15 +388,15 @@ void BspW25QXX_WriteNoCheck(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t NumBy
         {
             pBuffer += pageremain;
             WriteAddr += pageremain;
-            NumByteToWrite -= pageremain;       /* 减去已经写入了的字节数 */
+            NumByteToWrite -= pageremain; /* 减去已经写入了的字节数 */
 
             if (NumByteToWrite > 256)
             {
-                pageremain = 256;               /* 一次可以写入256个字节 */
+                pageremain = 256; /* 一次可以写入256个字节 */
             }
             else
             {
-                pageremain = NumByteToWrite;    /* 不够256个字节了 */
+                pageremain = NumByteToWrite; /* 不够256个字节了 */
             }
         }
     }
@@ -472,9 +487,9 @@ void BspW25QXX_EraseChip(void)
     /* SET WEL */
     BspW25QXX_WriteEnable();
     BspW25QXX_WaitBusy();
-    W25QXX_CS_WRITE_L;
+    SF_CS_WRITE_L;
     BspW25QXX_ReadWriteData(W25X_ChipErase);
-    W25QXX_CS_WRITE_H;
+    SF_CS_WRITE_H;
 
     /* 等待芯片擦除结束 */
     BspW25QXX_WaitBusy();
@@ -538,11 +553,11 @@ void BspW25QXX_WaitBusy(void)
  */
 void BspW25QXX_PowerDown(void)
 {
-    W25QXX_CS_WRITE_L;
+    SF_CS_WRITE_L;
 
     /* 发送掉电命令 */
     BspW25QXX_ReadWriteData(W25X_PowerDown);
-    W25QXX_CS_WRITE_H;
+    SF_CS_WRITE_H;
 
     /* 等待TPD */
     BspW25QXX_Delay(3);
@@ -555,11 +570,11 @@ void BspW25QXX_PowerDown(void)
  */
 void BspW25QXX_WAKEUP(void)
 {
-    W25QXX_CS_WRITE_L;
+    SF_CS_WRITE_L;
 
     /* send W25X_PowerDown command 0xAB */
     BspW25QXX_ReadWriteData(W25X_ReleasePowerDown);
-    W25QXX_CS_WRITE_H;
+    SF_CS_WRITE_H;
 
     /* 等待TRES1 */
     BspW25QXX_Delay(3);
