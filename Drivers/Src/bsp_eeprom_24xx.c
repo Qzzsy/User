@@ -131,12 +131,12 @@ uint8_t Bsp_eeInit(void)
     Ops.Set_SDA_DIR = Bsp_eeSet_SDA_Dir;
     Ops.Get_SDA = Bsp_eeGet_SDA;
     Ops.Get_SCL = NULL;
-    Ops.Timeout = 200;
     Ops.Delay_us = 4;
-    Ops.SlaveAddr = EE_DEV_ADDR;
 
     eeDevice.Ops = &Ops;
     eeDevice.Msg = &Msg;
+    eeDevice.SlaveAddr = EE_DEV_ADDR;
+    eeDevice.Timeout = 200;
     Bsp_eeHandle = &eeDevice;
     
     return Bsp_eeCheckOk();

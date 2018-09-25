@@ -52,9 +52,7 @@
 typedef struct
 {
     uint16_t Speed;
-    uint8_t SlaveAddr;
     uint32_t Delay_us;
-    uint32_t Timeout;   /* in tick */
     void (* Set_SDA)(uint32_t State);
     void (* Set_SCL)(uint32_t State);
     void (* Set_SDA_DIR)(uint32_t State);
@@ -78,6 +76,8 @@ typedef struct
     uint8_t *Buf;
     uint32_t BufSize;
     uint8_t Flags;
+    uint32_t Timeout;   /* in tick */
+    uint8_t SlaveAddr;
 }IIC_Device_t;
 
 typedef IIC_Device_t * IIC_Handle_t;
