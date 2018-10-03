@@ -29,34 +29,34 @@
 #define SF_CS_PIN FLASH_CS_Pin
 
 #if USE_EFFI == 1
-#define SF_CS_RELEASE   LL_GPIO_SetOutputPin(SF_CS_PORT, SF_CS_PIN)
-#define SF_CS_TAKE      LL_GPIO_ResetOutputPin(SF_CS_PORT, SF_CS_PIN)
+#define SF_CS_RELEASE LL_GPIO_SetOutputPin(SF_CS_PORT, SF_CS_PIN)
+#define SF_CS_TAKE LL_GPIO_ResetOutputPin(SF_CS_PORT, SF_CS_PIN)
 #else
-#define SF_CS_RELEASE   HAL_GPIO_WritePin(SF_CS_PORT, SF_CS_PIN, GPIO_PIN_SET)
-#define SF_CS_TAKE      HAL_GPIO_WritePin(SF_CS_PORT, SF_CS_PIN, GPIO_PIN_RESET)
+#define SF_CS_RELEASE HAL_GPIO_WritePin(SF_CS_PORT, SF_CS_PIN, GPIO_PIN_SET)
+#define SF_CS_TAKE HAL_GPIO_WritePin(SF_CS_PORT, SF_CS_PIN, GPIO_PIN_RESET)
 #endif
 
-#define PAGE_SIZE           4096
+#define PAGE_SIZE 4096
 
 /*!< 指令表 */
-#define SF_CMD_WRSR 0x01       /* 写状态寄存器命令 */
-#define SF_CMD_PPG   0x02      /* 页编程指令 */  
-#define SF_CMD_READ 0x03       /* 读数据区命令 */
-#define SF_CMD_DISWR 0x04      /* 禁止写, 退出AAI状态 */
-#define SF_CMD_RDSR 0x05       /* 读状态寄存器命令 */
-#define SF_CMD_WREN 0x06       /* 写使能命令 */
+#define SF_CMD_WRSR 0x01  /* 写状态寄存器命令 */
+#define SF_CMD_PPG 0x02   /* 页编程指令 */
+#define SF_CMD_READ 0x03  /* 读数据区命令 */
+#define SF_CMD_DISWR 0x04 /* 禁止写, 退出AAI状态 */
+#define SF_CMD_RDSR 0x05  /* 读状态寄存器命令 */
+#define SF_CMD_WREN 0x06  /* 写使能命令 */
 #define SF_CMD_FRDATA 0x0B
-#define SF_CMD_ERASE_4K 0x20         /* 擦除4K扇区命令 */
+#define SF_CMD_ERASE_4K 0x20 /* 擦除4K扇区命令 */
 #define SF_CMD_FRDUAL 0x3B
 #define SF_CMD_EWRSR 0x50      /* 允许写状态寄存器的命令 */
-#define SF_CMD_ERASE_32K 0x52         /* 擦除扇区命令 */
+#define SF_CMD_ERASE_32K 0x52  /* 擦除扇区命令 */
 #define SF_CMD_RDID 0x9F       /* 读器件ID命令 */
 #define SF_CMD_DUMMY_BYTE 0xA5 /* 哑命令，可以为任意值，用于读操作 */
-#define SF_CMD_RPOWRDON 0xAB   /* 唤醒电源 */  
+#define SF_CMD_RPOWRDON 0xAB   /* 唤醒电源 */
 #define SF_CMD_AAI 0xAD        /* AAI 连续编程指令(FOR SST25VF016B) */
-#define SF_CMD_POWRDON   0xB9  /* 关闭电源 */     
-#define SF_CMD_ERASE_CHIP 0xC7         /* 芯片擦除命令 */     
-#define SF_CMD_ERASE_64K 0xD8         /* 64K块擦除命令 */    
+#define SF_CMD_POWRDON 0xB9    /* 关闭电源 */
+#define SF_CMD_ERASE_CHIP 0xC7 /* 芯片擦除命令 */
+#define SF_CMD_ERASE_64K 0xD8  /* 64K块擦除命令 */
 
 #define SF_WIP_FLAG 0x01 /* 状态寄存器中的正在编程标志（WIP) */
 
@@ -67,10 +67,8 @@
 static void sfWnter4ByteMode(void);
 #endif /* USING_W25Q256 */
 
-
 /* 定义地址结构体 */
-typedef union 
-{
+typedef union {
     uint32_t AddrValue;
     struct
     {
@@ -78,8 +76,8 @@ typedef union
         uint8_t L;
         uint8_t H;
         uint8_t HH;
-    }Addr;
-}sfAddr_t;
+    } Addr;
+} sfAddr_t;
 
 uint8_t sfReadInfo(void);
 uint8_t sfReadSR(void);     /* 读取状态寄存器 */
@@ -95,11 +93,10 @@ sfInfo_t _sfInfo;
 void sfCsTake(void);
 void sfCsRelease(void);
 
-spiOps_t Ops = 
-{
-    sfCsTake,
-    sfCsRelease
-};
+spiOps_t Ops =
+    {
+        sfCsTake,
+        sfCsRelease};
 
 void sfCsTake(void)
 {
@@ -138,7 +135,7 @@ uint8_t sfInit(void)
     static spiDevice_t sfDevice;
     static spiBus_t spiBus;
     static spiConfiguration_t sfConfiguration;
-    
+
     spiBus.ID = 1;
     spiBus.Ops = &Ops;
 
@@ -205,7 +202,7 @@ uint8_t sfReadSR(void)
 {
     uint8_t byte = 0;
     byte = SF_CMD_RDSR;
-    spiSendThenRecv(sfHandle, &byte, 1, &byte, 1);/* 发送读取状态寄存器命令 */
+    spiSendThenRecv(sfHandle, &byte, 1, &byte, 1); /* 发送读取状态寄存器命令 */
     return byte;
 }
 
@@ -224,12 +221,12 @@ void sfWriteSR(uint8_t SR)
         cmd = SF_CMD_EWRSR;
         spiTransfer(sfHandle, &cmd, NULL, 1);
         cmd = SF_CMD_WRSR;
-        spiSendThenSend(sfHandle, &cmd, 1, &SR, 1);/* 发送写取状态寄存器命令 */
+        spiSendThenSend(sfHandle, &cmd, 1, &SR, 1); /* 发送写取状态寄存器命令 */
     }
     else
     {
         cmd = SF_CMD_WRSR;
-        spiSendThenSend(sfHandle, &cmd, 1, &SR, 1);/* 发送写取状态寄存器命令 */
+        spiSendThenSend(sfHandle, &cmd, 1, &SR, 1); /* 发送写取状态寄存器命令 */
     }
 }
 
@@ -265,9 +262,9 @@ void sfWriteDisable(void)
 uint32_t sfReadID(void)
 {
     uint8_t Buf[3] = {'\0'}, cmd;
-    
+
     cmd = SF_CMD_RDID;
-    
+
     spiSendThenRecv(sfHandle, &cmd, 1, Buf, 3);
 
     return (Buf[0] << 16) | (Buf[1] << 8) | Buf[2];
@@ -282,64 +279,64 @@ uint32_t sfReadID(void)
 uint8_t sfReadInfo(void)
 {
     _sfInfo.ChipID = sfReadID();
-    
+
     switch (_sfInfo.ChipID)
     {
-        case SF_W25Q80_BV:
-            strcpy(_sfInfo.ChipName, "W25Q80_BV");
-            _sfInfo.TotalSize = 1 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        case SF_W25Q16_BV_CL_CV:
-            strcpy(_sfInfo.ChipName, "W25Q16_BV_CL_CV");
-            _sfInfo.TotalSize = 2 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        case SF_W25Q16_DW:
-            strcpy(_sfInfo.ChipName, "W25Q16_DW");
-            _sfInfo.TotalSize = 2 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        case SF_W25Q32_BV:
-            strcpy(_sfInfo.ChipName, "W25Q32_BV");
-            _sfInfo.TotalSize = 4 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        case SF_W25Q32_DW:
-            strcpy(_sfInfo.ChipName, "W25Q32_DW");
-            _sfInfo.TotalSize = 4 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        case SF_W25Q64_DW_BV_CV:
-            strcpy(_sfInfo.ChipName, "W25Q64_DW_BV_CV");
-            _sfInfo.TotalSize = 8 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        case SF_W25Q128_BV:
-            strcpy(_sfInfo.ChipName, "W25Q128_BV");
-            _sfInfo.TotalSize = 16 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        case SF_W25Q256_FV:
-            strcpy(_sfInfo.ChipName, "W25Q256_FV");
-            _sfInfo.TotalSize = 32 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        case SF_SST25VF016B_ID:
-            strcpy(_sfInfo.ChipName, "SST25VF016B_ID");
-            _sfInfo.TotalSize = 2 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        case SF_MX25L1606E_ID:
-            strcpy(_sfInfo.ChipName, "MX25L1606E_ID");
-            _sfInfo.TotalSize = 2 * 1024 * 1024;
-            _sfInfo.PageSize = 4 * 1024;
-            break;
-        default : return (uint8_t)SF_ERR;
+    case SF_W25Q80_BV:
+        strcpy(_sfInfo.ChipName, "W25Q80_BV");
+        _sfInfo.TotalSize = 1 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    case SF_W25Q16_BV_CL_CV:
+        strcpy(_sfInfo.ChipName, "W25Q16_BV_CL_CV");
+        _sfInfo.TotalSize = 2 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    case SF_W25Q16_DW:
+        strcpy(_sfInfo.ChipName, "W25Q16_DW");
+        _sfInfo.TotalSize = 2 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    case SF_W25Q32_BV:
+        strcpy(_sfInfo.ChipName, "W25Q32_BV");
+        _sfInfo.TotalSize = 4 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    case SF_W25Q32_DW:
+        strcpy(_sfInfo.ChipName, "W25Q32_DW");
+        _sfInfo.TotalSize = 4 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    case SF_W25Q64_DW_BV_CV:
+        strcpy(_sfInfo.ChipName, "W25Q64_DW_BV_CV");
+        _sfInfo.TotalSize = 8 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    case SF_W25Q128_BV:
+        strcpy(_sfInfo.ChipName, "W25Q128_BV");
+        _sfInfo.TotalSize = 16 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    case SF_W25Q256_FV:
+        strcpy(_sfInfo.ChipName, "W25Q256_FV");
+        _sfInfo.TotalSize = 32 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    case SF_SST25VF016B_ID:
+        strcpy(_sfInfo.ChipName, "SST25VF016B_ID");
+        _sfInfo.TotalSize = 2 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    case SF_MX25L1606E_ID:
+        strcpy(_sfInfo.ChipName, "MX25L1606E_ID");
+        _sfInfo.TotalSize = 2 * 1024 * 1024;
+        _sfInfo.PageSize = 4 * 1024;
+        break;
+    default:
+        return (uint8_t)SF_ERR;
     }
     return SF_OK;
 }
-
 
 /**
  * @func    sfRead
@@ -401,18 +398,18 @@ void sfWritePage(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t _wSize)
     {
         if (_wSize < 2 || _wSize % 2)
         {
-            return ;
+            return;
         }
-        
+
         Tmp[1] = sfAddr.Addr.H;
         Tmp[2] = sfAddr.Addr.L;
         Tmp[3] = sfAddr.Addr.LL;
         spiSendThenSend(sfHandle, &Tmp, 4, pBuffer, 2);
-        
+
         for (i = 2; i < _wSize; i += 2)
         {
             spiSendThenSend(sfHandle, &Tmp, 1, pBuffer + i, 2);
-            
+
             /* 等待写入结束 */
             sfWaitBusy();
         }
@@ -430,11 +427,10 @@ void sfWritePage(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t _wSize)
         Tmp[2] = sfAddr.Addr.L;
         Tmp[3] = sfAddr.Addr.LL;
         spiSendThenSend(sfHandle, &Tmp, 4, pBuffer, _wSize);
-#endif   
+#endif
         /* 等待写入结束 */
         sfWaitBusy();
-    }     
-
+    }
 }
 
 /**
@@ -449,21 +445,21 @@ void sfWritePage(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t _wSize)
 uint8_t sfWriteNoCheck(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t _wSize)
 {
     uint16_t PageRemain;
-    
+
     /* 写入长度为0，不继续操作 */
     if (_wSize == 0)
     {
         return (uint8_t)SF_ERR;
     }
-    
+
     /* 操作地址大于芯片地址范围，返回错误 */
     if (WriteAddr > _sfInfo.TotalSize)
     {
         return (uint8_t)SF_ERR;
     }
-    
+
     /* 单页剩余的字节数 */
-    PageRemain = 256 - WriteAddr % 256; 
+    PageRemain = 256 - WriteAddr % 256;
 
     if (_wSize <= PageRemain)
     {
@@ -511,19 +507,19 @@ uint8_t sfWrite(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t _wSize)
     uint16_t SecOff;
     uint16_t SecRemain;
     uint16_t i;
-    
+
     /* 写入长度为0，不继续操作 */
     if (_wSize == 0)
     {
         return (uint8_t)SF_ERR;
     }
-    
+
     /* 操作地址大于芯片地址范围，返回错误 */
     if (WriteAddr > _sfInfo.TotalSize)
     {
         return (uint8_t)SF_ERR;
     }
-    
+
     SecPos = WriteAddr / 4096; /* 扇区地址 */
     SecOff = WriteAddr % 4096; /* 在扇区内的偏移 */
     SecRemain = 4096 - SecOff; /* 扇区剩余空间大小 */
@@ -532,7 +528,7 @@ uint8_t sfWrite(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t _wSize)
     {
         SecRemain = _wSize; /* 不大于4096个字节 */
     }
-    
+
     while (1)
     {
         /* 读出整个扇区的内容 */
@@ -577,9 +573,9 @@ uint8_t sfWrite(uint8_t *pBuffer, uint32_t WriteAddr, uint16_t _wSize)
             SecPos++;   /* 扇区地址增1 */
             SecOff = 0; /* 偏移位置为0 */
 
-            pBuffer += SecRemain;        /* 指针偏移 */
-            WriteAddr += SecRemain;      /* 写地址偏移 */
-            _wSize -= SecRemain; /* 字节数递减 */
+            pBuffer += SecRemain;   /* 指针偏移 */
+            WriteAddr += SecRemain; /* 写地址偏移 */
+            _wSize -= SecRemain;    /* 字节数递减 */
 
             if (_wSize > 4096)
                 SecRemain = 4096; /* 下一个扇区还是写不完 */
@@ -601,9 +597,9 @@ void sfEraseChip(void)
     /* SET WEL */
     sfWriteEnable();
     sfWaitBusy();
-    
+
     cmd = SF_CMD_ERASE_CHIP;
-    
+
     spiTransfer(sfHandle, &cmd, NULL, 1);
 
     /* 等待芯片擦除结束 */
@@ -648,7 +644,7 @@ void sfEraseSector(uint32_t DesAddr)
     Tmp[2] = sfAddr.Addr.L;
     Tmp[3] = sfAddr.Addr.LL;
     spiTransfer(sfHandle, Tmp, NULL, 4);
-#endif       
+#endif
 
     /* 等待擦除完成 */
     sfWaitBusy();
@@ -662,7 +658,8 @@ void sfEraseSector(uint32_t DesAddr)
 void sfWaitBusy(void)
 {
     /* 等待BUSY位清空 */
-    while ((sfReadSR() & 0x01) == 0x01);
+    while ((sfReadSR() & 0x01) == 0x01)
+        ;
 }
 
 /**
@@ -673,9 +670,9 @@ void sfWaitBusy(void)
 void sfPowerDown(void)
 {
     uint8_t cmd;
-    
+
     cmd = SF_CMD_POWRDON;
-    
+
     spiTransfer(sfHandle, &cmd, NULL, 1);
 
     /* 等待TPD */
@@ -690,9 +687,9 @@ void sfPowerDown(void)
 void sfWakeup(void)
 {
     uint8_t cmd;
-    
+
     cmd = SF_CMD_RPOWRDON;
-    
+
     spiTransfer(sfHandle, &cmd, NULL, 1);
 
     /* 等待TRES1 */

@@ -22,9 +22,9 @@
 #define NULL 0
 #endif
 
-#define READ        (1 << 0)
-#define WRITE       (1 << 1)
-#define TIMEOUT     200
+#define READ (1 << 0)
+#define WRITE (1 << 1)
+#define TIMEOUT 200
 
 static uint16_t spiBusID = 0;
 static uint8_t spiBusBusy = SPI_BUS_NOBUSY;
@@ -108,7 +108,7 @@ uint32_t SpixRW(spiDeviceHandle_t _spiDeviceHandle, spiMessage_t *Message)
         }
 
         *((uint8_t *)Message->RecvBuf + i) = LL_SPI_ReceiveData8((SPI_TypeDef *)_spiDeviceHandle->Device);
-        
+
         i++;
     }
 #else
@@ -163,31 +163,31 @@ inline uint32_t spiGetBaudRatePrescaler(uint32_t maxHz)
     uint16_t SPI_BaudRatePrescaler;
 #if USER_EFFI == 1
     /* STM32F40x SPI MAX 42Mhz  SPI1 max 84MHz*/
-    if(maxHz >= SystemCoreClock / 2 && SystemCoreClock / 2 <= 36000000)
+    if (maxHz >= SystemCoreClock / 2 && SystemCoreClock / 2 <= 36000000)
     {
         SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV2;
     }
-    else if(maxHz >= SystemCoreClock / 4)
+    else if (maxHz >= SystemCoreClock / 4)
     {
         SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV4;
     }
-    else if(maxHz >= SystemCoreClock / 8)
+    else if (maxHz >= SystemCoreClock / 8)
     {
         SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV8;
     }
-    else if(maxHz >= SystemCoreClock / 16)
+    else if (maxHz >= SystemCoreClock / 16)
     {
         SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV16;
     }
-    else if(maxHz >= SystemCoreClock / 32)
+    else if (maxHz >= SystemCoreClock / 32)
     {
         SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV32;
     }
-    else if(maxHz >= SystemCoreClock / 64)
+    else if (maxHz >= SystemCoreClock / 64)
     {
         SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV64;
     }
-    else if(maxHz >= SystemCoreClock / 128)
+    else if (maxHz >= SystemCoreClock / 128)
     {
         SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV128;
     }
@@ -198,31 +198,31 @@ inline uint32_t spiGetBaudRatePrescaler(uint32_t maxHz)
     }
 #else
     /* STM32F40x SPI MAX 42Mhz  SPI1 max 84MHz*/
-    if(maxHz >= SystemCoreClock / 2 && SystemCoreClock / 2 <= 36000000)
+    if (maxHz >= SystemCoreClock / 2 && SystemCoreClock / 2 <= 36000000)
     {
         SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
     }
-    else if(maxHz >= SystemCoreClock / 4)
+    else if (maxHz >= SystemCoreClock / 4)
     {
         SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
     }
-    else if(maxHz >= SystemCoreClock / 8)
+    else if (maxHz >= SystemCoreClock / 8)
     {
         SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
     }
-    else if(maxHz >= SystemCoreClock / 16)
+    else if (maxHz >= SystemCoreClock / 16)
     {
         SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
     }
-    else if(maxHz >= SystemCoreClock / 32)
+    else if (maxHz >= SystemCoreClock / 32)
     {
         SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
     }
-    else if(maxHz >= SystemCoreClock / 64)
+    else if (maxHz >= SystemCoreClock / 64)
     {
         SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
     }
-    else if(maxHz >= SystemCoreClock / 128)
+    else if (maxHz >= SystemCoreClock / 128)
     {
         SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
     }
@@ -262,11 +262,11 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
             LL_SPI_StructInit(&SPI_InitStruct);
 
             /* data_width */
-            if(_spiDeviceHandle->Config->DataWidth <= 8)
+            if (_spiDeviceHandle->Config->DataWidth <= 8)
             {
                 SPI_InitStruct.DataWidth = LL_SPI_DATAWIDTH_8BIT;
             }
-            else if(_spiDeviceHandle->Config->DataWidth <= 16)
+            else if (_spiDeviceHandle->Config->DataWidth <= 16)
             {
                 SPI_InitStruct.DataWidth = LL_SPI_DATAWIDTH_16BIT;
             }
@@ -277,7 +277,7 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
             /* baudrate */
             SPI_InitStruct.BaudRate = spiGetBaudRatePrescaler(_spiDeviceHandle->Config->MaxFreq);
             /* CPOL */
-            if(_spiDeviceHandle->Config->Mode & SPI_CPOL)
+            if (_spiDeviceHandle->Config->Mode & SPI_CPOL)
             {
                 SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_HIGH;
             }
@@ -286,7 +286,7 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
                 SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
             }
             /* CPHA */
-            if(_spiDeviceHandle->Config->Mode & SPI_CPHA)
+            if (_spiDeviceHandle->Config->Mode & SPI_CPHA)
             {
                 SPI_InitStruct.ClockPhase = LL_SPI_PHASE_2EDGE;
             }
@@ -295,7 +295,7 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
                 SPI_InitStruct.ClockPhase = LL_SPI_PHASE_1EDGE;
             }
             /* MSB or LSB */
-            if(_spiDeviceHandle->Config->Mode & SPI_MSB)
+            if (_spiDeviceHandle->Config->Mode & SPI_MSB)
             {
                 SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
             }
@@ -303,28 +303,28 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
             {
                 SPI_InitStruct.BitOrder = LL_SPI_LSB_FIRST;
             }
-            
+
             SPI_InitStruct.TransferDirection = LL_SPI_FULL_DUPLEX;
             SPI_InitStruct.Mode = LL_SPI_MODE_MASTER;
             SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
 
             SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
             SPI_InitStruct.CRCPoly = 10;
-            
+
             LL_SPI_DeInit(_spiDeviceHandle->Device);
-            
+
             LL_SPI_Init(_spiDeviceHandle->Device, &SPI_InitStruct);
-    
+
             LL_SPI_SetStandard(_spiDeviceHandle->Device, LL_SPI_PROTOCOL_MOTOROLA);
 #else
             SPI_HandleTypeDef *hspi = _spiDeviceHandle->Device;
-            
+
             /* data_width */
-            if(_spiDeviceHandle->Config->DataWidth <= 8)
+            if (_spiDeviceHandle->Config->DataWidth <= 8)
             {
                 hspi->Init.DataSize = SPI_DATASIZE_8BIT;
             }
-            else if(_spiDeviceHandle->Config->DataWidth <= 16)
+            else if (_spiDeviceHandle->Config->DataWidth <= 16)
             {
                 hspi->Init.DataSize = SPI_DATASIZE_16BIT;
             }
@@ -332,11 +332,11 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
             {
                 return (uint8_t)SPI_ERROR;
             }
-            
+
             /* baudrate */
             hspi->Init.BaudRatePrescaler = spiGetBaudRatePrescaler(_spiDeviceHandle->Config->MaxFreq);
             /* CPOL */
-            if(_spiDeviceHandle->Config->Mode & SPI_CPOL)
+            if (_spiDeviceHandle->Config->Mode & SPI_CPOL)
             {
                 hspi->Init.CLKPolarity = SPI_POLARITY_HIGH;
             }
@@ -344,9 +344,9 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
             {
                 hspi->Init.CLKPolarity = SPI_POLARITY_LOW;
             }
-            
+
             /* CPHA */
-            if(_spiDeviceHandle->Config->Mode & SPI_CPHA)
+            if (_spiDeviceHandle->Config->Mode & SPI_CPHA)
             {
                 hspi->Init.CLKPhase = SPI_PHASE_2EDGE;
             }
@@ -355,7 +355,7 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
                 hspi->Init.CLKPhase = SPI_PHASE_1EDGE;
             }
             /* MSB or LSB */
-            if(_spiDeviceHandle->Config->Mode & SPI_MSB)
+            if (_spiDeviceHandle->Config->Mode & SPI_MSB)
             {
                 hspi->Init.FirstBit = SPI_FIRSTBIT_MSB;
             }
@@ -363,7 +363,7 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
             {
                 hspi->Init.FirstBit = SPI_FIRSTBIT_LSB;
             }
-            
+
             hspi->Init.NSS = SPI_NSS_SOFT;
             hspi->Init.TIMode = SPI_TIMODE_DISABLE;
             hspi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -375,7 +375,7 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
 #endif
         }
     }
-            
+
 #if USER_EFFI == 1
     LL_SPI_Enable((SPI_TypeDef *)_spiDeviceHandle->Device);
 #else
@@ -396,10 +396,10 @@ uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
  * @retval  错误代码，成功或失败
  */
 uint8_t spiSendThenSend(spiDeviceHandle_t _spiDeviceHandle,
-                         const void *sendBuf1,
-                         uint32_t sendLength1,
-                         const void *sendBuf2,
-                         uint32_t sendLength2)
+                        const void *sendBuf1,
+                        uint32_t sendLength1,
+                        const void *sendBuf2,
+                        uint32_t sendLength2)
 {
     spiMessage_t Message;
     uint32_t result;
@@ -469,10 +469,10 @@ __exit:
  * @retval  错误代码，成功或失败
  */
 uint8_t spiSendThenRecv(spiDeviceHandle_t _spiDeviceHandle,
-                         const void *sendBuf,
-                         uint32_t sendLength,
-                         void *recvBuf,
-                         uint32_t recvLength)
+                        const void *sendBuf,
+                        uint32_t sendLength,
+                        void *recvBuf,
+                        uint32_t recvLength)
 {
     spiMessage_t Message;
     uint32_t result;
@@ -539,9 +539,9 @@ __exit:
  * @retval  错误代码，成功或失败
  */
 uint8_t spiTransfer(spiDeviceHandle_t _spiDeviceHandle,
-                     const void *sendBuf,
-                     void *recvBuf,
-                     uint32_t Length)
+                    const void *sendBuf,
+                    void *recvBuf,
+                    uint32_t Length)
 {
     spiMessage_t Message;
     uint32_t result;
