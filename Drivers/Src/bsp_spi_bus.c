@@ -1,491 +1,450 @@
-/*
-*********************************************************************************************************
-*
-*	模块名称 : SPI总线驱动
-*	文件名称 : bsp_spi_bus.h
-*	版    本 : V1.2
-*	说    明 : SPI总线底层驱动。提供SPI配置、收发数据、多设备共享SPI支持。
-*	修改记录 :
-*		版本号  日期        作者    说明
-*       v1.0    2014-10-24 armfly  首版。将串行FLASH、TSC2046、VS1053、AD7705、ADS1256等SPI设备的配置
-*									和收发数据的函数进行汇总分类。并解决不同速度的设备间的共享问题。
-*		V1.1	2015-02-25 armfly  硬件SPI时，没有开启GPIOB时钟，已解决。
-*		V1.2	2015-07-23 armfly  修改 bsp_SPI_Init() 函数，增加开关SPI时钟的语句。规范硬件SPI和软件SPI的宏定义.
-*
-*	Copyright (C), 2015-2016, 安富莱电子 www.armfly.com
-*
-*********************************************************************************************************
-*/
-
+/**
+ ******************************************************************************
+ * @file      bsp_spi_bus.c
+ * @author    ZSY
+ * @version   V1.0.0
+ * @date      2018-10-03
+ * @brief     SPI总线实现程序，实现SPI总线驱动框架
+ * @note      
+ * @History
+ * Date           Author    version    		Notes
+ * 2018-10-04       ZSY     V1.0.0      first version.
+ */
+/* Includes ------------------------------------------------------------------*/
 #include "bsp_spi_bus.h"
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_InitSPIBus
-*	功能说明: 配置SPI总线。 只包括 SCK、 MOSI、 MISO口线的配置。不包括片选CS，也不包括外设芯片特有的INT、BUSY等
-*	形    参: 无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-void bsp_InitSPIBus(void)
-{
-#ifdef SOFT_SPI		/* 软件SPI */
-	GPIO_InitTypeDef  GPIO_InitStructure;
 
-	/* 打开GPIO时钟 */
-	RCC_AHB1PeriphClockCmd(RCC_SCK | RCC_MOSI | RCC_MISO, ENABLE);
-
-	/* 配置几个推完输出IO */
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;		/* 设为输出口 */
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;		/* 设为推挽模式 */
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;	/* 上下拉电阻不使能 */
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;	/* IO口最大速度 */
-
-	GPIO_InitStructure.GPIO_Pin = PIN_SCK;
-	GPIO_Init(PORT_SCK, &GPIO_InitStructure);
-
-	GPIO_InitStructure.GPIO_Pin = PIN_MOSI;
-	GPIO_Init(PORT_MOSI, &GPIO_InitStructure);
-
-	/* 配置GPIO为浮动输入模式(实际上CPU复位后就是输入状态) */
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;		/* 设为输入口 */
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;		/* 设为推挽模式 */
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;	/* 无需上下拉电阻 */
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;	/* IO口最大速度 */
-
-	GPIO_InitStructure.GPIO_Pin = PIN_MISO;
-	GPIO_Init(PORT_MISO, &GPIO_InitStructure);
+/* 若使用LL库，请定义USER_EFFI为1 */
+#ifndef USER_EFFI
+#define USER_EFFI 0
 #endif
 
-#ifdef HARD_SPI
-	/* 硬件SPI */
-	GPIO_InitTypeDef  GPIO_InitStructure;
+#ifndef NULL
+#define NULL 0
+#endif
 
-	/* 开启GPIO时钟 */
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+#define READ        (1 << 0)
+#define WRITE       (1 << 1)
+#define TIMEOUT     200
 
+static uint16_t spiBusID = 0;
+static uint8_t spiBusBusy = SPI_BUS_NOBUSY;
 
-	/* 配置 SCK, MISO 、 MOSI 为复用功能 */
-	//GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_SPI3);
-	//GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_SPI3);
-	//GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_SPI3);
-	/* 配置 SCK, MISO 、 MOSI 为复用功能 */
-	GPIO_PinAFConfig(GPIOB, GPIO_PinSource3, GPIO_AF_SPI1);
-	GPIO_PinAFConfig(GPIOB, GPIO_PinSource4, GPIO_AF_SPI1);
-	GPIO_PinAFConfig(GPIOB, GPIO_PinSource5, GPIO_AF_SPI1);
-
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
-	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
-	GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-	GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3 | GPIO_Pin_4 | GPIO_Pin_5;
-	GPIO_Init(GPIOB, &GPIO_InitStructure);
-
-	/* 打开SPI时钟 */
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
-	
-	bsp_SPI_Init(SPI_Direction_2Lines_FullDuplex | SPI_Mode_Master | SPI_DataSize_8b
-		| SPI_CPOL_Low | SPI_CPHA_1Edge | SPI_NSS_Soft | SPI_BaudRatePrescaler_64 | SPI_FirstBit_MSB);	
-	
-	/* Activate the SPI mode (Reset I2SMOD bit in I2SCFGR register) */
-	SPI_HARD->I2SCFGR &= SPI_Mode_Select;		/* 选择SPI模式，不是I2S模式 */
-
-	/*---------------------------- SPIx CRCPOLY Configuration --------------------*/
-	/* Write to SPIx CRCPOLY */
-	SPI_HARD->CRCPR = 7;		/* 一般不用 */
-
-
-	SPI_Cmd(SPI_HARD, DISABLE);			/* 先禁止SPI  */
-
-	SPI_Cmd(SPI_HARD, ENABLE);			/* 使能SPI  */
-#endif	
+/**
+ * @func    spiBusTake
+ * @brief   占用SPI总线
+ * @note    
+ * @retval  无
+ */
+void spiBusTake(void)
+{
+    spiBusBusy = SPI_BUS_BUSY;
 }
 
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_SPI_Init
-*	功能说明: 配置STM32内部SPI硬件的工作模式。 简化库函数，提高执行效率。 仅用于SPI接口间切换。
-*	形    参: _cr1 寄存器值
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-#ifdef HARD_SPI		/* 硬件SPI */
-void bsp_SPI_Init(uint16_t _cr1)
+/**
+ * @func    spiBusRelease
+ * @brief   释放占用的SPI总线
+ * @note    
+ * @retval  无
+ */
+void spiBusRelease(void)
 {
-	SPI_HARD->CR1 = ((SPI_HARD->CR1 & CR1_CLEAR_Mask) | _cr1);
-	  
-	//SPI_Cmd(SPI_HARD, DISABLE);			/* 先禁止SPI  */	    
-    SPI_HARD->CR1 &= CR1_SPE_Reset;	/* Disable the selected SPI peripheral */
-
-	//SPI_Cmd(SPI_HARD, ENABLE);			/* 使能SPI  */		    
-    SPI_HARD->CR1 |= CR1_SPE_Set;	  /* Enable the selected SPI peripheral */
-}
-#endif
-
-#ifdef SOFT_SPI		/* 软件SPI */
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_SpiDelay
-*	功能说明: 时序延迟
-*	形    参: 无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-void bsp_spiDelay(void)
-{
-#if 1
-	uint32_t i;
-
-	/*
-		延迟5时， F407 (168MHz主频） GPIO模拟，实测 SCK 周期 = 480ns (大约2M)
-	*/
-	for (i = 0; i < 5; i++);
-#else
-	/*
-		不添加延迟语句， F407 (168MHz主频） GPIO模拟，实测 SCK 周期 = 200ns (大约5M)
-	*/
-#endif
-}
-#endif
-
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_spiWrite0
-*	功能说明: 向SPI总线发送一个字节。SCK上升沿采集数据, SCK空闲时为低电平。
-*	形    参: 无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-void bsp_spiWrite0(uint8_t _ucByte)
-{
-#ifdef SOFT_SPI		/* 软件SPI */
-	uint8_t i;
-
-	for(i = 0; i < 8; i++)
-	{
-		if (_ucByte & 0x80)
-		{
-			MOSI_1();
-		}
-		else
-		{
-			MOSI_0();
-		}
-		bsp_spiDelay();
-		SCK_1();
-		_ucByte <<= 1;
-		bsp_spiDelay();
-		SCK_0();
-	}
-	bsp_spiDelay();
-#endif
-
-#ifdef HARD_SPI		/* 硬件SPI */
-	/* 等待发送缓冲区空 */
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-
-	/* 发送一个字节 */
-	SPI_I2S_SendData(SPI1, _ucByte);
-
-	/* 等待数据接收完毕 */
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
-
-	/* 读取接收到的数据 */
-	SPI_I2S_ReceiveData(SPI1);
-#endif
+    spiBusBusy = SPI_BUS_NOBUSY;
 }
 
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_spiRead0
-*	功能说明: 从SPI总线接收8个bit数据。 SCK上升沿采集数据, SCK空闲时为低电平。
-*	形    参: 无
-*	返 回 值: 读到的数据
-*********************************************************************************************************
-*/
-uint8_t bsp_spiRead0(void)
+/**
+ * @func    spiGetBusBusy
+ * @brief   判断SPI总线忙。
+ * @note    
+ * @retval  无
+ */
+uint8_t spiGetBusBusy(void)
 {
-#ifdef SOFT_SPI		/* 软件SPI */
-	uint8_t i;
-	uint8_t read = 0;
-
-	for (i = 0; i < 8; i++)
-	{
-		read = read<<1;
-
-		if (MISO_IS_HIGH())
-		{
-			read++;
-		}
-		SCK_1();
-		bsp_spiDelay();
-		SCK_0();
-		bsp_spiDelay();
-	}
-	return read;
-#endif
-
-#ifdef HARD_SPI		/* 硬件SPI */
-	uint8_t read;
-
-	/* 等待发送缓冲区空 */
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-
-	/* 发送一个字节 */
-	SPI_I2S_SendData(SPI1, 0);
-
-	/* 等待数据接收完毕 */
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
-
-	/* 读取接收到的数据 */
-	read = SPI_I2S_ReceiveData(SPI1);
-
-	/* 返回读到的数据 */
-	return read;
-#endif
+    return spiBusBusy;
 }
 
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_spiWrite1
-*	功能说明: 向SPI总线发送一个字节。  SCK上升沿采集数据, SCK空闲时为高电平
-*	形    参:  无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-void bsp_spiWrite1(uint8_t _ucByte)
+/**
+ * @func    SpixRW
+ * @brief   SPI读写数据
+ * @param   _spiDeviceHandle SPI句柄
+ * @param   *Message 发送的消息
+ * @note    只有SPR,TB,BP2,BP1,BP0(bit 7,5,4,3,2)可以写!!!
+ * @retval  无
+ */
+uint32_t SpixRW(spiDeviceHandle_t _spiDeviceHandle, spiMessage_t *Message)
 {
-#ifdef SOFT_SPI		/* 软件SPI */
-	uint8_t i;
+    __IO uint8_t Retry = 0, result = HAL_OK;
 
-	for(i = 0; i < 8; i++)
-	{
-		if (_ucByte & 0x80)
-		{
-			MOSI_1();
-		}
-		else
-		{
-			MOSI_0();
-		}
-		SCK_0();
-		_ucByte <<= 1;
-		bsp_spiDelay();
-		SCK_1();				/* SCK上升沿采集数据, SCK空闲时为高电平 */
-		bsp_spiDelay();
-	}
-#endif
-
-#ifdef HARD_SPI		/* 硬件SPI */
-	/* 等待发送缓冲区空 */
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-
-	/* 发送一个字节 */
-	SPI_I2S_SendData(SPI1, _ucByte);
-
-	/* 等待数据接收完毕 */
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
-
-	/* 读取接收到的数据 */
-	SPI_I2S_ReceiveData(SPI1);
-#endif
-}
-
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_spiRead1
-*	功能说明: 从SPI总线接收8个bit数据。  SCK上升沿采集数据, SCK空闲时为高电平
-*	形    参: 无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-uint8_t bsp_spiRead1(void)
-{
-#ifdef SOFT_SPI		/* 软件SPI */
-	uint8_t i;
-	uint8_t read = 0;
-
-	for (i = 0; i < 8; i++)
-	{
-		SCK_0();
-		bsp_spiDelay();
-		read = read<<1;
-		if (MISO_IS_HIGH())
-		{
-			read++;
-		}
-		SCK_1();
-		bsp_spiDelay();
-	}
-	return read;
-#endif
-
-#ifdef HARD_SPI		/* 硬件SPI */
-	uint8_t read;
-
-	/* 等待发送缓冲区空 */
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET);
-
-	/* 发送一个字节 */
-	SPI_I2S_SendData(SPI1, 0);
-
-	/* 等待数据接收完毕 */
-	while(SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET);
-
-	/* 读取接收到的数据 */
-	read = SPI_I2S_ReceiveData(SPI1);
-
-	/* 返回读到的数据 */
-	return read;
-#endif
-}
-
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_SpiBusEnter
-*	功能说明: 占用SPI总线
-*	形    参: 无
-*	返 回 值: 0 表示不忙  1表示忙
-*********************************************************************************************************
-*/
-void bsp_SpiBusEnter(void)
-{
-	g_spi_busy = 1;
-}
-
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_SpiBusExit
-*	功能说明: 释放占用的SPI总线
-*	形    参: 无
-*	返 回 值: 0 表示不忙  1表示忙
-*********************************************************************************************************
-*/
-void bsp_SpiBusExit(void)
-{
-	g_spi_busy = 0;
-}
-
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_SpiBusBusy
-*	功能说明: 判断SPI总线忙。方法是检测其他SPI芯片的片选信号是否为1
-*	形    参: 无
-*	返 回 值: 0 表示不忙  1表示忙
-*********************************************************************************************************
-*/
-uint8_t bsp_SpiBusBusy(void)
-{
-	return g_spi_busy;
-}
-
-/*
-*********************************************************************************************************
-*	函 数 名: bsp_SetSpiSck
-*	功能说明: 用于软件模式。设置SCK GPIO的状态。在函数CS=0之前被调用，用于不同相序的SPI设备间切换。
-*	形    参: 无
-*	返 回 值: 无
-*********************************************************************************************************
-*/
-#ifdef SOFT_SPI		/* 软件SPI */
-void bsp_SetSpiSck(uint8_t _data)
-{
-	if (_data == 0)
-	{
-		SCK_0();
-	}
-	else
-	{
-		SCK_1();
-	}
-}
-#endif
-
-
-
-uint8_t spiConfigure(spiDeviceHandle_t spiDeviceHandle)
-{
-    rt_err_t result;
-
-    RT_ASSERT(device != RT_NULL);
-
-    /* set configuration */
-    device->config.data_width = cfg->data_width;
-    device->config.mode       = cfg->mode & RT_SPI_MODE_MASK ;
-    device->config.max_hz     = cfg->max_hz ;
-
-    if (device->bus != RT_NULL)
+    if (Message->csTake == 1)
     {
-        result = rt_mutex_take(&(device->bus->lock), RT_WAITING_FOREVER);
-        if (result == RT_EOK)
+        _spiDeviceHandle->Bus->Ops->csTake();
+        spiBusTake();
+    }
+#if USER_EFFI == 1
+    uint16_t i = 0;
+    while (i < Message->Length)
+    {
+        /* 检查指定的SPI标志位设置与否:发送缓存空标志位 */
+        while (LL_SPI_IsActiveFlag_TXE((SPI_TypeDef *)_spiDeviceHandle->Device) == RESET)
         {
-            if (device->bus->owner == device)
+            Retry++;
+            if (Retry > Message->TimeOut)
             {
-                device->bus->ops->configure(device, &device->config);
+                result = (uint8_t)SPI_ERROR;
+                goto __exit;
             }
+        }
+        LL_SPI_TransmitData8((SPI_TypeDef *)_spiDeviceHandle->Device, *((uint8_t *)Message->SendBuf + i));
 
-            /* release lock */
-            rt_mutex_release(&(device->bus->lock));
+        Retry = 0;
+        /* 检查指定的SPI标志位设置与否:发送缓存空标志位 */
+        while (LL_SPI_IsActiveFlag_RXNE((SPI_TypeDef *)_spiDeviceHandle->Device) == RESET)
+        {
+            Retry++;
+            if (Retry > Message->TimeOut)
+            {
+                result = (uint8_t)SPI_ERROR;
+                goto __exit;
+            }
+        }
+
+        *((uint8_t *)Message->RecvBuf + i) = LL_SPI_ReceiveData8((SPI_TypeDef *)_spiDeviceHandle->Device);
+        
+        i++;
+    }
+#else
+    SPI_HandleTypeDef *hSPI = (SPI_HandleTypeDef *)_spiDeviceHandle->Device;
+
+    if (Message->Flag & READ && Message->Flag & WRITE)
+    {
+        result = HAL_SPI_TransmitReceive(hSPI, (uint8_t *)Message->SendBuf, Message->RecvBuf, Message->Length, Message->TimeOut);
+        if (result != HAL_OK)
+        {
+            result = (uint8_t)SPI_ERROR;
+            goto __exit;
         }
     }
-
-    return RT_EOK;
+    else if (Message->Flag & WRITE)
+    {
+        result = HAL_SPI_Transmit(hSPI, (uint8_t *)Message->SendBuf, Message->Length, Message->TimeOut);
+        if (result != HAL_OK)
+        {
+            result = (uint8_t)SPI_ERROR;
+            goto __exit;
+        }
+    }
+    else if (Message->Flag & READ)
+    {
+        result = HAL_SPI_Receive(hSPI, Message->RecvBuf, Message->Length, Message->TimeOut);
+        if (result != HAL_OK)
+        {
+            result = (uint8_t)SPI_ERROR;
+            goto __exit;
+        }
+    }
+#endif
+__exit:
+    if (Message->csRelease == 1)
+    {
+        _spiDeviceHandle->Bus->Ops->csReslease();
+        spiBusRelease();
+    }
+    return result;
 }
 
-uint32_t spiSendThenSend(spiDeviceHandle_t _spiDeviceHandle,
-                         const void           *sendBuf1,
-                         uint32_t             sendLength1,
-                         const void           *sendBuf2,
-                         uint32_t             sendLength2)
+/**
+ * @func    spiGetBaudRatePrescaler
+ * @brief   获取SPI的波特率
+ * @param   maxHz 最大时钟频率
+ * @note    
+ * @retval  SPI_BaudRatePrescaler 分频系数
+ */
+inline uint32_t spiGetBaudRatePrescaler(uint32_t maxHz)
+{
+    uint16_t SPI_BaudRatePrescaler;
+#if USER_EFFI == 1
+    /* STM32F40x SPI MAX 42Mhz  SPI1 max 84MHz*/
+    if(maxHz >= SystemCoreClock / 2 && SystemCoreClock / 2 <= 36000000)
+    {
+        SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV2;
+    }
+    else if(maxHz >= SystemCoreClock / 4)
+    {
+        SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV4;
+    }
+    else if(maxHz >= SystemCoreClock / 8)
+    {
+        SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV8;
+    }
+    else if(maxHz >= SystemCoreClock / 16)
+    {
+        SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV16;
+    }
+    else if(maxHz >= SystemCoreClock / 32)
+    {
+        SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV32;
+    }
+    else if(maxHz >= SystemCoreClock / 64)
+    {
+        SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV64;
+    }
+    else if(maxHz >= SystemCoreClock / 128)
+    {
+        SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV128;
+    }
+    else
+    {
+        /* min prescaler 256 */
+        SPI_BaudRatePrescaler = LL_SPI_BAUDRATEPRESCALER_DIV256;
+    }
+#else
+    /* STM32F40x SPI MAX 42Mhz  SPI1 max 84MHz*/
+    if(maxHz >= SystemCoreClock / 2 && SystemCoreClock / 2 <= 36000000)
+    {
+        SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+    }
+    else if(maxHz >= SystemCoreClock / 4)
+    {
+        SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+    }
+    else if(maxHz >= SystemCoreClock / 8)
+    {
+        SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+    }
+    else if(maxHz >= SystemCoreClock / 16)
+    {
+        SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+    }
+    else if(maxHz >= SystemCoreClock / 32)
+    {
+        SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+    }
+    else if(maxHz >= SystemCoreClock / 64)
+    {
+        SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
+    }
+    else if(maxHz >= SystemCoreClock / 128)
+    {
+        SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128;
+    }
+    else
+    {
+        /* min prescaler 256 */
+        SPI_BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+    }
+#endif
+    return SPI_BaudRatePrescaler;
+}
+
+/**
+ * @func    spiConfigure
+ * @brief   SPI配置
+ * @param   _spiDeviceHandle SPI句柄
+ * @note    
+ * @retval  错误代码，成功或失败
+ */
+uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle)
+{
+    assert_param(_spiDeviceHandle);
+    assert_param(_spiDeviceHandle->Bus);
+    assert_param(_spiDeviceHandle->Config);
+    assert_param(_spiDeviceHandle->Device);
+
+    if (_spiDeviceHandle->Bus != NULL)
+    {
+        if (_spiDeviceHandle->Bus->ID == spiBusID)
+        {
+            /* set SPI bus owner */
+            spiBusID = _spiDeviceHandle->Bus->ID;
+
+#if USER_EFFI == 1
+            LL_SPI_InitTypeDef SPI_InitStruct;
+
+            LL_SPI_StructInit(&SPI_InitStruct);
+
+            /* data_width */
+            if(_spiDeviceHandle->Config->DataWidth <= 8)
+            {
+                SPI_InitStruct.DataWidth = LL_SPI_DATAWIDTH_8BIT;
+            }
+            else if(_spiDeviceHandle->Config->DataWidth <= 16)
+            {
+                SPI_InitStruct.DataWidth = LL_SPI_DATAWIDTH_16BIT;
+            }
+            else
+            {
+                return (uint8_t)SPI_ERROR;
+            }
+            /* baudrate */
+            SPI_InitStruct.BaudRate = spiGetBaudRatePrescaler(_spiDeviceHandle->Config->MaxFreq);
+            /* CPOL */
+            if(_spiDeviceHandle->Config->Mode & SPI_CPOL)
+            {
+                SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_HIGH;
+            }
+            else
+            {
+                SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
+            }
+            /* CPHA */
+            if(_spiDeviceHandle->Config->Mode & SPI_CPHA)
+            {
+                SPI_InitStruct.ClockPhase = LL_SPI_PHASE_2EDGE;
+            }
+            else
+            {
+                SPI_InitStruct.ClockPhase = LL_SPI_PHASE_1EDGE;
+            }
+            /* MSB or LSB */
+            if(_spiDeviceHandle->Config->Mode & SPI_MSB)
+            {
+                SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
+            }
+            else
+            {
+                SPI_InitStruct.BitOrder = LL_SPI_LSB_FIRST;
+            }
+            
+            SPI_InitStruct.TransferDirection = LL_SPI_FULL_DUPLEX;
+            SPI_InitStruct.Mode = LL_SPI_MODE_MASTER;
+            SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
+
+            SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
+            SPI_InitStruct.CRCPoly = 10;
+            
+            LL_SPI_DeInit(_spiDeviceHandle->Device);
+            
+            LL_SPI_Init(_spiDeviceHandle->Device, &SPI_InitStruct);
+    
+            LL_SPI_SetStandard(_spiDeviceHandle->Device, LL_SPI_PROTOCOL_MOTOROLA);
+#else
+            SPI_HandleTypeDef *hspi = _spiDeviceHandle->Device;
+            
+            /* data_width */
+            if(_spiDeviceHandle->Config->DataWidth <= 8)
+            {
+                hspi->Init.DataSize = SPI_DATASIZE_8BIT;
+            }
+            else if(_spiDeviceHandle->Config->DataWidth <= 16)
+            {
+                hspi->Init.DataSize = SPI_DATASIZE_16BIT;
+            }
+            else
+            {
+                return (uint8_t)SPI_ERROR;
+            }
+            
+            /* baudrate */
+            hspi->Init.BaudRatePrescaler = spiGetBaudRatePrescaler(_spiDeviceHandle->Config->MaxFreq);
+            /* CPOL */
+            if(_spiDeviceHandle->Config->Mode & SPI_CPOL)
+            {
+                hspi->Init.CLKPolarity = SPI_POLARITY_HIGH;
+            }
+            else
+            {
+                hspi->Init.CLKPolarity = SPI_POLARITY_LOW;
+            }
+            
+            /* CPHA */
+            if(_spiDeviceHandle->Config->Mode & SPI_CPHA)
+            {
+                hspi->Init.CLKPhase = SPI_PHASE_2EDGE;
+            }
+            else
+            {
+                hspi->Init.CLKPhase = SPI_PHASE_1EDGE;
+            }
+            /* MSB or LSB */
+            if(_spiDeviceHandle->Config->Mode & SPI_MSB)
+            {
+                hspi->Init.FirstBit = SPI_FIRSTBIT_MSB;
+            }
+            else
+            {
+                hspi->Init.FirstBit = SPI_FIRSTBIT_LSB;
+            }
+            
+            hspi->Init.NSS = SPI_NSS_SOFT;
+            hspi->Init.TIMode = SPI_TIMODE_DISABLE;
+            hspi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+            hspi->Init.CRCPolynomial = 10;
+            if (HAL_SPI_Init(hspi) != HAL_OK)
+            {
+                _Error_Handler(__FILE__, __LINE__);
+            }
+#endif
+        }
+    }
+            
+#if USER_EFFI == 1
+    LL_SPI_Enable((SPI_TypeDef *)_spiDeviceHandle->Device);
+#else
+    __HAL_SPI_ENABLE((SPI_HandleTypeDef *)_spiDeviceHandle->Device);
+#endif
+    return SPI_OK;
+}
+
+/**
+ * @func    spiSendThenSend
+ * @brief   SPI发送数据
+ * @param   _spiDeviceHandle SPI句柄
+ * @param   sendBuf1 第一个数据缓存
+ * @param   sendLength1 第一个数据大小
+ * @param   sendBuf2 第二个数据缓存
+ * @param   sendLength2 第二个数据大小
+ * @note    
+ * @retval  错误代码，成功或失败
+ */
+uint8_t spiSendThenSend(spiDeviceHandle_t _spiDeviceHandle,
+                         const void *sendBuf1,
+                         uint32_t sendLength1,
+                         const void *sendBuf2,
+                         uint32_t sendLength2)
 {
     spiMessage_t Message;
     uint32_t result;
 
     assert_param(_spiDeviceHandle);
-    assert_param(_spiDeviceHandle->bus);
+    assert_param(_spiDeviceHandle->Bus);
     assert_param(_spiDeviceHandle->Config);
     assert_param(_spiDeviceHandle->Device);
 
-    if (_spiDeviceHandle->Bus->Owner != _spiDeviceHandle->Device)
+    result = spiConfigure(_spiDeviceHandle);
+    /* not the same owner as current, re-configure SPI bus */
+    if (result != SPI_OK)
     {
-        /* not the same owner as current, re-configure SPI bus */
-        result = _spiDeviceHandle->Bus->Ops->configure(_spiDeviceHandle);
-        if (result == SPI_OK)
-        {
-            /* set SPI bus owner */
-            _spiDeviceHandle->Bus->Owner = _spiDeviceHandle->Device;
-        }
-        else
-        {
-            /* configure SPI bus failed */
-            result = SPI_ERROR;
-            goto __exit;
-        }
+        /* configure SPI bus failed */
+        result = SPI_ERROR;
+        goto __exit;
     }
 
     /* send data1 */
-    Message.send_buf   = sendBuf1;
-    Message.recv_buf   = NULL;
-    Message.length     = sendLength1;
-    Message.cs_take    = 1;
-    Message.cs_release = 0;
+    Message.Flag = WRITE;
+    Message.SendBuf = sendBuf1;
+    Message.RecvBuf = NULL;
+    Message.Length = sendLength1;
+    Message.csTake = 1;
+    Message.csRelease = 0;
+    Message.TimeOut = TIMEOUT;
 
-    result = _spiDeviceHandle->Bus->Ops->xfer(_spiDeviceHandle);
-    if (result == 0)
+    result = SpixRW(_spiDeviceHandle, &Message);
+    if (result != SPI_OK)
     {
         result = SPI_ERROR;
         goto __exit;
     }
 
     /* send data2 */
-    Message.send_buf   = sendBuf2;
-    Message.recv_buf   = NULL;
-    Message.length     = sendLength2;
-    Message.cs_take    = 0;
-    Message.cs_release = 1;
+    Message.Flag = WRITE;
+    Message.SendBuf = sendBuf2;
+    Message.RecvBuf = NULL;
+    Message.Length = sendLength2;
+    Message.csTake = 0;
+    Message.csRelease = 1;
+    Message.TimeOut = TIMEOUT;
 
-    result = device->bus->ops->xfer(device, &message);
-    if (result == 0)
+    result = SpixRW(_spiDeviceHandle, &Message);
+    if (result != SPI_OK)
     {
         result = SPI_ERROR;
         goto __exit;
@@ -498,122 +457,140 @@ __exit:
     return result;
 }
 
-uint32_t spiSendThenRecv(spiDeviceHandle_t _spiDeviceHandle,
-                               const void           *sendBuf,
-                               uint32_t             sendLength,
-                               void                 *recvBuf,
-                               uint32_t             recvLength)
+/**
+ * @func    spiSendThenRecv
+ * @brief   SPI发送数据并接收数据
+ * @param   _spiDeviceHandle SPI句柄
+ * @param   sendBuf 发送缓存
+ * @param   sendLength 发送数据大小
+ * @param   recvBuf 接收缓存
+ * @param   recvLength 接收数据大小
+ * @note    
+ * @retval  错误代码，成功或失败
+ */
+uint8_t spiSendThenRecv(spiDeviceHandle_t _spiDeviceHandle,
+                         const void *sendBuf,
+                         uint32_t sendLength,
+                         void *recvBuf,
+                         uint32_t recvLength)
 {
     spiMessage_t Message;
     uint32_t result;
 
     assert_param(_spiDeviceHandle);
-    assert_param(_spiDeviceHandle->bus);
+    assert_param(_spiDeviceHandle->Bus);
     assert_param(_spiDeviceHandle->Config);
     assert_param(_spiDeviceHandle->Device);
 
-    if (_spiDeviceHandle->Bus->Owner != _spiDeviceHandle->Device)
+    result = spiConfigure(_spiDeviceHandle);
+    /* not the same owner as current, re-configure SPI bus */
+    if (result != SPI_OK)
     {
-        /* not the same owner as current, re-configure SPI bus */
-        result = _spiDeviceHandle->Bus->Ops->configure(_spiDeviceHandle);
-        if (result == SPI_OK)
-        {
-            /* set SPI bus owner */
-            _spiDeviceHandle->Bus->Owner = _spiDeviceHandle->Device;
-        }
-        else
-        {
-            /* configure SPI bus failed */
-            result = SPI_ERROR;
-            goto __exit;
-        }
+        /* configure SPI bus failed */
+        result = SPI_ERROR;
+        goto __exit;
     }
 
     /* send data1 */
-    Message.send_buf   = sendBuf;
-    Message.recv_buf   = NULL;
-    Message.length     = sendLength;
-    Message.cs_take    = 1;
-    Message.cs_release = 0;
+    Message.Flag = WRITE;
+    Message.SendBuf = sendBuf;
+    Message.RecvBuf = NULL;
+    Message.Length = sendLength;
+    Message.csTake = 1;
+    Message.csRelease = 0;
+    Message.TimeOut = TIMEOUT;
 
-    result = _spiDeviceHandle->Bus->Ops->xfer(_spiDeviceHandle);
-    if (result == 0)
+    result = SpixRW(_spiDeviceHandle, &Message);
+    if (result != SPI_OK)
     {
         result = SPI_ERROR;
         goto __exit;
     }
 
     /* send data2 */
-    Message.send_buf   = NULL;
-    Message.recv_buf   = recvBuf;
-    Message.length     = recvLength;
-    Message.cs_take    = 0;
-    Message.cs_release = 1;
+    Message.Flag = READ;
+    Message.SendBuf = NULL;
+    Message.RecvBuf = recvBuf;
+    Message.Length = recvLength;
+    Message.csTake = 0;
+    Message.csRelease = 1;
+    Message.TimeOut = TIMEOUT;
 
-    result = device->bus->ops->xfer(device, &message);
-    if (result == 0)
+    result = SpixRW(_spiDeviceHandle, &Message);
+    if (result != SPI_OK)
     {
         result = SPI_ERROR;
         goto __exit;
     }
-
-    result = SPI_OK;
 
 __exit:
 
     return result;
 }
 
-uint32_t spiTransfer(spiDeviceHandle_t _spiDeviceHandle,
-                          const void           *sendBuf,
-                          void                 *recvBuf,
-                          uint32_t             length)
+/**
+ * @func    spiTransfer
+ * @brief   SPI传输数据
+ * @param   _spiDeviceHandle SPI句柄
+ * @param   sendBuf 发送缓存
+ * @param   recvBuf 接收缓存
+ * @param   Length 数据大小
+ * @note    
+ * @retval  错误代码，成功或失败
+ */
+uint8_t spiTransfer(spiDeviceHandle_t _spiDeviceHandle,
+                     const void *sendBuf,
+                     void *recvBuf,
+                     uint32_t Length)
 {
     spiMessage_t Message;
     uint32_t result;
 
     assert_param(_spiDeviceHandle);
-    assert_param(_spiDeviceHandle->bus);
+    assert_param(_spiDeviceHandle->Bus);
     assert_param(_spiDeviceHandle->Config);
     assert_param(_spiDeviceHandle->Device);
 
-    if (_spiDeviceHandle->Bus->Owner != _spiDeviceHandle->Device)
-    {
-        /* not the same owner as current, re-configure SPI bus */
-        result = _spiDeviceHandle->Bus->Ops->configure(_spiDeviceHandle);
-        if (result == SPI_OK)
-        {
-            /* set SPI bus owner */
-            _spiDeviceHandle->Bus->Owner = _spiDeviceHandle->Device;
-        }
-        else
-        {
-            /* configure SPI bus failed */
-            result = SPI_ERROR;
-            goto __exit;
-        }
-    }
-
-    /* send data1 */
-    Message.send_buf   = sendBuf;
-    Message.recv_buf   = recvBuf;
-    Message.length     = sendLength;
-    Message.cs_take    = 1;
-    Message.cs_release = 0;
-
-    result = _spiDeviceHandle->Bus->Ops->xfer(_spiDeviceHandle);
-    if (result == 0)
+    result = spiConfigure(_spiDeviceHandle);
+    if (result != SPI_OK)
     {
         result = SPI_ERROR;
         goto __exit;
     }
 
-    result = SPI_OK;
+    if (sendBuf == NULL)
+    {
+        Message.Flag = READ;
+    }
+    else if (recvBuf == NULL)
+    {
+        Message.Flag = WRITE;
+    }
+    else if (recvBuf == NULL && sendBuf == NULL)
+    {
+        Message.Flag = WRITE | READ;
+    }
+    else
+    {
+        result = SPI_ERROR;
+        goto __exit;
+    }
+    /* send data1 */
+    Message.SendBuf = sendBuf;
+    Message.RecvBuf = recvBuf;
+    Message.Length = Length;
+    Message.csTake = 1;
+    Message.csRelease = 1;
+    Message.TimeOut = TIMEOUT;
+
+    result = SpixRW(_spiDeviceHandle, &Message);
+    if (result != SPI_OK)
+    {
+        result = SPI_ERROR;
+        goto __exit;
+    }
 
 __exit:
 
     return result;
 }
-
-
-/***************************** 安富莱电子 www.armfly.com (END OF FILE) *********************************/

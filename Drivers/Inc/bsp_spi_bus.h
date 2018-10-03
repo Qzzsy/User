@@ -1,16 +1,18 @@
-/*
-*********************************************************************************************************
-*
-*	模块名称 : SPI总线驱动
-*	文件名称 : bsp_spi_bus.h
-*	版    本 : V1.0
-*	说    明 : 头文件
-*
-*	Copyright (C), 2014-2015, 安富莱电子 www.armfly.com
-*
-*********************************************************************************************************
-*/
-
+/**
+ ******************************************************************************
+ * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
+ * @filename      Bsp_spi_bus.h
+ * @author        ZSY
+ * @version       V1.0.0
+ * @date          2018-10-04
+ * @Description   定义了W25QXX的常规命令以API
+ * @Others
+ * @History
+ * Date           Author    version    		Notes
+ * 2018-10-04     ZSY       V1.0.0      first version.
+ */
+	
+/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef _BSP_SPI_BUS_H_
 #define _BSP_SPI_BUS_H_
 
@@ -143,4 +145,3 @@ void bsp_SetSpiSck(uint8_t _data);
 
 #endif
 
-/***************************** 安富莱电子 www.armfly.com (END OF FILE) *********************************/
