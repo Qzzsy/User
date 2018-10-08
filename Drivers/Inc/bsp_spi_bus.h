@@ -16,8 +16,17 @@
 #ifndef _BSP_SPI_BUS_H_
 #define _BSP_SPI_BUS_H_
 
+#ifdef STM32F1
+#include "stm32f1xx.h"
+#else
+#include "stm32f4xx.h"
+#endif
+
 //#define SOFT_SPI		/* 定义此行表示使用GPIO模拟SPI接口 */
 #define HARD_SPI /* 定义此行表示使用CPU的硬件SPI接口 */
+
+#define SPI_BUS_BUSY		0x00
+#define SPI_BUS_NOBUSY		0x01
 
 #define SPI_CPHA (1 << 0) /* bit[0]:CPHA, clock phase */
 #define SPI_CPOL (1 << 1) /* bit[1]:CPOL, clock polarity */
@@ -48,20 +57,12 @@
 #define SPI_MODE_2 (SPI_CPOL | 0)		 /* CPOL = 1, CPHA = 0 */
 #define SPI_MODE_3 (SPI_CPOL | SPI_CPHA) /* CPOL = 1, CPHA = 1 */
 
-#define SPI_MODE_MASK (RT_SPI_CPHA | RT_SPI_CPOL | RT_SPI_MSB)
+#define SPI_MODE_MASK (SPI_CPHA | SPI_CPOL | SPI_MSB)
 
 #define SPI_CS_HIGH (1 << 4) /* Chipselect active high */
 #define SPI_NO_CS (1 << 5)   /* No chipselect */
 #define SPI_3WIRE (1 << 6)   /* SI/SO pin shared */
 #define SPI_READY (1 << 7)   /* Slave pulls low to pause */
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned long uint32_t;
-
-typedef char int8_t;
-typedef short int16_t;
-typedef long int32_t;
 
 /**
  * SPI message structure
@@ -74,6 +75,8 @@ typedef struct
 	
 	uint8_t csTake;
 	uint8_t csRelease;
+	uint16_t TimeOut;
+	uint8_t Flag;
 }spiMessage_t;
 
 /**
@@ -92,8 +95,8 @@ struct spiOps;
 
 typedef struct
 {
-	const struct spiOps *ops;
-	void *Owner;
+	const struct spiOps *Ops;
+    uint16_t ID;
 }spiBus_t;
 
 typedef struct 
@@ -103,15 +106,12 @@ typedef struct
 	void *Device;
 }spiDevice_t;
 
-typedef spiDevice_t * spiDeviceHandle_t
+typedef spiDevice_t * spiDeviceHandle_t;
 
-/**
- * SPI operators
- */
 typedef struct spiOps
 {
-    uint8_t (*configure)(spiDeviceHandle_t spiDeviceHandle);
-    uint32_t (*xfer)(spiDeviceHandle_t spiDeviceHandle);
+	void (*csTake)(void);
+	void (*csReslease)(void);
 }spiOps_t;
 
 /*
@@ -143,5 +143,25 @@ void bsp_SpiBusExit(void);
 uint8_t bsp_SpiBusBusy(void);
 void bsp_SetSpiSck(uint8_t _data);
 
+void spiBusTake(void);
+void spiBusRelease(void);
+uint8_t spiGetBusBusy(void);
+uint8_t spiConfigure(spiDeviceHandle_t _spiDeviceHandle);
+uint8_t spiSendThenSend(spiDeviceHandle_t _spiDeviceHandle,
+                         const void           *sendBuf1,
+                         uint32_t             sendLength1,
+                         const void           *sendBuf2,
+                         uint32_t             sendLength2);
+uint8_t spiSendThenRecv(spiDeviceHandle_t _spiDeviceHandle,
+                               const void           *sendBuf,
+                               uint32_t             sendLength,
+                               void                 *recvBuf,
+                               uint32_t             recvLength);
+uint8_t spiTransfer(spiDeviceHandle_t _spiDeviceHandle,
+                          const void           *sendBuf,
+                          void                 *recvBuf,
+                          uint32_t             Length);		
+						  					   
 #endif
 
+/***************************** 安富莱电子 www.armfly.com (END OF FILE) *********************************/

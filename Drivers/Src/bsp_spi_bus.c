@@ -158,7 +158,7 @@ __exit:
  * @note    
  * @retval  SPI_BaudRatePrescaler ·ÖÆµÏµÊý
  */
-inline uint32_t spiGetBaudRatePrescaler(uint32_t maxHz)
+static inline uint32_t spiGetBaudRatePrescaler(uint32_t maxHz)
 {
     uint16_t SPI_BaudRatePrescaler;
 #if USER_EFFI == 1
