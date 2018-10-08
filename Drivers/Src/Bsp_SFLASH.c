@@ -1,14 +1,15 @@
 /**
  ******************************************************************************
- * @file      Bsp_W25QXX.c
+ * @file      Bsp_SFLASH.c
  * @author    ZSY
- * @version   V1.0.0
- * @date      2018-06-27
- * @brief     W25QXX的驱动程序，实现对W25QXX的读写数据
+ * @version   V1.0.1
+ * @date      2018-10-08
+ * @brief     Flash的驱动程序，实现对SPI Flash的读写数据
  * @note      4Kbytes为一个Sector
  * @History
  * Date           Author    version    		Notes
  * 2018-06-27       ZSY     V1.0.0      first version.
+ * 2018-10-08       ZSY     V1.0.1      完善驱动框架.
  */
 /* Includes ------------------------------------------------------------------*/
 #include "Bsp_SFLASH.h"

@@ -1,16 +1,16 @@
 /**
  ******************************************************************************
  * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
- * @filename      Bsp_SFlash.h
+ * @filename      Bsp_SFLASH.h
  * @author        ZSY
  * @version       V1.0.1
- * @date          2018-10-04
- * @Description   定义了FLASH的常规命令以API
+ * @date          2018-10-08
+ * @Description   定义了SPI FLASH的常规命令以API
  * @Others
  * @History
  * Date           Author    version    		Notes
  * 2017-11-01     ZSY       V1.0.0      first version.
- * 2018-10-04     ZSY       V1.0.1      完善驱动.
+ * 2018-10-08     ZSY       V1.0.1      完善驱动框架.
  */
 	
 /* Define to prevent recursive inclusion -------------------------------------*/

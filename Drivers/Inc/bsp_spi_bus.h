@@ -1,15 +1,15 @@
 /**
  ******************************************************************************
  * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
- * @filename      Bsp_spi_bus.h
+ * @filename      Bsp_SPI_BUS.h
  * @author        ZSY
  * @version       V1.0.0
- * @date          2018-10-04
- * @Description   定义了W25QXX的常规命令以API
+ * @date          2018-10-08
+ * @Description   定义了SPI总线的常规命令以API
  * @Others
  * @History
  * Date           Author    version    		Notes
- * 2018-10-04     ZSY       V1.0.0      first version.
+ * 2017-10-08     ZSY       V1.0.0      first version.
  */
 	
 /* Define to prevent recursive inclusion -------------------------------------*/
@@ -164,4 +164,3 @@ uint8_t spiTransfer(spiDeviceHandle_t _spiDeviceHandle,
 						  					   
 #endif
 
-/***************************** 安富莱电子 www.armfly.com (END OF FILE) *********************************/
