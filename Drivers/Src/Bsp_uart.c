@@ -14,19 +14,29 @@
 /* Includes ------------------------------------------------------------------*/
 #include "Bsp_uart.h"
 #include "mystring.h"
-#include "cjsonapp.h"
-
-#define RECV_BUF_SIZE   8192
 
 /* 定义使用的串口端口 */
 #define USE_UART1
 //#define USE_UART2
 //#define USE_CONSOLE 
 
+#define RECV_BUF_SIZE   8192
+
 #ifdef USE_UART1
 extern UART_HandleTypeDef huart1;
 extern DMA_HandleTypeDef hdma_usart1_rx;
 #endif
+
+/* 内存操作方法 */
+typedef struct
+{
+    void (*RecvProcess)(void *Data, uint32_t Size);
+} UartHooks_t;
+
+/* 初始化内存操作方法 */
+static UartHooks_t Hooks =
+    {
+        .RecvProcess = NULL};
 
 typedef struct 
 {
@@ -83,7 +93,7 @@ void SetUartDMARecvBuff(UART_HandleTypeDef * hUart, void * pBuf, uint32_t BufSiz
     HAL_UART_Receive_DMA(hUart, hUart1DMABuf.RecvBuf, hUart1DMABuf.RecvBufSize);
 }
 
-void UART_RxIdleCallback(UART_HandleTypeDef *huart)
+static inline void UART_RxIdleCallback(UART_HandleTypeDef *huart)
 {
     if(__HAL_UART_GET_FLAG(huart,UART_FLAG_IDLE))
     {
@@ -95,8 +105,9 @@ void UART_RxIdleCallback(UART_HandleTypeDef *huart)
             //hdma_usart1_rx.Instance->NDTR = hUart1DMABuf.RecvBufSize;
             rxSize = hUart1DMABuf.RecvBufSize - hdma_usart1_rx.Instance->NDTR;
             
-            cJSON_to_str(hUart1DMABuf.RecvBuf, "data");
-            
+            if (Hooks.RecvProcess != NULL)
+                Hooks.RecvProcess(hUart1DMABuf.RecvBuf, rxSize);
+
             HAL_UART_Receive_DMA(huart, hUart1DMABuf.RecvBuf, hUart1DMABuf.RecvBufSize);
         }
     }
@@ -141,6 +152,13 @@ UART_HandleTypeDef * Uart2_GetHandle(void)
 }
 #endif
 
+void SetUartRecvHook(void (*RecvProcess)(const void *Data, uint32_t Size))
+{
+    if (RecvProcess != NULL)
+    {
+        Hooks.RecvProcess = RecvProcess;
+    }
+}
 
 void USART1_IRQHandler(void)
 {
