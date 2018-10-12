@@ -26,7 +26,6 @@ UART_HandleTypeDef * Uart2_GetHandle(void);
 void SetUartIDLE_IT(UART_HandleTypeDef * hUart, uint8_t Status);
 void SetUartDMARecvBuff(UART_HandleTypeDef * hUart, void * pBuf, uint32_t BufSize);
 void SetUartRecvHook(void (*RecvProcess)(const void *Data, uint32_t Size));
-
 #endif
 
        
