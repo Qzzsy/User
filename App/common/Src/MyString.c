@@ -212,10 +212,10 @@ void *my_memmove(void *dest, const void *src, ubase_t n)
  *
  * @return the result
  */
-int32_t my_memcmp(const void *cs, const void *ct, ubase_t count)
+char my_memcmp(const void *cs, const void *ct, ubase_t count)
 {
     const unsigned char *su1, *su2;
-    int res = 0;
+    char res = 0;
 
     for (su1 = cs, su2 = ct; 0 < count; ++su1, ++su2, count--)
     {
@@ -375,7 +375,7 @@ char *my_strncpy(char *dst, const char *src, ubase_t n)
  *
  * @return the result
  */
-long my_strncmp(const char *cs, const char *ct, long count)
+char my_strncmp(const char *cs, const char *ct, long count)
 {
     register signed char __res = 0;
 

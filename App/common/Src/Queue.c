@@ -160,9 +160,13 @@ err_t Dequeue(Queue_t *queue, const void **Ptr)
     *Ptr = pOut->DataPtr;
 
     ListRemove(queue->rear->Next);
+    queue->Count--;
+    if (queue->Count == 0)
+    {
+        queue->front = queue->rear;
+    }
 
     Hooks.QueueFree(pOut);
-    queue->Count--;
     result = QUEUE_OK;
 
 __exit:
