@@ -11,7 +11,11 @@
 /* Private define ------------------------------------------------------------*/
 /*  1M0 flash 1 * 1024 * 1024 */
 #define FLASH_START_ADRESS 0x08000000
+
+#if defined STM32F4
+/* 每个Bank区所包含的山区数 */
 #define FLASH_PAGE_NBPERBANK 12
+#endif
 #define FLASH_SIZE 1 * 1024 * 1024
 
 #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) || \
@@ -51,16 +55,30 @@
 #define ADDR_FLASH_SECTOR_22 ((uint32_t)0x081C0000) /* Base @ of Sector 22, 128 Kbytes */
 #define ADDR_FLASH_SECTOR_23 ((uint32_t)0x081E0000) /* Base @ of Sector 23, 128 Kbytes */
 #endif
+#elif defined STM32F7
+/* Base address of the Flash sectors */
+#define ADDR_FLASH_SECTOR_0 ((uint32_t)0x08000000)  /* Base @ of Sector 0, 32 Kbytes */
+#define ADDR_FLASH_SECTOR_1 ((uint32_t)0x08008000)  /* Base @ of Sector 1, 32 Kbytes */
+#define ADDR_FLASH_SECTOR_2 ((uint32_t)0x08010000)  /* Base @ of Sector 2, 32 Kbytes */
+#define ADDR_FLASH_SECTOR_3 ((uint32_t)0x08018000)  /* Base @ of Sector 3, 32 Kbytes */
+#define ADDR_FLASH_SECTOR_4 ((uint32_t)0x08020000)  /* Base @ of Sector 4, 128 Kbytes */
+#define ADDR_FLASH_SECTOR_5 ((uint32_t)0x08040000)  /* Base @ of Sector 5, 256 Kbytes */
+#define ADDR_FLASH_SECTOR_6 ((uint32_t)0x08080000)  /* Base @ of Sector 6, 256 Kbytes */
+#define ADDR_FLASH_SECTOR_7 ((uint32_t)0x080C0000)  /* Base @ of Sector 7, 256 Kbytes */
 #endif
+
+
 
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
 /* Private functions ---------------------------------------------------------*/
-#if defined(STM32F4)
 uint32_t GetSector(uint32_t Address)
 {
+#if defined (STM32F1)
+    return (Address - FLASH_START_ADRESS) / 2048;
+#elif defined(STM32F4)
     if ((Address < ADDR_FLASH_SECTOR_1) && (Address >= ADDR_FLASH_SECTOR_0))
     {
         return 0;
@@ -105,19 +123,114 @@ uint32_t GetSector(uint32_t Address)
     {
         return 10;
     }
-    else /*(Address < FLASH_END_ADDR) && (Address >= ADDR_FLASH_SECTOR_11))*/
+#if !defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) || \
+    defined(STM32F469xx) || defined(STM32F479xx)
+    /*(Address < FLASH_END_ADDR) && (Address >= ADDR_FLASH_SECTOR_11))*/
+    else
     {
         return 11;
     }
+#endif
 #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) || \
     defined(STM32F469xx) || defined(STM32F479xx)
+    else if ((Address < ADDR_FLASH_SECTOR_12) && (Address >= ADDR_FLASH_SECTOR_11))
+    {
+        return 11;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_13) && (Address >= ADDR_FLASH_SECTOR_12))
+    {
+        return 12;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_14) && (Address >= ADDR_FLASH_SECTOR_13))
+    {
+        return 13;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_15) && (Address >= ADDR_FLASH_SECTOR_14))
+    {
+        return 14;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_16) && (Address >= ADDR_FLASH_SECTOR_15))
+    {
+        return 15;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_17) && (Address >= ADDR_FLASH_SECTOR_16))
+    {
+        return 16;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_18) && (Address >= ADDR_FLASH_SECTOR_17))
+    {
+        return 17;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_19) && (Address >= ADDR_FLASH_SECTOR_18))
+    {
+        return 18;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_20) && (Address >= ADDR_FLASH_SECTOR_19))
+    {
+        return 19;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_21) && (Address >= ADDR_FLASH_SECTOR_20))
+    {
+        return 20;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_22) && (Address >= ADDR_FLASH_SECTOR_21))
+    {
+        return 21;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_23) && (Address >= ADDR_FLASH_SECTOR_22))
+    {
+        return 22;
+    }
+    else /*(Address < FLASH_END_ADDR) && (Address >= ADDR_FLASH_SECTOR_11))*/
+    {
+        return 23;
+    }
+#endif
+#elif defined STM32F7
+    if ((Address < ADDR_FLASH_SECTOR_1) && (Address >= ADDR_FLASH_SECTOR_0))
+    {
+        return 0;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_2) && (Address >= ADDR_FLASH_SECTOR_1))
+    {
+        return 1;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_3) && (Address >= ADDR_FLASH_SECTOR_2))
+    {
+        return 2;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_4) && (Address >= ADDR_FLASH_SECTOR_3))
+    {
+        return 3;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_5) && (Address >= ADDR_FLASH_SECTOR_4))
+    {
+        return 4;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_6) && (Address >= ADDR_FLASH_SECTOR_5))
+    {
+        return 5;
+    }
+    else if ((Address < ADDR_FLASH_SECTOR_7) && (Address >= ADDR_FLASH_SECTOR_6))
+    {
+        return 6;
+    }
+    else
+    {
+        return 7;
+    }
 #endif
 }
     
 uint32_t GetSectorStartAddr(uint32_t Address)
 {
+#if defined (STM32F1)
+    return ((Address - FLASH_START_ADRESS) / 2048) * 2048 + FLASH_START_ADRESS;
+#endif
+#if defined (STM32F4) || defined (STM32F7)
     switch (GetSector(Address))
     {
+#elif defined STM32F4
         case 0: return ADDR_FLASH_SECTOR_0;
         case 1: return ADDR_FLASH_SECTOR_1;
         case 2: return ADDR_FLASH_SECTOR_2;
@@ -132,12 +245,34 @@ uint32_t GetSectorStartAddr(uint32_t Address)
         case 11: return ADDR_FLASH_SECTOR_11;
 #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) || \
     defined(STM32F469xx) || defined(STM32F479xx)
+        case 12: return ADDR_FLASH_SECTOR_12;
+        case 13: return ADDR_FLASH_SECTOR_13;
+        case 14: return ADDR_FLASH_SECTOR_14;
+        case 15: return ADDR_FLASH_SECTOR_15;
+        case 16: return ADDR_FLASH_SECTOR_16;
+        case 17: return ADDR_FLASH_SECTOR_17;
+        case 18: return ADDR_FLASH_SECTOR_18;
+        case 19: return ADDR_FLASH_SECTOR_19;
+        case 20: return ADDR_FLASH_SECTOR_20;
+        case 21: return ADDR_FLASH_SECTOR_21;
+        case 22: return ADDR_FLASH_SECTOR_22;
+        case 23: return ADDR_FLASH_SECTOR_23;
+#endif
+#elif defined STM32F7
+        case 0: return ADDR_FLASH_SECTOR_0;
+        case 1: return ADDR_FLASH_SECTOR_1;
+        case 2: return ADDR_FLASH_SECTOR_2;
+        case 3: return ADDR_FLASH_SECTOR_3;
+        case 4: return ADDR_FLASH_SECTOR_4;
+        case 5: return ADDR_FLASH_SECTOR_5;
+        case 6: return ADDR_FLASH_SECTOR_6;
+        case 7: return ADDR_FLASH_SECTOR_7;
 #endif
         default : break;
     }
+#endif
     return 0;
 }
-#endif
 /**
   * @brief  Unlocks Flash for write access
   * @param  None
