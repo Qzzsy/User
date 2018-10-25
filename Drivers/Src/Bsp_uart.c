@@ -67,6 +67,13 @@ void ConsoleOut(const char * Sendbuf, unsigned long Lenght)
     HAL_UART_Transmit(ConsoleOutHandle, (uint8_t *)Sendbuf, Lenght, 10);
 }
 
+/**
+ * @func    SetUartIDLE_IT
+ * @brief   配置空闲中断
+ * @param   hUart 句柄
+ * @param   Status 状态
+ * @retval  无
+ */
 void SetUartIDLE_IT(UART_HandleTypeDef * hUart, uint8_t Status)
 {
     if (Status == ENABLE)
@@ -79,6 +86,14 @@ void SetUartIDLE_IT(UART_HandleTypeDef * hUart, uint8_t Status)
     }
 }
 
+/**
+ * @func    SetUartDMARecvBuff
+ * @brief   设置DMA接收的缓存区
+ * @param   hUart 句柄
+ * @param   pBuf 缓存区指针
+ * @param   BufSize 缓存区大小
+ * @retval  无
+ */
 void SetUartDMARecvBuff(UART_HandleTypeDef * hUart, void * pBuf, uint32_t BufSize)
 {  
     if (pBuf != NULL && BufSize != 0)
@@ -93,6 +108,12 @@ void SetUartDMARecvBuff(UART_HandleTypeDef * hUart, void * pBuf, uint32_t BufSiz
     HAL_UART_Receive_DMA(hUart, hUart1DMABuf.RecvBuf, hUart1DMABuf.RecvBufSize);
 }
 
+/**
+ * @func    UART_RxIdleCallback
+ * @brief   串口空闲中断回调方法
+ * @param   hUart 句柄
+ * @retval  无
+ */
 static inline void UART_RxIdleCallback(UART_HandleTypeDef *huart)
 {
     if(__HAL_UART_GET_FLAG(huart,UART_FLAG_IDLE))
@@ -152,6 +173,12 @@ UART_HandleTypeDef * Uart2_GetHandle(void)
 }
 #endif
 
+/**
+ * @func    SetUartRecvHook
+ * @brief   配置接收处理函数的回调函数
+ * @param   RecvProcess 函数指针
+ * @retval  无
+ */
 void SetUartRecvHook(void (*RecvProcess)(const void *Data, uint32_t Size))
 {
     if (RecvProcess != NULL)
@@ -160,6 +187,11 @@ void SetUartRecvHook(void (*RecvProcess)(const void *Data, uint32_t Size))
     }
 }
 
+/**
+ * @func    USART1_IRQHandler
+ * @brief   串口通用中断入口
+ * @retval  无
+ */
 void USART1_IRQHandler(void)
 {
     UART_RxIdleCallback(&huart1);

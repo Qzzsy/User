@@ -43,13 +43,6 @@ enum {
 /* Define the address from where user application will be loaded.
    Note: this area is reserved for the IAP code                  */
 #define FLASH_PAGE_STEP         FLASH_PAGE_SIZE           /* Size of page : 2 Kbytes */
-#define APPLICATION_ADDRESS     (uint32_t)0x08008000      /* Start user code address: ADDR_FLASH_PAGE_8 */
-
-/* Notable Flash addresses */
-#define USER_FLASH_END_ADDRESS        0x08100000
-
-/* Define the user application size */
-#define USER_FLASH_SIZE               ((uint32_t)0x00003000) /* Small default template application */
 
 
 /* Exported macro ------------------------------------------------------------*/
@@ -62,10 +55,12 @@ enum {
 /* Compute the mask to test if the Flash memory, where the user program will be
   loaded, is write protected */
 #define FLASH_PROTECTED_SECTORS       (~(uint32_t)((1 << FLASH_SECTOR_NUMBER) - 1))
+
 /* Exported functions ------------------------------------------------------- */
 void IntFlashInit(void);
+uint32_t GetSectorStartAddr(uint32_t Address);
 uint32_t IntFlashErase(uint32_t StartAddr, uint32_t EndAddr);
-uint32_t IntFlashWrite(uint32_t Destination, uint32_t *pSource, uint32_t Length);
+uint32_t IntFlashWrite(uint32_t Destination, uint8_t *pSource, uint32_t Length);
 uint32_t IntFlashRead(uint32_t Destination, uint8_t *Buf, uint32_t Length);
 uint32_t IntFlashGetWriteProtectionStatus(uint32_t Address);
 uint32_t IntFlashWriteProtectionConfig(uint32_t ProtectionState, uint32_t Address);

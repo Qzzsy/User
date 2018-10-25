@@ -1,3 +1,18 @@
+/**
+ ******************************************************************************
+ * @Copyright     (C) 2017 - 2018 guet-sctc-hardwarepart Team
+ * @filename      iap.h
+ * @author        ZSY
+ * @version       V1.0.0
+ * @date          2018-10-25
+ * @Description   实现IAP功能。
+ * @Others
+ * @History
+ * Date           Author    version    		    Notes
+ * 2018-06-22      ZSY      V1.0.0          first version.
+ */
+	
+/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef _IAP_H_
 #define _IAP_H_
 
@@ -7,25 +22,7 @@
 #include "stm32f4xx.h"
 #endif
 
-enum
-{
-    IAP_ERR_TIMEOUT = 0,
-    IAP_ERR_CMD_ERROR = 1,
-    IAP_ERR_FIRM_ERROR = 2,
-    IAP_ERR_FIRM_ALREADY = 3,
-    IAP_ERR_MEM_IS_FULL = 4,
-    IAP_ERR_FLASH_IS_FULL = 5
-};
-
-enum
-{
-    IAP_CMD_GET_FIRM_INFO = 0,
-    IAP_CMD_GET_FIRM_DATA = 1,
-    IAP_CMD_OK = 3,
-    IAP_CMD_ERR = 4
-};
-
-void GetFirmVer(void);
+/* APIs */
 void Bootloader(void);
 void SetBootloaderHooks(void (*SendData)(const void *Data, uint32_t Size),
                         void (*GetDataSize)(uint32_t *Size),

@@ -52,14 +52,15 @@
 #define ADDR_FLASH_SECTOR_23 ((uint32_t)0x081E0000) /* Base @ of Sector 23, 128 Kbytes */
 #endif
 #endif
+
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
 /* Private functions ---------------------------------------------------------*/
+#if defined(STM32F4)
 uint32_t GetSector(uint32_t Address)
 {
-#if defined(STM32F4)
     if ((Address < ADDR_FLASH_SECTOR_1) && (Address >= ADDR_FLASH_SECTOR_0))
     {
         return 0;
@@ -111,8 +112,32 @@ uint32_t GetSector(uint32_t Address)
 #if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) || \
     defined(STM32F469xx) || defined(STM32F479xx)
 #endif
-#endif
 }
+    
+uint32_t GetSectorStartAddr(uint32_t Address)
+{
+    switch (GetSector(Address))
+    {
+        case 0: return ADDR_FLASH_SECTOR_0;
+        case 1: return ADDR_FLASH_SECTOR_1;
+        case 2: return ADDR_FLASH_SECTOR_2;
+        case 3: return ADDR_FLASH_SECTOR_3;
+        case 4: return ADDR_FLASH_SECTOR_4;
+        case 5: return ADDR_FLASH_SECTOR_5;
+        case 6: return ADDR_FLASH_SECTOR_6;
+        case 7: return ADDR_FLASH_SECTOR_7;
+        case 8: return ADDR_FLASH_SECTOR_8;
+        case 9: return ADDR_FLASH_SECTOR_9;
+        case 10: return ADDR_FLASH_SECTOR_10;
+        case 11: return ADDR_FLASH_SECTOR_11;
+#if defined(STM32F427xx) || defined(STM32F437xx) || defined(STM32F429xx) || defined(STM32F439xx) || \
+    defined(STM32F469xx) || defined(STM32F479xx)
+#endif
+        default : break;
+    }
+    return 0;
+}
+#endif
 /**
   * @brief  Unlocks Flash for write access
   * @param  None
@@ -220,7 +245,7 @@ uint32_t IntFlashErase(uint32_t StartAddr, uint32_t EndAddr)
   *         1: Error occurred while writing data in Flash memory
   *         2: Written Data in flash memory is different from expected one
   */
-uint32_t IntFlashWrite(uint32_t Destination, uint32_t *pSource, uint32_t Length)
+uint32_t IntFlashWrite(uint32_t Destination, uint8_t *pSource, uint32_t Length)
 {
     uint32_t status = INTFLASH_OK;
     uint32_t i = 0;
@@ -230,21 +255,21 @@ uint32_t IntFlashWrite(uint32_t Destination, uint32_t *pSource, uint32_t Length)
     __HAL_FLASH_DATA_CACHE_DISABLE();
 
     /* DataLength must be a multiple of 64 bit */
-    for (i = 0; (i < Length) && (Destination <= (USER_FLASH_END_ADDRESS - 4)); i++)
+    for (i = 0; i < Length; i++)
     {
         /* Device voltage range supposed to be [2.7V to 3.6V], the operation will
-       be done by word */
-        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, Destination, *(pSource + i)) == HAL_OK)
+        be done by word */
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE, Destination, *(pSource + i)) == HAL_OK)
         {
             /* Check the written value */
-            if (*(uint32_t *)Destination != *(pSource + i))
+            if (*(uint8_t *)Destination != *(pSource + i))
             {
                 /* Flash content doesn't match SRAM content */
                 status = INTFLASH_WRITINGCTRL_ERROR;
                 break;
             }
             /* Increment FLASH destination address */
-            (uint32_t *)Destination++;
+            Destination++;
         }
         else
         {
