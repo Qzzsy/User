@@ -14,6 +14,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "Bsp_uart.h"
 #include "mystring.h"
+#include "usart.h"
 
 /* 定义使用的串口端口 */
 #define USE_UART1
@@ -23,7 +24,6 @@
 #define RECV_BUF_SIZE   8192
 
 #ifdef USE_UART1
-extern UART_HandleTypeDef huart1;
 extern DMA_HandleTypeDef hdma_usart1_rx;
 #endif
 
