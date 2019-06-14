@@ -1,68 +1,60 @@
-#include "MyString.h"
+/**
+ ******************************************************************************
+ * @file      zu_string.c
+ * @author    ZSY
+ * @version   V1.0.0
+ * @date      2019-06-12
+ * @brief     该文件提供了string实现方法
+ * @History
+ * Date           Author    version    		Notes
+ * 2019-06-12       ZSY     V1.0.0      first version.
+ */
 
-#ifdef __cplusplus
-#define _ADDRESSOF(v) (&reinterpret_cast<const char &>(v))
-#else
-#define _ADDRESSOF(v) (&(v))
-#endif
+/* Includes ------------------------------------------------------------------*/
 
-#define _INTSIZEOF(n) ((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))
+#include "zu_string.h"
+#include "stdarg.h"
+#include "stdint.h"
 
-#define _crt_va_start(ap, v)    (ap = (va_list)_ADDRESSOF(v) + _INTSIZEOF(v))
-#define _crt_va_arg(ap, t)      (*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t)))
-#define _crt_va_end(ap)         (ap = (va_list)0)
+#define ZEROPAD     (1 << 0)    /* pad with zero */
+#define SIGN        (1 << 1)    /* unsigned/signed long */
+#define PLUS        (1 << 2)    /* show plus */
+#define SPACE       (1 << 3)    /* space if plus */
+#define LEFT        (1 << 4)    /* left justified */
+#define SPECIAL     (1 << 5)    /* 0x */
+#define LARGE       (1 << 6)    /* use 'ABCDEF' instead of 'abcdef' */
+#define INT_TYPE    (1 << 7)
+#define FLO_TYPE    (1 << 8)
+#define DOU_TYPE    (1 << 9)
 
-#define _va_start   _crt_va_start /* windows stdarg.h */
-#define _va_arg     _crt_va_arg
-#define _va_end     _crt_va_end
+static char PrintfSendBuf[PRINTF_SEND_BUF_SIZE] = {'\0'};
 
-#define ZEROPAD (1 << 0)    /* pad with zero */
-#define SIGN    (1 << 1)    /* unsigned/signed long */
-#define PLUS    (1 << 2)    /* show plus */
-#define SPACE   (1 << 3)    /* space if plus */
-#define LEFT    (1 << 4)    /* left justified */
-#define SPECIAL (1 << 5)    /* 0x */
-#define LARGE   (1 << 6)    /* use 'ABCDEF' instead of 'abcdef' */
-
-typedef signed char     int8_t;
-typedef signed short    int16_t;
-typedef signed long     int32_t;
-typedef unsigned char   uint8_t;
-typedef unsigned short  uint16_t;
-typedef unsigned long   uint32_t;
 typedef int             bool_t;
 
-/* 32bit CPU */
-typedef long            base_t;
-typedef unsigned long   ubase_t;
-
-typedef char *va_list;
-
 /**
- * This function will set the content of memory to specified value
- *
- * @param s the address of source memory
- * @param c the value shall be set in content
- * @param count the copied length
- *
- * @return the address of source memory
+ * @func    zu_memset
+ * @brief   This function will set the content of memory to specified value
+ * @param   s the address of source memory
+ * @param   c the value shall be set in content
+ * @param   count the copied length
+ * @return  the address of source memory
  */
-void *my_memset(void *s, int c, ubase_t count)
+void *zu_memset(void *s, zu_int32_t c, zu_uint32_t count)
 {
-#define LBLOCKSIZE (sizeof(int32_t))
-#define UNALIGNED(X) ((int32_t)X & (LBLOCKSIZE - 1))
+#define LBLOCKSIZE (sizeof(zu_int32_t))
+#define UNALIGNED(X) ((zu_int32_t)X & (LBLOCKSIZE - 1))
 #define TOO_SMALL(LEN) ((LEN) < LBLOCKSIZE)
 
     int i;
     char *m = (char *)s;
-    uint32_t buffer;
-    uint32_t *aligned_addr;
-    uint32_t d = c & 0xff;
+    zu_uint32_t buffer;
+    zu_uint32_t *aligned_addr;
+    zu_uint32_t d = c & 0xff;
 
     if (!TOO_SMALL(count) && !UNALIGNED(s))
     {
         /* If we get this far, we know that n is large and m is word-aligned. */
-        aligned_addr = (uint32_t *)s;
+        aligned_addr = (zu_uint32_t *)s;
 
         /* Store D into each char sized location in BUFFER so that
          * we can set large blocks quickly.
@@ -111,36 +103,35 @@ void *my_memset(void *s, int c, ubase_t count)
 }
 
 /**
- * This function will copy memory content from source address to destination
- * address.
- *
- * @param dst the address of destination memory
- * @param src  the address of source memory
- * @param count the copied length
- *
- * @return the address of destination memory
+ * @func    zu_memcpy
+ * @brief   This function will copy memory content from source address to destination
+ *          address.
+ * @param   dst the address of destination memory
+ * @param   src  the address of source memory
+ * @param   count the copied length
+ * @return  the address of destination memory
  */
-void *my_memcpy(void *dst, const void *src, ubase_t count)
+void *zu_memcpy(void *dst, const void *src, zu_uint32_t count)
 {
 #define UNALIGNED(X, Y)                     \
-    (((int32_t)X & (sizeof(int32_t) - 1)) | \
-     ((int32_t)Y & (sizeof(int32_t) - 1)))
-#define BIGBLOCKSIZE (sizeof(int32_t) << 2)
-#define LITTLEBLOCKSIZE (sizeof(int32_t))
+    (((zu_int32_t)X & (sizeof(zu_int32_t) - 1)) | \
+     ((zu_int32_t)Y & (sizeof(zu_int32_t) - 1)))
+#define BIGBLOCKSIZE (sizeof(zu_int32_t) << 2)
+#define LITTLEBLOCKSIZE (sizeof(zu_int32_t))
 #define TOO_SMALL(LEN) ((LEN) < BIGBLOCKSIZE)
 
     char *dst_ptr = (char *)dst;
     char *src_ptr = (char *)src;
-    int32_t *aligned_dst;
-    int32_t *aligned_src;
+    zu_int32_t *aligned_dst;
+    zu_int32_t *aligned_src;
     int len = count;
 
     /* If the size is small, or either SRC or DST is unaligned,
     then punt into the byte copy loop.  This should be rare. */
     if (!TOO_SMALL(len) && !UNALIGNED(src_ptr, dst_ptr))
     {
-        aligned_dst = (int32_t *)dst_ptr;
-        aligned_src = (int32_t *)src_ptr;
+        aligned_dst = (zu_int32_t *)dst_ptr;
+        aligned_src = (zu_int32_t *)src_ptr;
 
         /* Copy 4X long words at a time if possible. */
         while (len >= BIGBLOCKSIZE)
@@ -173,17 +164,17 @@ void *my_memcpy(void *dst, const void *src, ubase_t count)
 #undef LITTLEBLOCKSIZE
 #undef TOO_SMALL
 }
+
 /**
- * This function will move memory content from source address to destination
- * address.
- *
- * @param dest the address of destination memory
- * @param src  the address of source memory
- * @param n the copied length
- *
- * @return the address of destination memory
+ * @func    zu_memmove
+ * @brief   This function will move memory content from source address to destination
+ *          address.
+ * @param   dest the address of destination memory
+ * @param   src  the address of source memory
+ * @param   n the copied length
+ * @return  the address of destination memory
  */
-void *my_memmove(void *dest, const void *src, ubase_t n)
+void *zu_memmove(void *dest, const void *src, zu_uint32_t n)
 {
     char *tmp = (char *)dest, *s = (char *)src;
 
@@ -203,16 +194,16 @@ void *my_memmove(void *dest, const void *src, ubase_t n)
 
     return dest;
 }
+
 /**
- * This function will compare two areas of memory
- *
- * @param cs one area of memory
- * @param ct znother area of memory
- * @param count the size of the area
- *
- * @return the result
+ * @func    zu_memcmp
+ * @brief   This function will compare two areas of memory
+ * @param   cs one area of memory
+ * @param   ct znother area of memory
+ * @param   count the size of the area
+ * @return  the result
  */
-char my_memcmp(const void *cs, const void *ct, ubase_t count)
+char zu_memcmp(const void *cs, const void *ct, zu_uint32_t count)
 {
     const unsigned char *su1, *su2;
     char res = 0;
@@ -227,17 +218,17 @@ char my_memcmp(const void *cs, const void *ct, ubase_t count)
 }
 
 /**
- * The  strnlen()  function  returns the number of characters in the
- * string pointed to by s, excluding the terminating null byte ('\0'),
- * but at most maxlen.  In doing this, strnlen() looks only at the
- * first maxlen characters in the string pointed to by s and never
- * beyond s+maxlen.
- *
- * @param s the string
- * @param maxlen the max size
- * @return the length of string
+ * @func    zu_strnlen
+ * @brief   The  strnlen()  function  returns the number of characters in the
+ *          string pointed to by s, excluding the terminating null byte ('\0'),
+ *          but at most maxlen.  In doing this, strnlen() looks only at the
+ *          first maxlen characters in the string pointed to by s and never
+ *          beyond s+maxlen.
+ * @param   s the string
+ * @param   maxlen the max size
+ * @return  the length of string
  */
-uint32_t my_strnlen(const char *s, uint32_t maxlen)
+zu_uint32_t zu_strnlen(const char *s, zu_uint32_t maxlen)
 {
     const char *sc;
 
@@ -248,14 +239,13 @@ uint32_t my_strnlen(const char *s, uint32_t maxlen)
 }
 
 /**
- * This function will return the length of a string, which terminate will
- * null character.
- *
- * @param s the string
- *
- * @return the length of string
+ * @func    zu_strlen
+ * @brief   This function will return the length of a string, which terminate will
+ *          null character.
+ * @param   s the string
+ * @return  the length of string
  */
-uint32_t my_strlen(const char *s)
+zu_uint32_t zu_strlen(const char *s)
 {
     const char *sc;
 
@@ -266,25 +256,24 @@ uint32_t my_strlen(const char *s)
 }
 
 /**
- * This function will return the first occurrence of a string.
- *
- * @param s1 the source string
- * @param s2 the find string
- *
- * @return the first occurrence of a s2 in s1, or RT_NULL if no found.
+ * @func    zu_strstr
+ * @brief   This function will return the first occurrence of a string.
+ * @param   s1 the source string
+ * @param   s2 the find string
+ * @return  the first occurrence of a s2 in s1, or RT_NULL if no found.
  */
-char *my_strstr(const char *s1, const char *s2)
+char *zu_strstr(const char *s1, const char *s2)
 {
     int l1, l2;
 
-    l2 = my_strlen(s2);
+    l2 = zu_strlen(s2);
     if (!l2)
         return (char *)s1;
-    l1 = my_strlen(s1);
+    l1 = zu_strlen(s1);
     while (l1 >= l2)
     {
         l1--;
-        if (!my_memcmp(s1, s2, l2))
+        if (!zu_memcmp(s1, s2, l2))
             return (char *)s1;
         s1++;
     }
@@ -292,11 +281,18 @@ char *my_strstr(const char *s1, const char *s2)
     return NULL;
 }
 
-char *my_strstr_r(const char *s1, const char *s2, uint32_t n)
+/**
+ * @func    zu_strstr_r
+ * @brief   This function will return the first occurrence of a string.
+ * @param   s1 the source string
+ * @param   s2 the find string
+ * @return  the first occurrence of a s2 in s1, or RT_NULL if no found.
+ */
+char *zu_strstr_r(const char *s1, const char *s2, zu_uint32_t n)
 {
     int l1, l2;
 
-    l2 = my_strlen(s2);
+    l2 = zu_strlen(s2);
     if (!l2)
         return (char *)s1;
 
@@ -305,22 +301,22 @@ char *my_strstr_r(const char *s1, const char *s2, uint32_t n)
     while (l1 >= l2)
     {
         l1--;
-        if (!my_memcmp(s1, s2, l2))
+        if (!zu_memcmp(s1, s2, l2))
             return (char *)s1;
         s1++;
     }
 
     return NULL;
 }
+
 /**
- * This function will compare two strings while ignoring differences in case
- *
- * @param a the string to be compared
- * @param b the string to be compared
- *
- * @return the result
+ * @func    zu_strcasecmp
+ * @brief   This function will compare two strings while ignoring differences in case
+ * @param   a the string to be compared
+ * @param   b the string to be compared
+ * @return  the result
  */
-uint32_t my_strcasecmp(const char *a, const char *b)
+zu_uint32_t zu_strcasecmp(const char *a, const char *b)
 {
     int ca, cb;
 
@@ -336,16 +332,16 @@ uint32_t my_strcasecmp(const char *a, const char *b)
 
     return ca - cb;
 }
+
 /**
- * This function will copy string no more than n bytes.
- *
- * @param dst the string to copy
- * @param src the string to be copied
- * @param n the maximum copied length
- *
- * @return the result
+ * @func    zu_strncpy
+ * @brief   This function will copy string no more than n bytes.
+ * @param   dst the string to copy
+ * @param   src the string to be copied
+ * @param   n the maximum copied length
+ * @return  the result
  */
-char *my_strncpy(char *dst, const char *src, ubase_t n)
+char *zu_strncpy(char *dst, const char *src, zu_uint32_t n)
 {
     if (n != 0)
     {
@@ -366,16 +362,16 @@ char *my_strncpy(char *dst, const char *src, ubase_t n)
 
     return (dst);
 }
+
 /**
- * This function will compare two strings with specified maximum length
- *
- * @param cs the string to be compared
- * @param ct the string to be compared
- * @param count the maximum compare length
- *
- * @return the result
+ * @func    zu_strncmp
+ * @brief   This function will compare two strings with specified maximum length
+ * @param   cs the string to be compared
+ * @param   ct the string to be compared
+ * @param   count the maximum compare length
+ * @return  the result
  */
-char my_strncmp(const char *cs, const char *ct, long count)
+char zu_strncmp(const char *cs, const char *ct, zu_int32_t count)
 {
     register signed char __res = 0;
 
@@ -388,15 +384,15 @@ char my_strncmp(const char *cs, const char *ct, long count)
 
     return __res;
 }
+
 /**
- * This function will compare two strings without specified length
- *
- * @param cs the string to be compared
- * @param ct the string to be compared
- *
- * @return the result
+ * @func    zu_strcmp
+ * @brief   This function will compare two strings without specified length
+ * @param   cs the string to be compared
+ * @param   ct the string to be compared
+ * @return  the result
  */
-long my_strcmp(const char *cs, const char *ct)
+long zu_strcmp(const char *cs, const char *ct)
 {
     while (*cs && *cs == *ct)
         cs++, ct++;
@@ -405,7 +401,7 @@ long my_strcmp(const char *cs, const char *ct)
 }
 
 /**
- * @func    my_strtok_r
+ * @func    zu_strtok_r
  * @brief   根据分割符号分割字符串
  * @param   str 源字符串
  * @param   delimiters 分割符
@@ -413,14 +409,14 @@ long my_strcmp(const char *cs, const char *ct)
  * @note  	
  * @retval  返回第一段字符串的首地址，返回RT_NULL为没有分割字符串
  */
-void *my_strtok_r(char *str, const char *delimiters, char **saveptr)
+void *zu_strtok_r(char *str, const char *delimiters, char **saveptr)
 {
     char *start_str = str;
 
-    uint16_t cnt = 0, offiset = 0, len = 0;
+    zu_uint16_t cnt = 0, offiset = 0, len = 0;
 
     /* 计算分割符的长度 */
-    len = my_strlen(delimiters);
+    len = zu_strlen(delimiters);
 
     while (*(str + cnt) != '\0')
     {
@@ -448,8 +444,9 @@ void *my_strtok_r(char *str, const char *delimiters, char **saveptr)
 
     return NULL;
 }
+
 /**
- * @func    my_strtok
+ * @func    zu_strtok
  * @brief   根据分割符号分割字符串
  * @param   str 源字符串
  * @param   delimiters 分割符
@@ -457,7 +454,7 @@ void *my_strtok_r(char *str, const char *delimiters, char **saveptr)
  * @note  	需要释放内存
  * @retval  字符串第一段的首地址的指针的指针，返回RT_NULL为没有分割字符串
  */
-void *my_strtok(char *str, const char *delimiters, char *cnt)
+void *zu_strtok(char *str, const char *delimiters, char *cnt)
 {
     static char *s;
     char *result = NULL;
@@ -467,12 +464,19 @@ void *my_strtok(char *str, const char *delimiters, char *cnt)
         s = str;
     }
 
-    result = (char *)my_strtok_r(s, delimiters, &s);
+    result = (char *)zu_strtok_r(s, delimiters, &s);
 
     /* 返回分割后的数组指针 */
     return result;
 }
 
+/**
+ * @func    _div
+ * @brief   分割整型为单个数字
+ * @param   n 数字
+ * @param   base 单位
+ * @retval  结果
+ */
 static inline int _div(long *n, unsigned base)
 {
     int __res;
@@ -483,11 +487,23 @@ static inline int _div(long *n, unsigned base)
 
 #define do_div(n, base) _div(&n, base)
 
+/**
+ * @func    isdigit
+ * @brief   判断是否为数字
+ * @param   ch 输入的字符
+ * @retval  1 是； 0 不是
+ */
 static inline int isdigit(int ch)
 {
     return (ch >= '0') && (ch <= '9');
 }
 
+/**
+ * @func    zu_atol
+ * @brief   字符串转长整型
+ * @param   s 输入的字符串
+ * @retval  转换结果
+ */
 static int skip_atoi(const char **s)
 {
     register int i = 0;
@@ -499,6 +515,12 @@ static int skip_atoi(const char **s)
     return i;
 }
 
+/**
+ * @func    zu_atoi
+ * @brief   字符串转整型
+ * @param   s 输入的字符串
+ * @retval  转换结果
+ */
 static long skip_atol(const char **s)
 {
     register long i = 0;
@@ -510,16 +532,172 @@ static long skip_atol(const char **s)
     return i;
 }
 
-int my_atoi(const char *s)
+/**
+ * @func    zu_atoi
+ * @brief   字符串转整型
+ * @param   s 输入的字符串
+ * @retval  转换结果
+ */
+int zu_atoi(const char *s)
 {
     return skip_atoi(&s);
 }
 
-long my_atol(const char *s)
+/**
+ * @func    zu_atol
+ * @brief   字符串转长整型
+ * @param   s 输入的字符串
+ * @retval  转换结果
+ */
+long zu_atol(const char *s)
 {
     return skip_atol(&s);
 }
 
+/**
+ * @func    print_number
+ * @brief   字符串构建函数（具体实现，浮点打印）
+ * @param   buf 输出缓存
+ * @param   end 输出缓存的结尾
+ * @param   num 需要转换的数字
+ * @param   base 基本单位（典型是10）
+ * @param   size 显示的区域（最小）
+ * @param   precision 精度
+ * @param   type flags
+ * @retval  处理完成的字符串
+ */
+static char *print_flt(char *buf, 
+                 char *end, 
+                 double num,
+                 int base,
+                 int size,
+                 int precision,
+                 int type)
+{
+    char sign, tmp[66], flo_tmp[66];
+    const char *digits = "0123456789";
+    int i, j;
+
+    if (base != 10)
+    {
+        return 0;
+    }
+
+    sign = 0;
+    if (type & SIGN)
+    {
+        if (num < 0)
+        {
+            sign = '-';
+            num = -num;
+            size--;
+        }
+        else if (type & PLUS)
+        {
+            sign = '+';
+            size--;
+        }
+        else if (type & SPACE)
+        {
+            sign = ' ';
+            size--;
+        }
+    }
+
+    i = 0;
+    if (num == 0)
+        tmp[i++] = '0';
+    else
+    {
+        long _tmp = num;
+        tmp[i] = '0';
+        while (_tmp != 0)
+            tmp[i++] = digits[do_div(_tmp, base)];
+        if (_tmp == 0)
+            i++;
+        flo_tmp[0] = '.';
+        if (type & DOU_TYPE)
+        {
+            for (j = 1; j <= 12; j++)
+            {
+                num *= 10;
+                flo_tmp[j] = digits[(uint32_t)num % 10];
+            }
+            
+            if (precision > 12)
+                precision = 12;
+        }
+        else if (type & FLO_TYPE)
+        {
+            for (j = 1; j <= 6; j++)
+            {
+                num *= 10;
+                flo_tmp[j] = digits[(uint32_t)num % 10];
+            }
+            
+            if (precision > 6)
+                precision = 6;
+        }
+    }
+
+    if (sign)
+    {
+        if (buf <= end)
+        {
+            *buf = sign;
+            --size;
+        }
+        ++buf;
+    }
+
+    if (!(type & LEFT))
+    {
+        while (size-- > 0)
+        {
+            if (buf <= end)
+                *buf = ' ';
+            ++buf;
+        }
+    }
+    
+    while (i-- > 0)
+    {
+        if (buf <= end)
+            *buf = tmp[i];
+        ++buf;
+        size--;
+    }
+    
+    i = 0;
+    while(i < (precision + 1))
+    {
+        if (buf <= end)
+            *buf = flo_tmp[i++];
+        ++buf;
+        size--;
+    }
+
+    while (size-- > 0)
+    {
+        if (buf <= end)
+            *buf = ' ';
+        ++buf;
+    }
+    return buf;
+}
+
+/**
+ * @func    print_number
+ * @brief   字符串构建函数（具体实现，整型打印）
+ * @param   buf 输出缓存
+ * @param   end 输出缓存的结尾
+ * @param   num 需要转换的数字
+ * @param   base 基本单位（典型是10）
+ * @param   size 显示的区域（最小）
+ * @param   precision 精度
+ * @param   type flags
+ * @retval  处理完成的字符串
+ */
 static char *print_number(char *buf,
                           char *end,
                           long num,
@@ -656,30 +834,41 @@ static char *print_number(char *buf,
     return buf;
 }
 
+/**
+ * @func    _vsnprintf
+ * @brief   字符串构建函数（具体实现）
+ * @param   buf 输出缓存
+ * @param   size 输出缓存的大小
+ * @param   fmt 输入的字符串
+ * @param   args 可变参数的参数列表
+ * @retval  字符串的长度
+ */
 static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
 {
     int len;
     unsigned long num;
+    double fd_num;
     int i, base;
     char *str, *end, c;
     const char *s;
 
-    int flags; /* flags to Test_number() */
+    int flags; /* flags to print_number() */
 
     int field_width; /* width of output field */
     int precision;   /* min. # of digits for integers; max
-                  Test_number of chars for from string */
+                        print_number of chars for from string */
     int qualifier;   /* 'h', 'l', or 'L' for integer fields */
 
     str = buf;
     end = buf + size - 1;
-
     /* Make sure end is always >= buf */
     if (end < buf)
     {
         end = ((char *)-1);
         size = end - buf;
     }
+    
+    zu_memset(buf, 0, size);
 
     for (; *fmt; ++fmt)
     {
@@ -722,7 +911,7 @@ static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
         {
             ++fmt;
             /* it's the next argument */
-            field_width = _va_arg(args, int);
+            field_width = va_arg(args, int);
             if (field_width < 0)
             {
                 field_width = -field_width;
@@ -741,7 +930,7 @@ static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
             {
                 ++fmt;
                 /* it's the next argument */
-                precision = _va_arg(args, int);
+                precision = va_arg(args, int);
             }
 
             if (precision < 0)
@@ -762,7 +951,7 @@ static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
         switch (*fmt)
         {
         case 'c':
-            if (!(flags & LEFT))
+            if (!(flags & LEFT))            /* 右对齐 */
             {
                 while (--field_width > 0)
                 {
@@ -771,27 +960,27 @@ static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
                     ++str;
                 }
             }
-            *str++ = (unsigned char)_va_arg(args, int);
+            c = (unsigned char)va_arg(args, int);
 
-            if (str <= end)
+            if (str <= end)                 /* 安全检测 */
                 *str = c;
             ++str;
 
             while (--field_width > 0)
             {
-                if (str <= end)
+                if (str <= end)             /* 安全检测 */
                     *str = ' ';
                 ++str;
             }
             continue;
 
         case 's':
-            s = _va_arg(args, char *);
+            s = va_arg(args, char *);
 
             if (!s)
                 s = "(NULL)";
 
-            len = my_strlen(s);
+            len = zu_strlen(s);
 
             if (precision > 0 && len > precision)
                 len = precision;
@@ -828,19 +1017,19 @@ static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
                 flags |= ZEROPAD;
             }
             str = print_number(str, end,
-                               (unsigned long)_va_arg(args, void *), 16,
+                               (unsigned long)va_arg(args, void *), 16,
                                field_width, precision, flags);
             continue;
 
         case 'n':
             if (qualifier == 'l')
             {
-                long *ip = _va_arg(args, long *);
+                long *ip = va_arg(args, long *);
                 *ip = (str - buf);
             }
             else
             {
-                int *ip = _va_arg(args, int *);
+                int *ip = va_arg(args, int *);
                 *ip = (str - buf);
             }
             continue;
@@ -860,14 +1049,22 @@ static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
             flags |= LARGE;
         case 'x':
             base = 16;
+            flags |= INT_TYPE;
             break;
 
         case 'd':
         case 'i':
             flags |= SIGN;
         case 'u':
+            flags |= INT_TYPE;
             break;
-
+        case 'E':
+        case 'G':
+        case 'e':
+        case 'f':
+        case 'g':
+            flags |= FLO_TYPE;
+            break;
         default:
             if (str <= end)
                 *str = '%';
@@ -885,27 +1082,46 @@ static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
             }
             continue;
         }
-        if (qualifier == 'l')
+        if (flags & INT_TYPE)
         {
-            num = _va_arg(args, unsigned long);
-            if (flags & SIGN)
-                num = (int)num;
+            if (qualifier == 'l')
+            {
+                num = va_arg(args, unsigned long);
+                if (flags & SIGN)
+                    num = (int)num;
+            }
+            else if (qualifier == 'h')
+            {
+                num = (unsigned short)va_arg(args, int);
+                if (flags & SIGN)
+                    num = (short)num;
+            }
+            else if (flags & SIGN)
+                num = va_arg(args, int);
+            else
+            {
+                num = va_arg(args, unsigned int);
+                if (flags & SIGN)
+                    num = (int)num;
+            }
+            str = print_number(str, end, num, base, field_width, precision, flags);
         }
-        else if (qualifier == 'h')
+        else if (flags & FLO_TYPE)
         {
-            num = (unsigned short)_va_arg(args, int);
-            if (flags & SIGN)
-                num = (short)num;
+            if (qualifier == 'l')
+            {
+                flags |= DOU_TYPE;
+                if (precision <= 0)
+                    precision = 12;
+            }
+            else
+            {
+                if (precision <= 0)
+                    precision = 6;
+            }
+            fd_num = va_arg(args, double);
+            str = print_flt(str, end, fd_num, base, field_width, precision, flags);
         }
-        else if (flags & SIGN)
-            num = _va_arg(args, int);
-        else
-        {
-            num = _va_arg(args, unsigned int);
-            if (flags & SIGN)
-                num = (int)num;
-        }
-        str = print_number(str, end, num, base, field_width, precision, flags);
     }
 
     if (str <= end)
@@ -916,24 +1132,49 @@ static long _vsnprintf(char *buf, uint32_t size, const char *fmt, va_list args)
     return str - buf;
 }
 
+/**
+ * @func    _vsprintf
+ * @brief   字符串构建函数
+ * @param   buf 输出缓存
+ * @param   format 输入的字符串
+ * @param   arg_ptr 可变参数的参数列表
+ * @note    不安全，不建议使用
+ * @retval  字符串的长度
+ */
 static int _vsprintf(char *buf, const char *format, va_list arg_ptr)
 {
     return _vsnprintf(buf, (int)-1, format, arg_ptr);
 }
 
-long my_snprintf(char *buf, long size, const char *fmt, ...)
+/**
+ * @func    zu_snprintf
+ * @brief   字符串构建函数
+ * @param   buf 输出缓存
+ * @param   size 输出缓存最大的大小
+ * @param   fmt 输入的字符串
+ * @retval  字符串的长度
+ */
+zu_int32_t zu_snprintf(char *buf, zu_int32_t size, const char *fmt, ...)
 {
     int32_t n;
     va_list args;
 
-    _va_start(args, fmt);
+    va_start(args, fmt);
     n = _vsnprintf(buf, size, fmt, args);
-    _va_end(args);
+    va_end(args);
 
     return n;
 }
 
-long my_sprintf(char *buf, const char *fmt, ...)
+/**
+ * @func    zu_sprintf
+ * @brief   字符串构建函数
+ * @param   buf 输出缓存
+ * @param   fmt 输入的字符串
+ * @note    不安全，不建议使用
+ * @retval  字符串的长度
+ */
+long zu_sprintf(char *buf, const char *fmt, ...)
 {
     long n;
 
@@ -941,37 +1182,41 @@ long my_sprintf(char *buf, const char *fmt, ...)
     va_list args;
 
     //得到首个%对应的字符地址
-    _va_start(args, fmt);
+    va_start(args, fmt);
     n = _vsprintf(buf, fmt, args);
-    _va_end(args);
+    va_end(args);
 
     return n;
 }
 
-static void (*ConsoleOutFunc)(const char *buf, uint32_t Length);
-void SetConsoleOutFunc(void (*ConsoleOut)(const char *buf, uint32_t Length))
-{
-    ConsoleOutFunc = ConsoleOut;
-}
-
-static char PrintfSendBuf[PRINTF_SEND_BUF_SIZE] = {'\0'};
-long my_printf(const char *fmt, ...)
+void (*console_device)(void * buf, zu_uint32_t zise);
+/**
+ * @func    zu_printf
+ * @brief   print函数
+ * @param   fmt 输入的字符串
+ * @retval  字符串的长度
+ */
+long zu_printf(const char *fmt, ...)
 {
     long n;
     //记录fmt对应的地址
     va_list args;
 
-    if (ConsoleOutFunc == NULL)
-    {
-        return NULL;
-    }
-
     //得到首个%对应的字符地址
-    _va_start(args, fmt);
-    n = _vsprintf(PrintfSendBuf, fmt, args);
-    _va_end(args);
-
-    ConsoleOutFunc(PrintfSendBuf, n);
-
+    va_start(args, fmt);
+    n = _vsnprintf(PrintfSendBuf, sizeof(PrintfSendBuf) - 1, fmt, args);
+    va_end(args);
+#ifdef USE_CONSOLE    
+    if (console_device != ZU_NULL)
+    {
+        console_device(PrintfSendBuf, n);
+    }
+#endif
     return n;
+}
+
+
+void zu_set_console_device(void (*_console_device)(const char * buf, zu_uint32_t zise))
+{
+    console_device = _console_device;
 }

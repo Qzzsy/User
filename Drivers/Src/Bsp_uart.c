@@ -2,59 +2,41 @@
  ******************************************************************************
  * @file      Bsp_uart.c
  * @author    ZSY
- * @version   V1.0.1
- * @date      2018-10-08
- * @brief     该文件提供了串口操作相关的API，使得底层与应用层更加分离
+ * @version   V1.0.2
+ * @date      2019-06-10
+ * @brief     该文件提供了串口操作相关的API，使得底层与应用层更加分离，依赖mystring和usart文件
  * @History
  * Date           Author    version    		Notes
  * 2018-08-31       ZSY     V1.0.0      first version.
  * 2018-10-08       ZSY     V1.0.1      实现串口空闲中断接受数据，DMA模式.
+ * 2019-06-10       ZSY     V1.0.2      添加对USART2和USART3的支持.
  */
 
 /* Includes ------------------------------------------------------------------*/
 #include "Bsp_uart.h"
-#include "mystring.h"
+#include "zu_string.h"
 #include "usart.h"
+#include "zu_config.h"
+#include "zu_def.h"
 
-/* 定义使用的串口端口 */
-#define USE_UART1
-//#define USE_UART2
-//#define USE_CONSOLE 
-
-#define RECV_BUF_SIZE   8192
-
-#ifdef USE_UART1
+#ifdef USE_USART1
 extern DMA_HandleTypeDef hdma_usart1_rx;
+zu_serial_t * p_usart1_dev;
+#endif
+#ifdef USE_USART2
+extern DMA_HandleTypeDef hdma_usart2_rx;
+zu_serial_t * p_usart2_dev;
+#endif
+#ifdef USE_USART3
+extern DMA_HandleTypeDef hdma_usart3_rx;
+zu_serial_t * p_usart3_dev;
 #endif
 
-/* 内存操作方法 */
-typedef struct
-{
-    void (*RecvProcess)(void *Data, uint32_t Size);
-} UartHooks_t;
-
-/* 初始化内存操作方法 */
-static UartHooks_t Hooks =
-    {
-        .RecvProcess = NULL};
-
-typedef struct 
-{
-    void * RecvBuf;
-    uint32_t RecvBufSize;
-    void * SendBuf;
-    uint32_t SendBufSize;
-}UartDMABuf_t;
-
-uint8_t RecvBuf[RECV_BUF_SIZE] = {'\0'};
-
-static UartDMABuf_t hUart1DMABuf =
-{
-    .RecvBuf = RecvBuf,
-    .RecvBufSize = RECV_BUF_SIZE
-};
+#ifdef USE_CONSOLE
 static UART_HandleTypeDef * ConsoleOutHandle;
+#endif
 
+#ifdef USE_CONSOLE
 /**
  * @func    ConsoleOut
  * @brief   流输出方法，主要用于输出到串口助手显示
@@ -62,10 +44,11 @@ static UART_HandleTypeDef * ConsoleOutHandle;
  * @param   Lenght 发送的数据长度
  * @retval  无
  */
-void ConsoleOut(const char * Sendbuf, unsigned long Lenght)
+void console_out(const char * Sendbuf, unsigned long Lenght)
 {
     HAL_UART_Transmit(ConsoleOutHandle, (uint8_t *)Sendbuf, Lenght, 10);
 }
+#endif
 
 /**
  * @func    SetUartIDLE_IT
@@ -74,38 +57,33 @@ void ConsoleOut(const char * Sendbuf, unsigned long Lenght)
  * @param   Status 状态
  * @retval  无
  */
-void SetUartIDLE_IT(UART_HandleTypeDef * hUart, uint8_t Status)
+void set_usart_IDLE_IT(zu_serial_t *dev)
 {
-    if (Status == ENABLE)
+    if (dev->flags & ZU_ENABLE)
     {
-        __HAL_UART_ENABLE_IT(hUart, UART_IT_IDLE);
+        __HAL_UART_ENABLE_IT(dev->huart, UART_IT_IDLE);
     }
-    else if (Status == DISABLE)
+    else if (dev->flags & ZU_DISABLE)
     {
-        __HAL_UART_DISABLE_IT(hUart, UART_IT_IDLE);
+        __HAL_UART_DISABLE_IT(dev->huart, UART_IT_IDLE);
     }
 }
 
 /**
- * @func    SetUartDMARecvBuff
+ * @func    set_usart_DMA_recv_buff
  * @brief   设置DMA接收的缓存区
  * @param   hUart 句柄
  * @param   pBuf 缓存区指针
  * @param   BufSize 缓存区大小
  * @retval  无
  */
-void SetUartDMARecvBuff(UART_HandleTypeDef * hUart, void * pBuf, uint32_t BufSize)
+void set_usart_DMA_recv_buff(zu_serial_t * dev)
 {  
-    if (pBuf != NULL && BufSize != 0)
+    if (dev->usart_buf.recv_buf != NULL && dev->usart_buf.recv_buf_size != 0)
     {
-        if (hUart->Instance == USART1)
-        {
-            hUart1DMABuf.RecvBuf = pBuf;
-            hUart1DMABuf.RecvBufSize = BufSize;
-        }
+        //DMA 接收地址设置
+        HAL_UART_Receive_DMA(dev->huart, dev->usart_buf.recv_buf, dev->usart_buf.recv_buf_size);
     }
-    //DMA 接收地址设置
-    HAL_UART_Receive_DMA(hUart, hUart1DMABuf.RecvBuf, hUart1DMABuf.RecvBufSize);
 }
 
 /**
@@ -114,79 +92,54 @@ void SetUartDMARecvBuff(UART_HandleTypeDef * hUart, void * pBuf, uint32_t BufSiz
  * @param   hUart 句柄
  * @retval  无
  */
-static inline void UART_RxIdleCallback(UART_HandleTypeDef *huart)
+static inline void USART_rx_IDLE_callback(zu_serial_t * dev)
 {
-    if(__HAL_UART_GET_FLAG(huart,UART_FLAG_IDLE))
+    __IO uint32_t rxSize = 0;
+    if(__HAL_UART_GET_FLAG(dev->huart, UART_FLAG_IDLE))
     {
-        if (huart->Instance == USART1)
+#ifdef USE_USART1
+        if (dev->huart->Instance == USART1)
         {
-            __IO uint32_t rxSize = 0;
+            __HAL_UART_CLEAR_IDLEFLAG(dev->huart);
+            HAL_UART_DMAStop(dev->huart);
+            //hdma_usart1_rx.Instance->NDTR = hUart1DMABuf.RecvBufSize;
+            rxSize = dev->usart_buf.recv_buf_size - hdma_usart1_rx.Instance->NDTR;
+            
+            if (dev->recv_process != NULL)
+                dev->recv_process(dev->usart_buf.recv_buf, rxSize);
+        }
+#endif
+#ifdef USE_USART2
+        if (huart->Instance == USART2)
+        {
+            UartDMABuf = &hUart2DMABuf;
             __HAL_UART_CLEAR_IDLEFLAG(huart);
             HAL_UART_DMAStop(huart);
             //hdma_usart1_rx.Instance->NDTR = hUart1DMABuf.RecvBufSize;
-            rxSize = hUart1DMABuf.RecvBufSize - hdma_usart1_rx.Instance->NDTR;
+            rxSize = UartDMABuf->RecvBufSize - hdma_usart2_rx.Instance->NDTR;
             
-            if (Hooks.RecvProcess != NULL)
-                Hooks.RecvProcess(hUart1DMABuf.RecvBuf, rxSize);
-
-            HAL_UART_Receive_DMA(huart, hUart1DMABuf.RecvBuf, hUart1DMABuf.RecvBufSize);
+            if (Hooks.Usart2RecvProcess != NULL)
+                Hooks.Usart2RecvProcess(UartDMABuf->RecvBuf, rxSize);
         }
+#endif
+#ifdef USE_USART3
+        if (huart->Instance == USART3)
+        {
+            UartDMABuf = &hUart3DMABuf;
+            __HAL_UART_CLEAR_IDLEFLAG(huart);
+            HAL_UART_DMAStop(huart);
+            //hdma_usart1_rx.Instance->NDTR = hUart1DMABuf.RecvBufSize;
+            rxSize = UartDMABuf->RecvBufSize - hdma_usart3_rx.Instance->NDTR;
+            
+            if (Hooks.Usart3RecvProcess != NULL)
+                Hooks.Usart3RecvProcess(UartDMABuf->RecvBuf, rxSize);
+        }
+#endif
+        HAL_UART_Receive_DMA(dev->huart, dev->usart_buf.recv_buf, dev->usart_buf.recv_buf_size);
     }
 }
 
-#ifdef USE_CONSOLE
-/**
- * @func    SetConsoleDevice
- * @brief   设置流输出的句柄
- * @param   hUart 句柄
- * @retval  HAL_OK
- */
-HAL_StatusTypeDef SetConsoleDevice(UART_HandleTypeDef * hUart)
-{
-    ConsoleOutHandle = hUart;
-    SetConsoleOutFunc(&ConsoleOut);
-    return HAL_OK;
-}
-#endif
-
-#ifdef USE_UART1
-/**
- * @func    Uart1_GetHandle
- * @brief   获取串口1的句柄
- * @retval  句柄
- */
-UART_HandleTypeDef * Uart1_GetHandle(void)
-{
-  return &huart1;
-}
-#endif
-
-#ifdef USE_UART2
-/**
- * @func    Uart2_GetHandle
- * @brief   获取串口2的句柄
- * @retval  句柄
- */
-UART_HandleTypeDef * Uart2_GetHandle(void)
-{
-  return &huart2;
-}
-#endif
-
-/**
- * @func    SetUartRecvHook
- * @brief   配置接收处理函数的回调函数
- * @param   RecvProcess 函数指针
- * @retval  无
- */
-void SetUartRecvHook(void (*RecvProcess)(const void *Data, uint32_t Size))
-{
-    if (RecvProcess != NULL)
-    {
-        Hooks.RecvProcess = RecvProcess;
-    }
-}
-
+#ifdef USE_USART1
 /**
  * @func    USART1_IRQHandler
  * @brief   串口通用中断入口
@@ -194,7 +147,99 @@ void SetUartRecvHook(void (*RecvProcess)(const void *Data, uint32_t Size))
  */
 void USART1_IRQHandler(void)
 {
-    UART_RxIdleCallback(&huart1);
+    USART_rx_IDLE_callback(p_usart1_dev);
 }
+#endif
 
+#ifdef USE_USART2
+/**
+ * @func    USART2_IRQHandler
+ * @brief   串口通用中断入口
+ * @retval  无
+ */
+void USART2_IRQHandler(void)
+{
+    USART_rx_IDLE_callback(usart2_dev);
+}
+#endif
 
+#ifdef USE_USART3
+/**
+ * @func    USART3_IRQHandler
+ * @brief   串口通用中断入口
+ * @retval  无
+ */
+void USART3_IRQHandler(void)
+{
+    USART_rx_IDLE_callback(usart3_dev);
+}
+#endif
+
+zu_err_t usart_init(zu_serial_t *dev)
+{
+    if (dev == ZU_NULL)
+    {
+        return -ZU_ERROR;
+    }
+    if (dev->usart_buf.recv_buf == ZU_NULL || dev->usart_buf.recv_buf_size == 0)
+    {
+        return -ZU_ERROR;
+    }
+    
+#ifdef USE_USART1
+    if (zu_strcmp("usart1", dev->name) == 0)
+    {
+        dev->huart = &huart1;
+        if (dev->mode & ZU_MODE_IDLE_INT)
+        {
+            dev->flags |= ZU_ENABLE;
+            set_usart_IDLE_IT(dev);
+        }
+        p_usart1_dev = dev;
+#ifdef USE_CONSOLE    
+        if (CONSOLE_DEVICE == "usart1")
+        {
+            ConsoleOutHandle = dev->huart;
+        }
+#endif
+    }
+#endif
+#ifdef USE_USART2
+    if (zu_strcmp("usart2", dev->name) == 0)
+    {
+        dev->huart = &huart1;
+        if (dev->mode & ZU_MODE_IDLE_INT)
+        {
+            dev->flags |= ZU_ENABLE;
+            set_usart_IDLE_IT(dev);
+        }
+        p_usart2_dev = dev;
+    
+#ifdef USE_CONSOLE
+        if (CONSOLE_DEVICE == "usart2")
+        {
+            ConsoleOutHandle = dev->huart;
+        }
+    }
+#endif
+#endif
+#ifdef USE_USART3
+    if (zu_strcmp("usart3", dev->name) == 0)
+    {
+        dev->huart = &huart2;
+        if (dev->mode & ZU_MODE_IDLE_INT)
+        {
+            dev->flags |= ZU_ENABLE;
+            set_usart_IDLE_IT(dev);
+        }
+        p_usart3_dev = dev;
+        
+#ifdef USE_CONSOLE
+        if (CONSOLE_DEVICE == "usart3")
+        {
+            ConsoleOutHandle = dev->huart;
+        }
+#endif
+    }
+#endif
+}
