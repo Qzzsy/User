@@ -22,6 +22,7 @@ uint8_t mem_check_byte_type(void)
 {
     __IO uint32_t i;
     __IO uint8_t * ptr = (uint8_t *)SRAM_ADDRESS_START, tmp1, tmp2;
+    uint8_t err_flag;
     zu_printf("test byte w/r.\r\nmemory test no.1\r\n");
     for (i = 0; i < MEMORY_SIZE; i++)
     {
@@ -37,6 +38,7 @@ uint8_t mem_check_byte_type(void)
         if (tmp1 != tmp2)
         {
             zu_printf("at 0x%p:current value is 0x%02x, now it`s 0x%02x\r\n", ptr, tmp2, tmp1);
+            err_flag = true;
         }
         
         ptr++;
@@ -58,6 +60,7 @@ uint8_t mem_check_byte_type(void)
         if (tmp1 != tmp2)
         {
             zu_printf("at 0x%p:current value is 0x%02x, now it`s 0x%02x\r\n", ptr, tmp2, tmp1);
+            err_flag = true;
         }
         
         ptr++;
@@ -77,6 +80,7 @@ uint8_t mem_check_byte_type(void)
         if (tmp1 != 0xaa)
         {
             zu_printf("at 0x%p:current value is 0x%02x, now it`s 0x%02x\r\n", ptr, 0xaa, tmp1);
+            err_flag = true;
         }
         
         ptr++;
@@ -96,12 +100,17 @@ uint8_t mem_check_byte_type(void)
         if (tmp1 != 0x55)
         {
             zu_printf("at 0x%p:current value is 0x%02x, now it`s 0x%02x\r\n", ptr, 0x55, tmp1);
+            err_flag = true;
         }
         
         ptr++;
     }
     zu_printf("byte test complete\r\n");
-    return 0;
+    if (err_flag == false)
+    {
+        return ZU_ERROR;
+    }
+    return ZU_EOK;
 }
 #endif
 
@@ -111,6 +120,7 @@ uint8_t mem_check_halfword_type(void)
 {
     __IO uint32_t i;
     __IO uint16_t * ptr = (uint16_t *)SRAM_ADDRESS_START, tmp1, tmp2;
+    uint8_t err_flag;
     zu_printf("test halfword w/r.\r\nmemory test no.1\r\n");
     for (i = 0; i < (MEMORY_SIZE >> 1); i++)
     {
@@ -126,6 +136,7 @@ uint8_t mem_check_halfword_type(void)
         if (tmp1 != tmp2)
         {
             zu_printf("at 0x%p:current value is 0x%04x, now it`s 0x%04x\r\n", ptr, tmp2, tmp1);
+            err_flag = true;
         }
         
         ptr++;
@@ -147,6 +158,7 @@ uint8_t mem_check_halfword_type(void)
         if (tmp1 != tmp2)
         {
             zu_printf("at 0x%p:current value is 0x%04x, now it`s 0x%04x\r\n", ptr, tmp2, tmp1);
+            err_flag = true;
         }
         
         ptr++;
@@ -166,6 +178,7 @@ uint8_t mem_check_halfword_type(void)
         if (tmp1 != 0xaaaa)
         {
             zu_printf("at 0x%p:current value is 0x%04x, now it`s 0x%04x\r\n", ptr, 0xaaaa, tmp1);
+            err_flag = true;
         }
         
         ptr++;
@@ -185,11 +198,17 @@ uint8_t mem_check_halfword_type(void)
         if (tmp1 != 0x5555)
         {
             zu_printf("at 0x%p:current value is 0x%04x, now it`s 0x%04x\r\n", ptr, 0x5555, tmp1);
+            err_flag = true;
         }
         
         ptr++;
     }
     zu_printf("halfword test complete\r\n");
+    if (err_flag == false)
+    {
+        return ZU_ERROR;
+    }
+    return ZU_EOK;
     return 0;
 }
 #endif
@@ -199,6 +218,7 @@ uint8_t mem_check_word_type(void)
 {
     __IO uint32_t i;
     __IO uint32_t * ptr = (uint32_t *)SRAM_ADDRESS_START, tmp1, tmp2;
+    uint8_t err_flag;
     zu_printf("test word w/r.\r\nmemory test no.1\r\n");
     for (i = 0; i < (MEMORY_SIZE >> 2); i++)
     {
@@ -212,6 +232,7 @@ uint8_t mem_check_word_type(void)
         if (tmp1 != i)
         {
             zu_printf("at 0x%p:current value is 0x%08x, now it`s 0x%08x\r\n", ptr, i, tmp1);
+            err_flag = true;
         }
         
         ptr++;
@@ -232,6 +253,7 @@ uint8_t mem_check_word_type(void)
         if (tmp1 != (~i))
         {
             zu_printf("at 0x%p:current value is 0x%08x, now it`s 0x%08x\r\n", ptr, (~i), tmp1);
+            err_flag = true;
         }
         
         ptr++;
@@ -251,6 +273,7 @@ uint8_t mem_check_word_type(void)
         if (tmp1 != 0xaa55aa55)
         {
             zu_printf("at 0x%p:current value is 0x%08x, now it`s 0x%08x\r\n", ptr, 0xaa55aa55, tmp1);
+            err_flag = true;
         }
         
         ptr++;
@@ -270,20 +293,28 @@ uint8_t mem_check_word_type(void)
         if (tmp1 != 0x55aa55aa)
         {
             zu_printf("at 0x%p:current value is 0x%08x, now it`s 0x%08x\r\n", ptr, 0x55aa55aa, tmp1);
+            err_flag = true;
         }
         
         ptr++;
     }
     zu_printf("halfword test complete\r\n");
+    if (err_flag == false)
+    {
+        return ZU_ERROR;
+    }
+    return ZU_EOK;
     return 0;
 }
 #endif
 
 void mem_check(void)
 {
+    zu_printf("*****************test memory********************\r\n");
     mem_check_byte_type();
     mem_check_halfword_type();
     mem_check_word_type();
+    zu_printf("****************test complete*******************\r\n");
 }
 
 
