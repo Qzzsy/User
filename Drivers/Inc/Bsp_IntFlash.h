@@ -5,8 +5,11 @@
 #define __BOOTLOADER_H_
 
 /* Includes ------------------------------------------------------------------*/
+#include "uconfig.h"
+#include "udef.h"
+
 #if defined STM32F1
-#include "stm32f10x.h"
+#include "stm32f1xx.h"
 #elif defined STM32F4
 #include "stm32f4xx.h"
 #elif defined STM32F7

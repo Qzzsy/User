@@ -2,65 +2,67 @@
  ******************************************************************************
  * @file      Iap.c
  * @author    ZSY
- * @version   V1.0.0
- * @date      2018-10-25
+ * @version   V1.0.1
+ * @date      2019-08-21
  * @brief     实现了IAP功能，通用框架，可移植性强
  * @History
  * Date           Author    version    		   Notes
  * 2018-10-25      ZSY      V1.0.0          first version.
+ * 2019-08-21      ZSY      V1.0.1          完善通用的bootloader框架.
  */
 
 /* Includes ------------------------------------------------------------------*/
+
+#define LOG_TAG    "iap"
+
 #include "Iap.h"
 #include "stdbool.h"
-#include "Bsp_IntFlash.h"
-#include "MyString.h"
+#include "ustring.h"
 #include "MD5.h"
-#include "myMemory.h"
-#include "UartProcess.h"
+#include "elog.h"
 
-/* 固件信息地址 */
-#define FIRM_INFO_BASE_ADDR 0x08004000
-/* 固件版本地址 */
-#define FIRM_VER_ADDR 0x08004000 + 8
-/* 现场保存起始地址 */
-#define SAVE_SITE_BASE_ADDR 0x08005000
-/* 每个数据包的数据大小 */
-#define PER_PACK_SIZE       (4 * 1024)
+#define PACK_HEAD_SIZE      12
 
-/* Start user code address */
-#define APPLICATION_ADDRESS (uint32_t)0x08008000 
+#define TRY_GET_FIRM_INFO           1
+#define IAP_UPDATING_FLAG           (1 << 0)
+#define IAP_UPDATED_FLAG            (1 << 1)
+#define IAP_NEED_UPDATE_FLAG        (1 << 2)
+#define IAP_NEED_WRITE_INFO         (1 << 3)
 
-/* Notable Flash addresses */
-#define USER_FLASH_END_ADDRESS 0x08100000
-
-/* Define the user application size */
-#define USER_FLASH_SIZE ((uint32_t)0x00A0000) /* Small default template application */
-
-typedef void (*pFunc)(void);
+/* 数据缓存*/
+uint8_t data_buf[FIRM_RECV_BUF_SIZE + 128] = {0};
 
 /* 固件信息结构体 */
-#pragma pack(1)
+#pragma pack(4)
 typedef struct
 {
-    uint8_t Flag[8];
-    uint8_t Ver[16];
-    uint8_t Date[12];
-    uint32_t Size;
-    uint32_t PackSum;
+    uint8_t project_name[32];
+    uint8_t version[4];
+    uint8_t author[16];
+    uint8_t company[64];
+    uint8_t RTOS_name[32];
+    uint8_t firm_level[16];
+    uint8_t chip_name[24];
+    uint8_t chip_core[16];
+    uint8_t pack_time[24];
+    uint8_t partitions_name[32];
+    uint32_t partitions_size;
+    uint32_t chip_ram_size;
+    uint32_t chip_rom_size;
+    uint32_t chip_ram_start_addr;
+    uint32_t chip_rom_start_addr;
+    uint32_t app_startup_addr;
+    uint32_t firm_size;
+    uint32_t per_pack_size;
+    uint32_t pack_sum;
     uint8_t MD5[16];
-} FirmInfo_t;
-#pragma pack()
-
-/* 固件数据包结构体 */
-#pragma pack(1)
-typedef struct
-{
-    uint8_t cmd;
-    uint16_t PackNum;
-    uint32_t Size;
-    uint8_t *data;
-} FirmPack_t;
+    uint8_t encrypt[8];
+    uint8_t Reserve[96];
+    
+    uint8_t is_updating[32];
+    uint8_t is_updated[32];
+    uint8_t is_need_update[32];
+} firm_info_t;
 #pragma pack()
 
 /* 枚举升级状态 */
@@ -68,35 +70,30 @@ enum
 {
     UPDATING = 1,
     UPDATED = 2,
-    NEED_UPDATE = 3
+    NEED_UPDATE = 3,
+    NEED_WRITE_INFO = 4
 };
 
-/* 枚举错误代码 */
-enum
+struct _iap_api
 {
-    IAP_ERR_TIMEOUT = 0,
-    IAP_ERR_CMD_ERROR = 1,
-    IAP_ERR_FIRM_ERROR = 2,
-    IAP_ERR_FIRM_ALREADY = 3,
-    IAP_ERR_MEM_IS_FULL = 4,
-    IAP_ERR_FLASH_IS_FULL = 5
+    /* APIs，外部应提供这几个APIs */
+    iap_err_t (*send_cmd)(const void *data, uint32_t size);
+    iap_err_t (*read_firm_data)(uint32_t pack_num, uint32_t offiset, void *data, uint32_t size);
+    iap_err_t (*write_onchip_flash)(uint32_t addr, const void *data, uint32_t size);
+    iap_err_t (*read_onchip_flash)(uint32_t addr, void *data, uint32_t size);
+    iap_err_t (*control_onchip_flash)(uint8_t cmd, void *args);
+    void (*jump_app)(uint32_t startup_addr);
 };
 
-/* 枚举命令 */
-enum
+struct _iap_api iap_api = 
 {
-    IAP_CMD_GET_FIRM_INFO = 0,
-    IAP_CMD_GET_FIRM_DATA = 1,
-    IAP_CMD_OK = 3,
-    IAP_CMD_ERR = 4
+    .send_cmd = UNULL,
+    .read_firm_data = UNULL,
+    .write_onchip_flash = UNULL,
+    .read_onchip_flash = UNULL,
+    .control_onchip_flash = UNULL,
+    .jump_app = UNULL,
 };
-
-static FirmInfo_t FirmInfo;
-
-/* APIs，外部应提供这几个APIs */
-void (*Send)(const void *Data, uint32_t Size);
-void (*GetSize)(uint32_t *Size);
-void (*Read)(void *rData);
 
 /**
  * @func    SetBootloaderHooks
@@ -107,13 +104,27 @@ void (*Read)(void *rData);
  * @note
  * @retval  无
  */
-void SetBootloaderHooks(void (*SendData)(const void *Data, uint32_t Size),
-                        void (*GetDataSize)(uint32_t *Size),
-                        void (*ReadData)(void *rData))
+void set_bootloader_hooks(iap_err_t (*_send_cmd)(const void *data, uint32_t Size),
+                        iap_err_t (*_read_firm_data)(uint32_t pack_num, uint32_t offiset, void *data, uint32_t size),
+                        iap_err_t (*_write_onchip_flash)(uint32_t addr, const void *data, uint32_t size),
+                        iap_err_t (*_read_onchip_flash)(uint32_t addr, void *data, uint32_t size),
+                        iap_err_t (*_control_onchip_flash)(uint8_t cmd, void *vargs),
+                        void (*_jump_app)(uint32_t startup_addr))
 {
-    Send = SendData;
-    GetSize = GetDataSize;
-    Read = ReadData;
+    iap_api.send_cmd = _send_cmd;
+    iap_api.read_firm_data = _read_firm_data;
+    iap_api.read_onchip_flash = _read_onchip_flash;
+    iap_api.write_onchip_flash = _write_onchip_flash;
+    iap_api.control_onchip_flash = _control_onchip_flash;
+    iap_api.jump_app = _jump_app;
+}
+
+void iap_update_error(void)
+{
+    while(1)
+    {
+
+    }
 }
 
 /**
@@ -123,35 +134,125 @@ void SetBootloaderHooks(void (*SendData)(const void *Data, uint32_t Size),
  * @note
  * @retval  无
  */
-void GetFirmInfo(FirmInfo_t * Info)
+uint32_t get_firm_info(firm_info_t * info)
 {
-    IntFlashRead(FIRM_INFO_BASE_ADDR, (uint8_t *)Info, sizeof(FirmInfo_t));
+    return iap_api.read_onchip_flash(FIRM_INFO_BASE_ADDR, (uint8_t *)info, sizeof(firm_info_t));
+}
+
+bool_t is_empty(void * buf, uint32_t size)
+{
+    uint8_t *p_buf;
+
+    p_buf = buf;
+
+    for (uint32_t i = 0; i < size; i++)
+    {
+        if (p_buf[i] != 0xff)
+        {
+            return IAP_ERROR;
+        }
+    }
+
+    return IAP_OK;
 }
 
 /**
  * @func    GetUpdateStatus
  * @brief   获取当前的升级状态
- * @param   Status 状态返回指针
  * @note
- * @retval  无
+ * @retval  当前的状态
  */
-void GetUpdateStatus(uint8_t * Status)
+iap_err_t get_update_status(firm_info_t * info)
 {
-    uint8_t Buf[3] = {'\0'};
-    IntFlashRead(FIRM_INFO_BASE_ADDR + 16 * 1024 - 16, Buf, 3);
-    
-    if (Buf[0] == 0 && Buf[1] == 0xff && Buf[1] == 0xff)
+    uint32_t flag = 0;
+    uint8_t is_update_flag = false, is_updated_flag = false, is_need_update_flag = false;
+
+    if (info == UNULL)
     {
-        *Status = UPDATING;
+        /* 为了兼容M7内核 */
+        uint8_t r_buf[32] = {'\0'};
+
+        iap_api.read_onchip_flash(FIRM_INFO_BASE_ADDR + 512 - 96, (uint8_t *)r_buf, 32);
+        if (umemcmp(r_buf, "updating", sizeof("updating")) == 0)
+        {
+            flag |= IAP_UPDATING_FLAG;
+        }
+        else
+        {
+            flag &= ~(IAP_UPDATING_FLAG);
+        }
+        
+        iap_api.read_onchip_flash(FIRM_INFO_BASE_ADDR + 512 - 64, (uint8_t *)r_buf, 32);
+        if (umemcmp(r_buf, "updated", sizeof("updated")) == 0)
+        {
+            flag |= IAP_UPDATED_FLAG;
+        }
+        else
+        {
+            flag &= ~(IAP_UPDATED_FLAG);
+        }
+        
+        iap_api.read_onchip_flash(FIRM_INFO_BASE_ADDR + 512 - 32, (uint8_t *)r_buf, 32);
+        if (umemcmp(r_buf, "need_update", sizeof("need_update")) == 0)
+        {
+            flag |= IAP_NEED_UPDATE_FLAG;
+        }
+        else
+        {
+            flag &= ~(IAP_NEED_UPDATE_FLAG);
+        }
     }
-    else if (Buf[0] == 0 && Buf[1] == 0 && Buf[1] == 0xff)
+    else
     {
-        *Status = UPDATED;
+        if (umemcmp(info->is_updating, "updating", sizeof("updating")) == 0)
+        {
+            flag |= IAP_UPDATING_FLAG;
+        }
+        else
+        {
+            flag &= ~(IAP_UPDATING_FLAG);
+        }
+        
+        if (umemcmp(info->is_updated, "updated", sizeof("updated")) == 0)
+        {
+            flag |= IAP_UPDATED_FLAG;
+        }
+        else
+        {
+            flag &= ~(IAP_UPDATED_FLAG);
+        }
+        
+        if (umemcmp(info->is_need_update, "need_update", sizeof("need_update")) == 0)
+        {
+            flag |= IAP_NEED_UPDATE_FLAG;
+        }
+        else
+        {
+            flag &= ~(IAP_NEED_UPDATE_FLAG);
+        }
     }
-    else if (Buf[0] == 0 && Buf[1] == 0 && Buf[1] == 0)
+
+    if (!(flag & IAP_UPDATING_FLAG) && !(flag & IAP_UPDATED_FLAG) && !(flag & IAP_NEED_UPDATE_FLAG))
     {
-        *Status = NEED_UPDATE;
+        /* 属于第一次上电，需要写入配置 */
+        return NEED_WRITE_INFO;
     }
+    else if ((flag & IAP_UPDATING_FLAG) && !(flag & IAP_UPDATED_FLAG) && !(flag & IAP_NEED_UPDATE_FLAG))
+    {
+        /* 系统正在更新中 */
+        return UPDATING;
+    }
+    else if ((flag & IAP_UPDATING_FLAG) && (flag & IAP_UPDATED_FLAG) && !(flag & IAP_NEED_UPDATE_FLAG))
+    {
+        /* 系统更新完成 */
+        return UPDATED;
+    }
+    else if ((flag & IAP_UPDATING_FLAG) && (flag & IAP_UPDATED_FLAG) && (flag & IAP_NEED_UPDATE_FLAG))
+    {
+        /* 系统需要更新 */
+        return NEED_UPDATE;
+    }
+    return IAP_ERROR;
 }
 
 /**
@@ -160,47 +261,15 @@ void GetUpdateStatus(uint8_t * Status)
  * @note
  * @retval  无
  */
-void SetUpdateStatus(uint8_t Status)
+void set_update_status(uint8_t status)
 {
-    uint8_t Buf = 0;
-    switch (Status)
+    uint8_t w_buf[2][32] = {{"updating"}, {"updated"}};
+    switch (status)
     {
-        case 1: IntFlashWrite(FIRM_INFO_BASE_ADDR + 16 * 1024 - 16, (uint8_t *)&Buf, 1); break;
-        case 2: IntFlashWrite(FIRM_INFO_BASE_ADDR + 16 * 1024 - 15, (uint8_t *)&Buf, 1); break;
+        case UPDATING: iap_api.write_onchip_flash(FIRM_INFO_BASE_ADDR + 512 - 96, ((uint8_t *)&w_buf[0]), 32);break;
+        case UPDATED: iap_api.write_onchip_flash(FIRM_INFO_BASE_ADDR + 512 - 64, ((uint8_t *)&w_buf[1]), 32);break;
         default : break;
     }
-}
-
-/**
- * @func    GetUpdateFlag
- * @brief   获取升级标志
- * @note
- * @retval  无
- */
-bool GetUpdateFlag(void)
-{
-    uint8_t Buf[3] = {'\0'};
-    IntFlashRead(FIRM_INFO_BASE_ADDR + 16 * 1024 - 16, Buf, 3);
-
-    if (Buf[0] == 0 && Buf[1] == 0 && Buf[2] == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-/**
- * @func    ClearFirmInfo
- * @brief   清除当前的固件信息
- * @note
- * @retval  无
- */
-void ClearFirmInfo(void)
-{
-    IntFlashErase(FIRM_INFO_BASE_ADDR, FIRM_INFO_BASE_ADDR + 16 * 1024);
 }
 
 /**
@@ -213,90 +282,212 @@ void ClearFirmInfo(void)
  * @note
  * @retval  无
  */
-void PackBuild(uint8_t cmd, uint16_t packNum, void *Buf, uint16_t Len)
+void pack_build(uint8_t cmd, uint16_t pack_num, void *buf, uint16_t len)
 {
-    uint8_t Err[8] = {'\0'};
-    FirmPack_t Pack, *packTmp;
-    uint8_t *DataBuf = NULL;
-    Pack.cmd = cmd;
-    Pack.PackNum = packNum;
-    Pack.data = Buf;
-    Pack.Size = Len;
+    firm_pack_t pack;
+    uint8_t data_buf[30] = {0};
+    pack.cmd = cmd;
+    pack.pack_num = pack_num;
+    pack.data = buf;
+    pack.size = len;
 
-    DataBuf = MemMalloc(Pack.Size + 7);
-    if (DataBuf == NULL)
+    umemcpy(data_buf, &pack, PACK_HEAD_SIZE);
+    if (len > 0)
     {
-        packTmp = (FirmPack_t *)Err;
-        packTmp->cmd = IAP_CMD_ERR;    
-        packTmp->PackNum = 0;
-        packTmp->Size = 1;
-        Err[7] = IAP_ERR_MEM_IS_FULL;
-        Send(Err, 8);
-        /* err code */
-        return ;
+        umemcpy(data_buf + PACK_HEAD_SIZE, pack.data, pack.size);
     }
 
-    my_memcpy(DataBuf, &Pack, 7);
-    if (Len > 0)
+    iap_api.send_cmd(data_buf, pack.size + PACK_HEAD_SIZE);
+}
+
+static void print_firm_info(firm_info_t * info)
+{
+    uprintf("\033[35;22m           Project name is: %s\033[0m\r\n", info->project_name);
+    uprintf("\033[35;22m       software version is: %d.%d.%d\033[0m\r\n", info->version[0], info->version[1], info->version[2]);
+    uprintf("\033[35;22m                   company: %s\033[0m\r\n", info->company);
+    uprintf("\033[35;22m             The chip name: %s\033[0m\r\n", info->chip_name);
+    uprintf("\033[35;22m             The chip core: %s\033[0m\r\n", info->chip_core);
+    uprintf("\033[35;22mThe chip rom start address: 0x%08x, rom size: 0x%08x\033[0m\r\n", info->chip_rom_start_addr, info->chip_rom_size);
+    uprintf("\033[35;22mThe chip ram start address: 0x%08x, ram size: 0x%08x\033[0m\r\n", info->chip_ram_start_addr, info->chip_ram_size);
+    uprintf("\033[35;22m            firmware level: %s\033[0m\r\n", info->firm_level);
+    if (is_empty(info->RTOS_name, sizeof(info->RTOS_name)) == IAP_ERROR)
     {
-        my_memcpy(DataBuf + 7, Pack.data, 7);
+        uprintf("\033[35;22m               system RTOS: %s\033[0m\r\n", info->RTOS_name);
     }
-    Send(DataBuf, Pack.Size + 7);
-
-    MemFree(DataBuf);
+    uprintf("\033[35;22mappliction startup address: 0x%08x\033[0m\r\n", info->app_startup_addr);
 }
 
-/**
- * @func    SaveSite
- * @brief   保护现场
- * @param   PackNum 数据包编号
- * @param   Addr 当前数据包读写地址
- * @note
- * @retval  无
- */
-void SaveSite(uint16_t PackNum, uint32_t Addr)
+iap_err_t check_firm_validity(firm_info_t * info, uint8_t flag);
+iap_err_t try_get_new_firm_info(firm_info_t *info)
 {
-    uint8_t Buf = 0;
-    IntFlashWrite(SAVE_SITE_BASE_ADDR + (PackNum - 1) * 5, (uint8_t *)&Buf, 1);
-    IntFlashWrite(SAVE_SITE_BASE_ADDR + (PackNum - 1) * 5 + 1, (uint8_t *)&Addr, 4);
-}
+    firm_pack_t pack;
+    firm_info_t new_firm_info;
+    uint32_t size, new_version_size, version_size;
+    pack_build(IAP_CMD_GET_FIRM_INFO, 0, NULL, 0);
+    
+    umemset(&new_firm_info, 0, sizeof(firm_info_t));
 
-/**
- * @func    RecoverySite
- * @brief   恢复现场
- * @param   PackNum 数据包的编号
- * @param   wAddr 当前读写地址
- * @note
- * @retval  无
- */
-void RecoverySite(uint16_t *PackNum, uint32_t *wAddr)
-{
-    uint8_t Buf;
-    uint32_t Addr, SectorAddr;
-    for (int i = 0; i < FirmInfo.PackSum; i++)
+    log_i("try get new firm info.");
+
+    /* 获取第0包，即获取新固件信息 */
+    size = iap_api.read_firm_data(0, 0, data_buf, FIRM_HEAD_INFO_SIZE);
+
+    if (size != 0)
     {
-        IntFlashRead(SAVE_SITE_BASE_ADDR + i * 5, &Buf, 1);
-        
-        if (Buf != 0)
+        pack = *(firm_pack_t *)data_buf;
+        if (pack.cmd == IAP_CMD_GET_FIRM_INFO)
         {
-            IntFlashRead(SAVE_SITE_BASE_ADDR + i * 5 + 1, (uint8_t *)&Addr, 4);
-            SectorAddr = GetSectorStartAddr(Addr);
-            *wAddr = SectorAddr;
-#if defined STM32F1
-#elif defined STM32F4
-            IntFlashErase(SectorAddr, Addr);
-            
-            *PackNum = i - (Addr - SectorAddr) / PER_PACK_SIZE + 1;
-#endif
+            new_firm_info = *((firm_info_t *)(data_buf + PACK_HEAD_SIZE));
+            if (umemcmp(new_firm_info.firm_level, DEVICE_FIRM_LEVEL, sizeof(DEVICE_FIRM_LEVEL)) != 0)
+            {
+                log_w("no firmware in flash and needn`t update.");
+
+                return IAP_ERROR;
+            }
+
+            if (umemcmp(new_firm_info.project_name, PROJECT_NAME, sizeof(PROJECT_NAME)) != 0)
+            {
+                log_w("no firmware in flash and needn`t update.");
+
+                return IAP_ERROR;
+            }
+
+            if (umemcmp(new_firm_info.chip_name, DEVICE_CHIP_NAME, sizeof(DEVICE_CHIP_NAME)) != 0)
+            {
+                log_w("no firmware in flash and needn`t update.");
+
+                return IAP_ERROR;
+            }
+
+            print_firm_info(&new_firm_info);
+
+            new_version_size = new_firm_info.version[0];
+            new_version_size <<= 8;
+            new_version_size |= new_firm_info.version[1];
+            new_version_size <<= 8;
+            new_version_size |= new_firm_info.version[2];
+
+            version_size = info->version[0];
+            version_size <<= 8;
+            version_size |= info->version[1];
+            version_size <<= 8;
+            version_size |= info->version[2];
+                
+            /* 判断新固件的版本号是否比当前的大 */
+            if (new_version_size > version_size)
+            {
+                return IAP_OK;
+            }
         }
     }
-    
-    ClearFirmInfo();
-    IntFlashWrite(FIRM_INFO_BASE_ADDR, (uint8_t *)&FirmInfo, sizeof(FirmInfo_t));
-    for (int i = 0; i < *PackNum; i++)
+    return IAP_ERROR;
+}
+
+/**
+ * @brief 检验固件的合法性
+ * 
+ * @param info 固件参数表
+ */
+iap_err_t check_firm_validity(firm_info_t * info, uint8_t flag)
+{
+    if (umemcmp(info->firm_level, DEVICE_FIRM_LEVEL, sizeof(DEVICE_FIRM_LEVEL)) != 0)
     {
-        SaveSite(i + 1, SAVE_SITE_BASE_ADDR + i * PER_PACK_SIZE);
+        log_e("this firmware does not match this system, error code: %s, firmware level: %s",
+                "level error", info->firm_level);
+        log_e("Please contact the administrator!");
+        if (try_get_new_firm_info(info) == IAP_OK && flag == TRY_GET_FIRM_INFO)
+        {
+            return IAP_OK;
+        }
+
+        return IAP_ERROR;
     }
+
+    if (umemcmp(info->project_name, PROJECT_NAME, sizeof(PROJECT_NAME)) != 0)
+    {
+        log_e("this firmware does not match this system, error code: %s, project name: %s",
+                "project name error", info->project_name);
+        log_e("Please contact the administrator!");
+
+        if (try_get_new_firm_info(info) == IAP_OK && flag == TRY_GET_FIRM_INFO)
+        {
+            return IAP_OK;
+        }
+
+        return IAP_ERROR;
+    }
+
+    if (umemcmp(info->chip_name, DEVICE_CHIP_NAME, sizeof(DEVICE_CHIP_NAME)) != 0)
+    {
+        log_e("this firmware does not match this system, error code: %s, chip name: %s",
+                "target chip error", info->chip_name);
+        log_e("Please contact the administrator!");
+
+        if (try_get_new_firm_info(info) == IAP_OK && flag == TRY_GET_FIRM_INFO)
+        {
+            return IAP_OK;
+        }
+
+        return IAP_ERROR;
+    }
+
+    if (info->chip_rom_start_addr != ONCHIP_FLASH_START_ADDRESS)
+    {
+        log_e("this firmware does not match this system, error code: %s, firmware flash address: 0x%08x", 
+        "chip flash start address discrepancy", info->chip_rom_start_addr);
+        log_e("Please contact the administrator!");
+
+        if (try_get_new_firm_info(info) == IAP_OK && flag == TRY_GET_FIRM_INFO)
+        {
+            return IAP_OK;
+        }
+
+        return IAP_ERROR;
+    }
+
+    if (info->chip_rom_size != ONCHIP_FLASH_SIZE)
+    {
+        log_e("this firmware does not match this system, error code: %s, firmware flash size: %d", 
+        "chip flash size discrepancy", info->chip_rom_size);
+        log_e("Please contact the administrator!");
+
+        if (try_get_new_firm_info(info) == IAP_OK && flag == TRY_GET_FIRM_INFO)
+        {
+            return IAP_OK;
+        }
+
+        return IAP_ERROR;
+    }
+    
+    if (info->chip_ram_start_addr != ONCHIP_RAM_START_ADDRESS)
+    {
+        log_e("this firmware does not match this system, error code: %s, firmware ram address: 0x%08x", 
+        "chip ram start address discrepancy", info->chip_ram_start_addr);
+        log_e("Please contact the administrator!");
+
+        if (try_get_new_firm_info(info) == IAP_OK && flag == TRY_GET_FIRM_INFO)
+        {
+            return IAP_OK;
+        }
+
+        return IAP_ERROR;
+    }
+
+    if (info->chip_ram_size != ONCHIP_RAM_SIZE)
+    {
+        log_e("this firmware does not match this system, error code: %s, firmware ram size: %d", 
+        "chip ram size discrepancy", info->chip_ram_size);
+        log_e("Please contact the administrator!");
+
+        if (try_get_new_firm_info(info) == IAP_OK && flag == TRY_GET_FIRM_INFO)
+        {
+            return IAP_OK;
+        }
+
+        return IAP_ERROR;
+    }
+
+    return IAP_OK;
 }
 
 /**
@@ -306,180 +497,377 @@ void RecoverySite(uint16_t *PackNum, uint32_t *wAddr)
  * @note
  * @retval  无
  */
-void UpdateFirm(uint8_t * JumpUserAppFlag)
+void update_firm(firm_info_t *firm_info)
 {
-    static uint8_t Status = 0;
-    FirmPack_t Pack;
-    static uint32_t Timeout, Size = 0, Offiset = 0;
-    static uint16_t PackNum;
-    void *p;
+    firm_pack_t pack;
+    firm_info_t new_firm_info;
+    uint16_t read_size, pack_num, last_pack_num = 0;
+    uint8_t read_data_cnt = 0, repack_cnt = 0, update_status, send_data;
+    uint32_t size = 0, offiset = 0, version_size, new_version_size;
+    iap_err_t retval;
+
+    /* 获取固件信息 */
+    log_i("send cmd to get new firmware information, system will update firmware.");
+    pack_build(IAP_CMD_GET_FIRM_INFO, 0, NULL, 0);
     
-    /* 获取服务器上的固件信息 */
-    if (Status == 0)
+    umemset(&new_firm_info, 0, sizeof(firm_info_t));
+
+    /* 获取第0包，即获取新固件信息， 允许阻塞 */
+    size = iap_api.read_firm_data(0, 0, data_buf, FIRM_HEAD_INFO_SIZE);
+    if (size != IAP_ERROR)
     {
-        static uint8_t _Status = 0;
-        if (_Status == 0)
+        /* 解析新固件的信息 */
+        pack = *(firm_pack_t *)data_buf;
+        if (pack.cmd == IAP_CMD_GET_FIRM_INFO)
         {
-            PackBuild(IAP_CMD_GET_FIRM_INFO, 0, NULL, 0);
-            _Status = 1;
-            Timeout = 0;
-        }
-        else if (_Status == 1)
-        {
-            Timeout++;
-            GetSize(&Size);
-            if (Size != 0)
-            {
-                _Status = 2;
-            }
-            if (Timeout > 1000)
-            {
-                uint8_t Tmp = IAP_ERR_TIMEOUT;
-                PackBuild(IAP_CMD_ERR, 0, &Tmp, 1);
-                _Status = 0;
-            }
-        }
-        else if (_Status == 2)
-        {
-            p = MemMalloc(Size);
-            Read(p);
+            update_status = get_update_status(firm_info);
 
-            Pack = *(FirmPack_t *)p;
-
-            if (Pack.cmd == IAP_CMD_GET_FIRM_INFO)
+            new_firm_info = *((firm_info_t *)(data_buf + PACK_HEAD_SIZE));
+            
+            /* 检验固件的合法性 */
+            retval = check_firm_validity(&new_firm_info, 0);
+            if (retval == IAP_ERROR)
             {
-                FirmInfo_t recvFirmInfo;
-                my_memcpy(((uint8_t *)&recvFirmInfo) + 8, (uint8_t *)p + 7, Pack.Size);
-                if (my_memcmp(FirmInfo.Ver, recvFirmInfo.Ver, 16) == 0)
+                send_data = IAP_ERR_UNKNOW_FIRM;
+                pack_build(IAP_CMD_WARNING, 0, &send_data, 1);
+                
+                log_i("appliction firmware needn`t update.");
+                
+                /* 因为新固件不合法，直接启动原有的固件 */
+                if (iap_api.jump_app != UNULL)
                 {
-                    uint8_t UpdateStatus;
-                    /* 固件版本已存在，但不排除固件升级失败的可能 */
-                    GetUpdateStatus(&UpdateStatus);
-                    if (UpdateStatus == UPDATING)
-                    {
-                        RecoverySite(&PackNum, &Offiset);
-                        Offiset -= APPLICATION_ADDRESS;
-                        _Status = 0;
-                        Status = 1;
-                        Timeout = 0;
-                        MemFree(p);
-                        return;
-                    }
-                    else if (UpdateStatus == UPDATED)
-                    {
-                        uint8_t Tmp = IAP_ERR_FIRM_ALREADY;
-                        PackBuild(IAP_CMD_ERR, 0, &Tmp, 1);
-                    }
+                    iap_api.jump_app(firm_info->app_startup_addr);
+                }
+            }
+
+            /* 打印新固件的信息 */
+            print_firm_info(&new_firm_info);
+
+            new_version_size = new_firm_info.version[0];
+            new_version_size <<= 8;
+            new_version_size |= new_firm_info.version[1];
+            new_version_size <<= 8;
+            new_version_size |= new_firm_info.version[2];
+
+            version_size = firm_info->version[0];
+            version_size <<= 8;
+            version_size |= firm_info->version[1];
+            version_size <<= 8;
+            version_size |= firm_info->version[2];
+                
+            /* 判断新固件的版本号是否比当前的大 */
+            if (new_version_size > version_size)
+            {
+                log_i("firmware need update!");
+
+                uint32_t param[2];
+                param[0] = new_firm_info.app_startup_addr - 512;
+                param[1] = new_firm_info.firm_size + 512;
+
+                /* 清除FLASH空间 */
+                retval = iap_api.control_onchip_flash(IAP_CMD_ERASE, param);
+                if (retval == IAP_ERROR)
+                {
+                    log_e("erase onchip flash fault!");
+                    send_data = IAP_ERR_ERASE_FAULT;
+                    pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+                    
+                    iap_update_error();
+                }
+
+                /* 检查擦除结果 */
+                log_i("checking flash is empty...");
+                
+                read_size = 512;
+                retval = iap_api.read_onchip_flash(new_firm_info.app_startup_addr - 512, data_buf, read_size);
+                if (retval == IAP_ERROR)
+                {
+                    send_data = IAP_ERR_GET_ONCHIP_DATA_FAULT;
+                    pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+                    iap_update_error();
+                }
+                if (is_empty(data_buf, read_size) == IAP_ERROR)
+                {
+                    log_e("flash onchip erase fault, address: 0x%08x", new_firm_info.app_startup_addr - 512);
+                    send_data = IAP_ERR_CHECK_IS_EMPTY_FAULT;
+                    pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+                    iap_update_error();
                 }
                 
-                ClearFirmInfo();
-                
-                my_memcpy(recvFirmInfo.Flag, "Start!", 6);
-                
-                IntFlashWrite(FIRM_INFO_BASE_ADDR, (uint8_t *)&recvFirmInfo, sizeof(FirmInfo_t));
-                
-                FirmInfo = recvFirmInfo;
-                
-                /* 设置标志，显示正在进行升级操作 */
-                SetUpdateStatus(UPDATING);
-                
-                _Status = 0;
-                Status = 1;
-                Timeout = 0;
-                PackNum = 1;
-            }
-            else
-            {
-                uint8_t Tmp = IAP_ERR_CMD_ERROR;
-                PackBuild(IAP_CMD_ERR, 0, &Tmp, 1);
-            }
+                if (new_firm_info.firm_size < new_firm_info.per_pack_size)
+                {
+                    read_size = new_firm_info.firm_size;
+                }
+                else
+                {
+                    read_size = new_firm_info.per_pack_size;
+                }
 
-            MemFree(p);
+                offiset = 0;
+                while (offiset != new_firm_info.firm_size)
+                {
+                    retval = iap_api.read_onchip_flash(new_firm_info.app_startup_addr + offiset, data_buf, read_size);
+                    if (retval == IAP_ERROR)
+                    {
+                        send_data = IAP_ERR_GET_ONCHIP_DATA_FAULT;
+                        pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+                        iap_update_error();
+                    }
+
+                    if (is_empty(data_buf, read_size) == IAP_ERROR)
+                    {
+                        log_e("flash onchip erase fault, address: 0x%08x", new_firm_info.app_startup_addr + offiset);
+                        
+                        send_data = IAP_ERR_CHECK_IS_EMPTY_FAULT;
+                        pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+                        
+                        iap_update_error();
+                    }
+
+                    offiset += read_size;
+
+                    if ((offiset + new_firm_info.per_pack_size) < new_firm_info.firm_size)
+                    {
+                        read_size = new_firm_info.per_pack_size;
+                    }
+                    else
+                    {
+                        read_size = new_firm_info.firm_size - offiset;
+                    }
+                }
+
+                set_update_status(UPDATING);
+                log_i("checking flash onchip is empty OK!");
+                log_i("system will update firmware, upgrade process ensures that power supply is ok!");
+                
+                last_pack_num = 0;
+                pack_num = 1;
+            }
+            else if (update_status == UPDATED)
+            {
+                uint8_t tmp = IAP_ERR_FIRM_ALREADY;
+                pack_build(IAP_CMD_WARNING, 0, &tmp, 1);
+
+                log_i("appliction firmware needn`t update.");
+                
+                /* 两个固件的版本号相同，不执行升级 */
+                if (iap_api.jump_app != UNULL)
+                {
+                    iap_api.jump_app(firm_info->app_startup_addr);
+                }
+            }
+        }
+        else
+        {
+            log_e("cmd error!");
+            uint8_t tmp = IAP_ERR_CMD_ERROR;
+            pack_build(IAP_CMD_WARNING, 0, &tmp, 1);
+            
+            iap_update_error();
         }
     }
+    else
+    {
+        log_w("get data from ext data fault.");
+        send_data = IAP_ERR_GET_EXT_DATA_FAULT;
+        pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+        iap_update_error();
+    }
+
+
     /* 开始升级固件 */
-    else if (Status == 1)
+    pack_build(IAP_CMD_GET_FIRM_DATA, pack_num, NULL, 0);
+    offiset = 0;
+    read_data_cnt = 0;
+    repack_cnt = 0;
+    log_i("iap start get firmware data.");
+    
+    if (new_firm_info.firm_size < new_firm_info.per_pack_size)
     {
-        static uint8_t _Status = 0;
-        if (_Status == 0)
-        {
-            PackBuild(IAP_CMD_GET_FIRM_DATA, PackNum, NULL, 0);
-            _Status = 1;
-            Timeout = 0;
-        }
-        else if (_Status == 1)
-        {
-            Timeout++;
-            GetSize(&Size);
-            if (Size != 0)
-            {
-                _Status = 2;
-            }
-            if (Timeout > 1000)
-            {
-                uint8_t Tmp = IAP_ERR_TIMEOUT;
-                PackBuild(IAP_CMD_ERR, 0, &Tmp, 1);
-                _Status = 0;
-            }
-        }
-        else if (_Status == 2)
-        {
-            p = MemMalloc(Size);
-            Read(p);
+        read_size = new_firm_info.firm_size;
+    }
+    else
+    {
+        read_size = new_firm_info.per_pack_size;
+    }
 
-            Pack = *(FirmPack_t *)p;
-
-            if (Pack.cmd == IAP_CMD_GET_FIRM_DATA)
+    while (1)
+    {
+        log_d("will read data pack num: %d", pack_num);
+        retval = iap_api.read_firm_data(pack_num, (pack_num - 1) * new_firm_info.per_pack_size + 512, data_buf, read_size);
+        if (retval == IAP_ERROR)
+        {
+            read_data_cnt++;
+            /* 数据读取失败 */
+            log_e("Read firmware data error");
+            
+            if (read_data_cnt >= 3)
             {
-                IntFlashWrite(APPLICATION_ADDRESS + Offiset, (uint8_t *)p + 7, Pack.Size);
+                log_e("System update firmware fault!");
+                send_data = IAP_ERR_UPDATE_FAULT;
+                pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+                iap_update_error();
+            }
+            send_data = IAP_ERR_GET_EXT_DATA_FAULT;
+            pack_build(IAP_CMD_WARNING, 0, &send_data, 1);
+            continue;
+        }
+        
+        /* 解析数据包 */
+        pack = *(firm_pack_t *)data_buf;
+        if (pack.cmd == IAP_CMD_GET_FIRM_DATA)
+        {
+            /* 重包检测 */
+            if (last_pack_num == pack.pack_num)
+            {
+                repack_cnt++;
+                log_e("The firmware package has been received, pack num:%d, cnt: %d", pack.pack_num, repack_cnt);
                 
-                /* 保护现场操作 */
-                SaveSite(PackNum, APPLICATION_ADDRESS + Offiset);
-                
-                _Status = 0;
-                Timeout = 0;
-                PackNum++;
-                Offiset += Pack.Size;
-                
-                if (Offiset > USER_FLASH_SIZE)
+                if (repack_cnt >= 3)
                 {
-                    uint8_t Tmp = IAP_ERR_FLASH_IS_FULL;
-                    PackBuild(IAP_CMD_ERR, 0, &Tmp, 1);
+                    log_e("System update firmware fault!");
+                    send_data = IAP_ERR_UPDATE_FAULT;
+                    pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+                    iap_update_error();
                 }
+
+                send_data = IAP_ERR_GET_EXT_DATA_FAULT;
+                pack_build(IAP_CMD_WARNING, 0, &send_data, 1);
+                continue;
             }
             else
             {
-                uint8_t Tmp = IAP_ERR_CMD_ERROR;
-                PackBuild(IAP_CMD_ERR, 0, &Tmp, 1);
+                last_pack_num = pack_num;
             }
 
-            if (PackNum == (FirmInfo.PackSum + 1))
+            if (iap_api.write_onchip_flash(new_firm_info.app_startup_addr + (pack_num - 1) * new_firm_info.per_pack_size,
+                                        (uint8_t *)data_buf + PACK_HEAD_SIZE, pack.size) == IAP_ERROR)
             {
-                _Status = 0;
-                Status = 2;
+                log_e("Write firmware data error!");
+
+                log_e("System update firmware fault!");
+
+                send_data = IAP_ERR_UPDATE_FAULT;
+                pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+                iap_update_error();
             }
 
-            MemFree(p);
-        }
-    }
-    /* 升级完成 */
-    else if (Status == 2)
-    {
-        uint8_t DataMD5[16];
-        /* 计算MD5码 */
-        mbedtls_md5((uint8_t *)APPLICATION_ADDRESS, FirmInfo.Size, DataMD5);
+            offiset += pack.size;
 
-        if (my_memcmp(FirmInfo.MD5, DataMD5, 16) != 0)
-        {
-            uint8_t Tmp = IAP_ERR_FIRM_ERROR;
-            PackBuild(IAP_CMD_ERR, 0, &Tmp, 1);
-            /* err code */
-            return;
+            log_i("write pack num: %d is OK, pack size: %d, write/offiset size: %d.", pack.pack_num, pack.size, offiset);
+
+            pack_num++;
+
+            if (offiset > firm_info->partitions_size)
+            {
+                log_e("size over user appliction define size!");
+
+                send_data = IAP_ERR_FLASH_IS_FULL;
+                pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+                iap_update_error();
+            }
+            
+            if (offiset == new_firm_info.firm_size)
+            {
+                /* 程序烧录完成，下一步做校验计算 */
+                offiset = 0;
+                break ;
+            }
+
+            if ((offiset + new_firm_info.per_pack_size) < new_firm_info.firm_size)
+            {
+                read_size = new_firm_info.per_pack_size;
+            }
+            else
+            {
+                read_size = new_firm_info.firm_size - offiset;
+            }
         }
-        /* 设置标志，表示已经升级并校验完成 */
-        SetUpdateStatus(UPDATED);
-        *JumpUserAppFlag = true;
+        
     }
+
+    uint8_t data_MD5[16];
+
+    mbedtls_md5_context md5_ctx;
+
+    log_i("update ok, checking firm....");
+    
+    umemset(data_MD5, 0, 16);
+    umemset(&md5_ctx, 0, sizeof(mbedtls_md5_context));
+    
+    offiset = 0;
+
+    if (new_firm_info.firm_size < new_firm_info.per_pack_size)
+    {
+        read_size = new_firm_info.firm_size;
+    }
+    else
+    {
+        read_size = new_firm_info.per_pack_size;
+    }
+
+    /* 计算启动区域的程序MD5码 */
+    mbedtls_md5_init(&md5_ctx);
+    mbedtls_md5_starts(&md5_ctx);
+    while (offiset != new_firm_info.firm_size)
+    {
+        retval = iap_api.read_onchip_flash(new_firm_info.app_startup_addr + offiset, data_buf, read_size);
+        if (retval == IAP_ERROR)
+        {
+            send_data = IAP_ERR_GET_ONCHIP_DATA_FAULT;
+            pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+            iap_update_error();
+        }
+
+        mbedtls_md5_update(&md5_ctx, data_buf, read_size);
+        offiset += read_size;
+
+        if ((offiset + new_firm_info.per_pack_size) < new_firm_info.firm_size)
+        {
+            read_size = new_firm_info.per_pack_size;
+        }
+        else
+        {
+            read_size = new_firm_info.firm_size - offiset;
+        }
+    }
+
+    mbedtls_md5_finish(&md5_ctx, data_MD5);
+    
+    log_i("new firmware md5:");
+    for (uint16_t ii = 0; ii < 16; ii++)
+        uprintf("0x%02x ", new_firm_info.MD5[ii]);
+    uprintf("\r\n");
+    
+    log_i("check result md5:");
+    for (uint16_t ii = 0; ii < 16; ii++)
+        uprintf("0x%02x ", data_MD5[ii]);
+    uprintf("\r\n");
+
+    if (umemcmp(new_firm_info.MD5, data_MD5, 16) != 0)
+    {
+        log_e("Firmware update fault! please restart machine!");
+
+        send_data = IAP_ERR_CHECK_FAULT;
+        pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+        iap_update_error();
+    }
+
+    log_i("checked firm ok! jump to new appliction!");
+    /* 设置标志，表示已经升级并校验完成 */
+    iap_api.write_onchip_flash(FIRM_INFO_BASE_ADDR, &new_firm_info, sizeof(firm_info_t) - 96);
+    set_update_status(UPDATED);
+    iap_api.jump_app(new_firm_info.app_startup_addr);
 }
 
 /**
@@ -490,56 +878,159 @@ void UpdateFirm(uint8_t * JumpUserAppFlag)
  */
 void Bootloader(void)
 {
-    static uint8_t FirstFlag = true, JumpUserAppFlag = false;
-    uint8_t DataMD5[16];
-    /* 判断是否是上电运行程序 */
-    if (FirstFlag == true)
+    uint32_t retval;
+    uint8_t send_data;
+    if ((iap_api.control_onchip_flash == UNULL) ||
+        (iap_api.jump_app == UNULL) ||
+        (iap_api.read_firm_data == UNULL) ||
+        (iap_api.read_onchip_flash == UNULL) ||
+        (iap_api.send_cmd == UNULL) ||
+        (iap_api.write_onchip_flash == UNULL))
     {
-        FirstFlag = false;
+        log_e("apis error!");
         
-        /* 获取固件信息 */
-        GetFirmInfo(&FirmInfo);
+        /* 发出错误的命令 */
+        send_data = IAP_ERR_APIS_ERROR;
+        pack_build(IAP_CMD_ERR, 0, &send_data, 1);
         
-        /* 判断是否需要升级 */
-        if (GetUpdateFlag() != true && my_memcmp(FirmInfo.Flag, "Start!", 5) == 0)
-        {
-            /* 计算MD5码 */
-            mbedtls_md5((uint8_t *)APPLICATION_ADDRESS, FirmInfo.Size, DataMD5);
+        iap_update_error();
+    }
 
-            if (my_memcmp(FirmInfo.MD5, DataMD5, 16) != 0)
+    firm_info_t firm_info;
+    
+    uint8_t flag;
+    uint8_t data_MD5[16];
+        
+    /* 获取当前的固件信息 */
+    retval = get_firm_info(&firm_info);
+    if (retval == IAP_ERROR)
+    {
+        /* 发出错误的命令 */
+        send_data = IAP_ERR_GET_ONCHIP_DATA_FAULT;
+        pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+        
+        iap_update_error();
+    }
+    
+    /* 固件信息表为空，则可能为上次升级失败，尝试重新升级 */
+    if (is_empty(&firm_info, sizeof(firm_info_t) - 96) == true)
+    {
+        goto _update;
+    }
+
+    /* 检验固件的合法性，固件不合法，尝试重新升级 */
+    if (check_firm_validity(&firm_info, TRY_GET_FIRM_INFO) == IAP_ERROR)
+    {
+        goto _update;
+    }
+
+    /* 判断是否是第一次出厂上电 */
+    flag = get_update_status(&firm_info);
+    if (flag == NEED_WRITE_INFO)
+    {
+        log_d("this is first startup, code: %d", flag);
+        set_update_status(UPDATING);
+        set_update_status(UPDATED);
+
+        flag = UPDATED;
+    }
+
+    print_firm_info(&firm_info);
+
+    /* 判断是否需要升级 */
+    if (flag == UPDATED)
+    {
+        /* 程序不需要升级，进入校验阶段 */
+        mbedtls_md5_context md5_ctx;
+        uint32_t offiset;
+        uint16_t read_size;
+        
+        /* 尝试去获取新固件， 获取失败则进入启动环节 */
+        if (try_get_new_firm_info(&firm_info) == IAP_OK)
+        {
+            log_i("try get new firmware info OK!");
+            goto _update;
+        }
+
+        log_i("checking program Integrity......");
+
+        umemset(data_MD5, 0, 16);
+        umemset(&md5_ctx, 0, sizeof(mbedtls_md5_context));
+
+        offiset = 0;
+
+        if (firm_info.firm_size < firm_info.per_pack_size)
+        {
+            read_size = firm_info.firm_size;
+        }
+        else
+        {
+            read_size = firm_info.per_pack_size;
+        }
+
+        /* 计算启动区域的程序MD5码 */
+        mbedtls_md5_init(&md5_ctx);
+        mbedtls_md5_starts(&md5_ctx);
+        while (offiset != firm_info.firm_size)
+        {
+            retval = iap_api.read_onchip_flash(firm_info.app_startup_addr + offiset, data_buf, read_size);
+            if (retval == IAP_ERROR)
             {
-                uint8_t Tmp = IAP_ERR_FIRM_ERROR;
-                PackBuild(IAP_CMD_ERR, 0, &Tmp, 1);
-                /* err code */
-                return;
+                send_data = IAP_ERR_GET_ONCHIP_DATA_FAULT;
+                pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+                iap_update_error();
             }
-            JumpUserAppFlag = true;
-        }
-    }
-    else
-    {
-        /* 升级固件 */
-        UpdateFirm(&JumpUserAppFlag);
-    }
 
-    if (JumpUserAppFlag == true)
-    {
-        /* 判断堆栈的有效性 */
-        if (((*(uint32_t *)APPLICATION_ADDRESS) & 0x2FFE0000) == 0x20000000)
+            mbedtls_md5_update(&md5_ctx, data_buf, read_size);
+            offiset += read_size;
+
+            if ((offiset + firm_info.per_pack_size) < firm_info.firm_size)
+            {
+                read_size = firm_info.per_pack_size;
+            }
+            else
+            {
+                read_size = firm_info.firm_size - offiset;
+            }
+        }
+
+        mbedtls_md5_finish(&md5_ctx, data_MD5);
+        
+        log_i("firmware file md5:");
+        for (uint16_t ii = 0; ii < 16; ii++)
+            uprintf("0x%02x ", firm_info.MD5[ii]);
+        uprintf("\r\n");
+        
+        log_i("check result md5:");
+        for (uint16_t ii = 0; ii < 16; ii++)
+            uprintf("0x%02x ", data_MD5[ii]);
+        uprintf("\r\n");
+        
+        /* 判断程序的完整性 */
+        if (umemcmp(firm_info.MD5, data_MD5, 16) == 0)
         {
-            /* 获取复位地址 */
-            uint32_t JumpAddress = *(__IO uint32_t *)(APPLICATION_ADDRESS + 4);
-
-            pFunc JumpToApplication = (pFunc)JumpAddress;
-
-            /* 设置中断向量表 */
-            SCB->VTOR = APPLICATION_ADDRESS;
-
-            /* 设置堆栈地址 */
-            __set_MSP(*(__IO uint32_t *)APPLICATION_ADDRESS);
-
-            /* 执行跳转 */
-            JumpToApplication();
+            log_i("check firmware complete! startup appliction!");
+            
+            /* 校验成功直接启动用户程序 */
+            if (iap_api.jump_app != NULL)
+            {
+                iap_api.jump_app(firm_info.app_startup_addr);
+            }
         }
+
+        /* 程序校验失败，程序已被更改 */
+        log_e("Incomplete procedure!!!");
+        log_e("Please contact the administrator");
+
+        send_data = IAP_ERR_FIRM_ERROR;
+        pack_build(IAP_CMD_ERR, 0, &send_data, 1);
+
+        iap_update_error();
+        return;
     }
+
+    log_d("system need update");
+_update:
+    /* 升级固件 */
+    update_firm(&firm_info);
 }

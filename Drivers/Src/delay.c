@@ -132,6 +132,7 @@ void DelayOstimedly(uint32_t Ticks)
     rt_thread_delay(Ticks);
 #endif 
 }
+
 /* 因为rt-thread本身已经包含了SysTick_Handler，所以仅有uc/OS需要用到此函数 */
 #if defined (OS_CRITICAL_METHOD) || defined (CPU_CFG_CRITICAL_METHOD)
 
@@ -170,13 +171,13 @@ void SysTick_Handler(void)
             SYSTICK的时钟固定为AHB时钟的1/8
  * @retval  无
  */			   
-void DelayInit(void)
+void delay_init(void)
 {
     uint32_t SysTickFreq;
 	
 	/* 定义RCC_ClocksTypeDef类型的变量，用于获取系统的时钟 */
     uint32_t HCLK_Frequency = SYSTEM_FREQUENCY;
-	
+
 /* 需要支持OS. */
 #ifdef SYSTEM_SUPPORT_OS 
 
@@ -203,6 +204,8 @@ void DelayInit(void)
                      0x00000001U;                         /* Enable SysTick IRQ and SysTick Timer */
     return (0UL);    
 #endif
+#else   /* 不支持系统，直接关掉芯片滴答中断 */
+    SysTick->CTRL &= ~(0x00000002u);
 #endif /* SYSTEM_SUPPORT_OS */
 	
 /* 不使用rt-thread */
@@ -253,7 +256,7 @@ void DelayInit(void)
  * @note    nus的范围0~204522252(最大值即2^32/fac_us@fac_us=21)
  * @retval  无
  */	  								   
-void Delay_us(uint32_t nus)
+void delay_us(uint32_t nus)
 {		
     uint32_t Ticks;
     uint32_t Told, Tnow, Tcnt = 0;
@@ -302,7 +305,7 @@ void Delay_us(uint32_t nus)
  * @note    nms的0-65535
  * @retval  无
  */	
-void Delay_ms(uint16_t nms)
+void delay_ms(uint16_t nms)
 {	
     uint16_t i;
 #if defined (OS_CRITICAL_METHOD) || defined (CPU_CFG_CRITICAL_METHOD)
@@ -366,67 +369,8 @@ void Delay_ms(uint16_t nms)
     Delay_us((uint32_t)(nms * 1000));				
 }
 
-/* 不用ucos时 */
+/* 不用系统时 */
 #else  
-
-#if USE_CUBEMX_CREAT_CODE == 1
-
-/**
- * @func    delay_us
- * @brief   延时nus
- * @param   nus 要延时的us数	
- * @note    nus的范围0~204522252(最大值即2^32/fac_us@fac_us=21)
- * @retval  无
- */	  								   
-void Delay_us(uint32_t nus)
-{		
-    uint32_t Ticks;
-    uint32_t Told, Tnow, Tcnt = 0;
-    uint32_t Reload;
-    
-    /* 获取当前LOAD的值 */
-    Reload = SysTick->LOAD;				
-    
-    /* 计算需要的节拍数 */
-    Ticks = nus * SysDelay.fac_us; 	
-    
-    /* 记录当前的计数器的值 */
-    Told = SysTick->VAL;    
-    
-    /* 进行 延时 */
-    while (1)
-    {
-        Tnow = SysTick->VAL;	
-        
-        if (Tnow != Told)
-        {	    
-            /* 这里注意一下SYSTICK是一个递减的计数器就可以了 */
-            if (Tnow < Told)
-                Tcnt += Told - Tnow;	
-            else 
-                Tcnt += Reload - Tnow + Told;	    
-            Told = Tnow;
-            
-            /* 时间超过/等于要延迟的时间,则退出 */
-            if (Tcnt >= Ticks)
-                break;			
-        }  
-    }											    
-} 
-
-
-/**
- * @func    delay_ms
- * @brief   延时nms
- * @param   nms 要延时的ms数	
- * @note    nms的0-65535
- * @retval  无
- */	
-void Delay_ms(uint16_t nms)
-{	
-    HAL_Delay(nms);			
-}
-#else
 /**
  * @func    Delay_us
  * @brief   延时nus
@@ -434,8 +378,8 @@ void Delay_ms(uint16_t nms)
  * @note    nus的值,不要大于798915us(最大值即2^24/fac_us@fac_us=21)
  * @retval  无
  */	
-void Delay_us(uint32_t nus)
-{		
+void delay_us(uint32_t nus)
+{
     uint32_t Temp;	    	 
     
     /* 时间加载 */
@@ -471,12 +415,12 @@ void Delay_us(uint32_t nus)
             对168M条件下,nms<=798ms 
  * @retval  无
  */	
-void Delay_xms(uint16_t nms)
+static void delay_1ms(void)
 {	 		  	  
     uint32_t Temp;		   
     
     /* 时间加载(SysTick->LOAD为24bit) */
-    SysTick->LOAD = (uint32_t)nms * SysDelay.fac_ms;		
+    SysTick->LOAD = SysDelay.fac_ms;		
     
     /* 清空计数器 */
     SysTick->VAL = 0x00;           
@@ -503,37 +447,13 @@ void Delay_xms(uint16_t nms)
  * @note    nms:0~65535
  * @retval  无
  */	
-void Delay_ms(uint16_t nms)
-{	
-#if SYSTICK_DIV8 == 1
-    /* 这里用540,是考虑到某些客户可能超频使用 */
-    uint16_t Repeat = nms / 540;	
-    
-    /* 比如超频到248M的时候,delay_xms最大只能延时541ms左右 */									
-    uint16_t Remain = nms % 540;
-    
-    while (Repeat)
+void delay_ms(uint32_t nms)
+{
+    while (nms--)
     {
-        Delay_xms(540);
-        Repeat--;
+        delay_1ms();
     }
-#else
-    /* 这里用540,是考虑到某些客户可能超频使用 */
-    uint16_t Repeat = nms / 60;	
-    
-    /* 比如超频到248M的时候,delay_xms最大只能延时541ms左右 */									
-    uint16_t Remain = nms % 60;
-    
-    while (Repeat)
-    {
-        Delay_xms(60);
-        Repeat--;
-    }
-#endif  
-    if (Remain)
-        Delay_xms(Remain);
 } 
-#endif
 #endif
 			 
 
