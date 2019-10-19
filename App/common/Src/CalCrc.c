@@ -185,7 +185,31 @@ void CalCrc16(const void *pDataIn, int iLenIn, unsigned short *pCRCOut)
     }
     *pCRCOut = wResult;
 }
+/**
+ * @func    CalCrc16
+ * @brief   计算CRC16
+ * @param   pDataIn 需要计算的数据
+ * @param   iLenIn 数据的长度
+ * @param   pCRCOut 计算结果
+ * @note    
+ * @retval  无
+ */
+void CalCrc16_Modbus(const void *pDataIn, int iLenIn, unsigned short *pCRCOut)
+{
+    uint8_t * pData = (uint8_t *)pDataIn;
+    unsigned short wResult = 0xffff;
+    unsigned short wTableNo = 0;
+    int i = 0;
+    for (i = 0; i < iLenIn; i++)
+    {
+        wTableNo = ((wResult & 0xff) ^ (pData[i] & 0xff));
+        wResult = ((wResult >> 8) & 0xff) ^ wCRC16Table[wTableNo];
+    }
+    *pCRCOut = (wResult ^ 0x0000);
+}
 #endif
+
+
 #ifdef USE_CRC32
 #ifdef USE_HARD_CRC32
 #else

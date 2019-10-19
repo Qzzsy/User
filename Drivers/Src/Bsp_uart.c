@@ -16,7 +16,7 @@
 #include "Bsp_uart.h"
 #include "ustring.h"
 #include "usart.h"
-#include "uconfig.h"
+#include "UserConf.h"
 #include "udef.h"
 
 #ifdef USING_USART1
@@ -27,11 +27,11 @@ serial_t * p_usart1_dev;
 #endif
 #ifdef USING_USART2
 extern DMA_HandleTypeDef hdma_usart2_rx;
-zu_serial_t * p_usart2_dev;
+serial_t * p_usart2_dev;
 #endif
 #ifdef USING_USART3
 extern DMA_HandleTypeDef hdma_usart3_rx;
-zu_serial_t * p_usart3_dev;
+serial_t * p_usart3_dev;
 #endif
 
 #ifdef USING_CONSOLE
@@ -48,7 +48,7 @@ static UART_HandleTypeDef * ConsoleOutHandle;
  */
 void console_out(const char * Sendbuf, uint32_t Lenght)
 {
-    HAL_UART_Transmit(ConsoleOutHandle, (uint8_t *)Sendbuf, Lenght, 10);
+    HAL_UART_Transmit(ConsoleOutHandle, (uint8_t *)Sendbuf, Lenght, 100);
 }
 #endif
 
@@ -87,6 +87,10 @@ void set_uart_DMA_recv_buff(serial_t * dev)
     {
         //DMA 接收地址设置
         HAL_UART_Receive_DMA(dev->huart, dev->uart_buf.recv_buf, dev->uart_buf.recv_buf_size);
+        //__HAL_LOCK(dev->huart->hdmarx);
+//        dev->huart->hdmarx->Instance->CCR |= (1 << 7);
+        //__HAL_UNLOCK(dev->huart->hdmarx);
+        
     }
 }
 
@@ -109,7 +113,7 @@ static inline void UART_rx_IDLE_callback(serial_t * dev)
             HAL_UART_DMAStop(dev->huart);
 #if defined (STM32F4)
             rxSize = dev->usart_buf.recv_buf_size - hdma_usart1_rx.Instance->NDTR;
-#elif defined (STM32F1)
+#elif defined (STM32F1) || defined (STM32F0)
             rxSize = dev->uart_buf.recv_buf_size - hdma_usart1_rx.Instance->CNDTR;
 #endif
             
@@ -118,39 +122,41 @@ static inline void UART_rx_IDLE_callback(serial_t * dev)
         }
 #endif
 #ifdef USING_USART2
-        if (huart->Instance == USART2)
+        if (dev->huart->Instance == USART2)
         {
-            UartDMABuf = &hUart2DMABuf;
-            __HAL_UART_CLEAR_IDLEFLAG(huart);
-            HAL_UART_DMAStop(huart);
+            __HAL_UART_CLEAR_IDLEFLAG(dev->huart);
+            HAL_UART_DMAStop(dev->huart);
 #if defined (STM32F4)
             rxSize = dev->usart_buf.recv_buf_size - hdma_usart2_rx.Instance->NDTR;
-#elif defined (STM32F1)
-            rxSize = dev->usart_buf.recv_buf_size - hdma_usart2_rx.Instance->CNDTR;
+#elif defined (STM32F1) || defined (STM32F0)
+            rxSize = dev->uart_buf.recv_buf_size - hdma_usart2_rx.Instance->CNDTR;
 #endif
             
-            if (Hooks.Usart2RecvProcess != NULL)
-                Hooks.Usart2RecvProcess(UartDMABuf->RecvBuf, rxSize);
+            if (dev->recv_process != NULL)
+                dev->recv_process(dev->uart_buf.recv_buf, rxSize);
         }
 #endif
 #ifdef USING_USART3
-        if (huart->Instance == USART3)
+        if (dev->huart->Instance == USART3)
         {
-            UartDMABuf = &hUart3DMABuf;
-            __HAL_UART_CLEAR_IDLEFLAG(huart);
-            HAL_UART_DMAStop(huart);
+            __HAL_UART_CLEAR_IDLEFLAG(dev->huart);
+            HAL_UART_DMAStop(dev->huart);
 #if defined (STM32F4)
             rxSize = dev->usart_buf.recv_buf_size - hdma_usart3_rx.Instance->NDTR;
 #elif defined (STM32F1)
             rxSize = dev->usart_buf.recv_buf_size - hdma_usart3_rx.Instance->CNDTR;
 #endif
             
-            if (Hooks.Usart3RecvProcess != NULL)
-                Hooks.Usart3RecvProcess(UartDMABuf->RecvBuf, rxSize);
+            if (dev->recv_process != NULL)
+                dev->recv_process(dev->uart_buf.recv_buf, rxSize);
         }
 #endif
         HAL_UART_Receive_DMA(dev->huart, dev->uart_buf.recv_buf, dev->uart_buf.recv_buf_size);
     }
+    __HAL_UART_CLEAR_FEFLAG(dev->huart);
+    __HAL_UART_CLEAR_PEFLAG(dev->huart);
+    __HAL_UART_CLEAR_NEFLAG(dev->huart);
+    __HAL_UART_CLEAR_OREFLAG(dev->huart);
 }
 #endif
 
@@ -165,10 +171,6 @@ void USART1_IRQHandler(void)
 #ifdef USING_USART1_DMA_RX
     UART_rx_IDLE_callback(p_usart1_dev);
 #endif
-    __HAL_UART_CLEAR_IDLEFLAG(p_usart1_dev->huart);
-    __HAL_UART_CLEAR_OREFLAG(p_usart1_dev->huart);
-    __HAL_UART_CLEAR_NEFLAG(p_usart1_dev->huart);
-    __HAL_UART_CLEAR_FEFLAG(p_usart1_dev->huart);
 }
 #endif
 
@@ -180,7 +182,7 @@ void USART1_IRQHandler(void)
  */
 void USART2_IRQHandler(void)
 {
-    USART_rx_IDLE_callback(usart2_dev);
+    UART_rx_IDLE_callback(p_usart2_dev);
 }
 #endif
 
@@ -192,7 +194,7 @@ void USART2_IRQHandler(void)
  */
 void USART3_IRQHandler(void)
 {
-    USART_rx_IDLE_callback(usart3_dev);
+    UART_rx_IDLE_callback(p_usart3_dev);
 }
 #endif
 
@@ -207,41 +209,47 @@ err_t uart_init(serial_t *dev)
         return -UERROR;
     }
     
-    p_usart1_dev = dev;
-    
 #ifdef USING_USART1
-    if (ustrcmp("usart1", dev->name) == 0)
+    if (ustrcmp("usart1\0", dev->name) == 0)
     {
+        p_usart1_dev = dev;
+        
         dev->huart = &huart1;
 
 #ifdef USING_CONSOLE    
-        if (CONSOLE_DEVICE == "usart1")
+        if (CONSOLE_DEVICE == "usart1\0")
         {
             ConsoleOutHandle = dev->huart;
         }
 #endif
+        
+        /* USART1 interrupt Init */
+        HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+        HAL_NVIC_EnableIRQ(USART1_IRQn);
     }
 #endif
 #ifdef USING_USART2
-    if (zu_strcmp("usart2", dev->name) == 0)
+    if (ustrcmp("usart2\0", dev->name) == 0)
     {
+        p_usart2_dev = dev;
         dev->huart = &huart2;
 
-#ifdef USE_CONSOLE
-        if (CONSOLE_DEVICE == "usart2")
+#ifdef USING_CONSOLE
+        if (CONSOLE_DEVICE == "usart2\0")
         {
             ConsoleOutHandle = dev->huart;
         }
+#endif
     }
 #endif
-#endif
 #ifdef USING_USART3
-    if (zu_strcmp("usart3", dev->name) == 0)
+    if (ustrcmp("usart3\0", dev->name) == 0)
     {
+        p_usart3_dev = dev;
         dev->huart = &huart3;
         
 #ifdef USING_CONSOLE
-        if (CONSOLE_DEVICE == "usart3")
+        if (CONSOLE_DEVICE == "usart3\0")
         {
             ConsoleOutHandle = dev->huart;
         }
@@ -252,8 +260,8 @@ err_t uart_init(serial_t *dev)
     if (dev->mode & UART_MODE_IDLE_INT)
     {
         dev->flags |= UENABLE;
-        //set_uart_IDLE_IT(dev);
 #ifdef USING_USART_DMA
+        set_uart_IDLE_IT(dev);
         set_uart_DMA_recv_buff(dev);
 #endif
     }
