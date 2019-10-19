@@ -14,16 +14,17 @@
 #ifndef _BSP_UART_H_
 #define _BSP_UART_H_
 
-#if defined STM32F1
+#include "uconfig.h"
+#include "udef.h"
+
+#if defined (STM32F1)
 #include "stm32f1xx.h"
-#elif defined STM32F4
+#elif defined (STM32F4)
 #include "stm32f4xx.h"
 #endif
-#include "zu_config.h"
-#include "zu_def.h"
 
-#define ZU_MODE_IDLE_INT            (1 << 0)
-#define ZU_MODE_RECV_INT            (1 << 1)
+#define UART_MODE_IDLE_INT            (1 << 0)
+#define UART_MODE_RECV_INT            (1 << 1)
 
 typedef struct 
 {
@@ -31,24 +32,24 @@ typedef struct
     uint32_t recv_buf_size;
     void * send_buf;
     uint32_t send_buf_size;
-}usart_buf_t;
+}uart_buf_t;
 
-struct zu_serial_device
+struct serial_device
 {
-    char                        name[ZU_NAME_MAX];
+    char                        name[OBJECT_NAME_MAX];
     UART_HandleTypeDef          *huart;
     void                        (*recv_process)(const void *, uint32_t);
-    usart_buf_t                 usart_buf;
+    uart_buf_t                  uart_buf;
     uint16_t                    mode;
     uint8_t                     flags;
 };
-typedef struct zu_serial_device zu_serial_t;
+typedef struct serial_device serial_t;
 
-void console_out(const char * Sendbuf, unsigned long Lenght);
+void console_out(const char * Sendbuf, uint32_t Lenght);
 HAL_StatusTypeDef SetConsoleDevice(UART_HandleTypeDef * hUart);
-void set_usart_IDLE_IT(zu_serial_t *dev);
-void set_usart_DMA_recv_buff(zu_serial_t * dev);
-zu_err_t usart_init(zu_serial_t *dev);
+void set_uart_IDLE_IT(serial_t *dev);
+void set_uart_DMA_recv_buff(serial_t * dev);
+err_t uart_init(serial_t *dev);
 #endif
 
        

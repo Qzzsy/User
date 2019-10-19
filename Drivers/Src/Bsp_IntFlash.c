@@ -308,8 +308,9 @@ uint32_t IntFlashGetWriteProtectionStatus(uint32_t Address)
     uint32_t ProtectedPAGE = INTFLASH_PROTECTION_NONE;
     FLASH_OBProgramInitTypeDef OptionsBytesStruct;
     uint32_t Sectors;
-
+#ifdef STM32F4
     Sectors = GetSector(Address);
+#endif
     /* Unlock the Flash to enable the flash control register access *************/
     HAL_FLASH_Unlock();
 

@@ -1,10 +1,10 @@
 /**
 ******************************************************************************
- * @Copyright       (C) 2017 - 2018 guet-sctc-hardwarepart Team
+ * @Copyright       (C) 2017 - 2019 guet-sctc-hardwarepart Team
  * @filename        delay.h
- * @author          门禁开发小组
- * @version         V1.1.2
- * @date            2018-06-19
+ * @author          ZSY
+ * @version         V1.1.3
+ * @date            2019-08-08
  * @Description     delay文件，包含了是否使用系统的宏定义选择以及使用系统的类型
  * @Others
  * @History
@@ -16,6 +16,7 @@
  * 2018-06-07       ZSY         V1.1.0              修改结构，全采用寄存器的方式编写，兼容寄存器以及各类库函数
  * 2018-06-12       ZSY         V1.1.1              修改部分变量名称，完善对全系列芯片的支持
  * 2018-06-19       ZSY         V1.1.2              修复在不分频的情况下ms级延时不准的BUG
+ * 2019-08-08       ZSY         V1.1.3              添加对STM32F0系列的支持，添加对STM32F1系列的HAL库的支持
  * @verbatim  
  */
 	
@@ -24,14 +25,32 @@
 #define __DELAY_H_ 		
 
 /* Includes ------------------------------------------------------------------*/
-#if (defined STM32F10X_HD) || (defined STM32F10X_LD_VL) || (defined STM32F10X_MD_VL) || (defined STM32F10X_HD_VL) || (defined STM32F10X_XL) ||\
+#if defined (STM32F030x6) || defined (STM32F030x8) ||                           \
+    defined (STM32F031x6) || defined (STM32F038xx) ||                           \
+    defined (STM32F042x6) || defined (STM32F048xx) || defined (STM32F070x6) ||  \
+    defined (STM32F051x8) || defined (STM32F058xx) ||                           \
+    defined (STM32F071xB) || defined (STM32F072xB) || defined (STM32F078xx) || defined (STM32F070xB) || \
+    defined (STM32F091xC) || defined (STM32F098xx) || defined (STM32F030xC)
+#include "stm32f0xx.h"
+#ifndef STM32F0
+    #define STM32F0
+#endif
+
+
+#elif (defined STM32F1) || (defined STM32F10X_LD_VL) || (defined STM32F10X_MD_VL) || (defined STM32F10X_HD_VL) || (defined STM32F10X_XL) ||\
     (defined STM32F100xB) || (defined STM32F100xE) || (defined STM32F101x6) || \
     (defined STM32F101xB) || (defined STM32F101xE) || (defined STM32F101xG) || (defined STM32F102x6) || (defined STM32F102xB) || (defined STM32F103x6) || \
     (defined STM32F103xB) || (defined STM32F103xE) || (defined STM32F103xG) || (defined STM32F105xC) || (defined STM32F107xC)
-#include "stm32f10x.h" 
+#ifdef USE_HAL_DRIVER
+#include "stm32f1xx.h" 
+#else
+#include "stm32f10x.h"
+#endif
 #ifndef STM32F1
     #define STM32F1
 #endif
+
+
 #elif (defined STM32F405xx) || (defined STM32F415xx) || (defined STM32F407xx) || (defined STM32F417xx) || \
         (defined STM32F427xx) || (defined STM32F437xx) || (defined STM32F429xx) || (defined STM32F439xx) || \
         (defined STM32F401xC) || (defined STM32F401xE) || (defined STM32F410Tx) || (defined STM32F410Cx) || \
@@ -44,6 +63,8 @@
 #ifndef STM32F4
     #define STM32F4
 #endif
+
+
 #elif defined (STM32F756xx) || defined (STM32F746xx) || defined (STM32F745xx) || defined (STM32F767xx) || \
     defined (STM32F769xx) || defined (STM32F777xx) || defined (STM32F779xx) || defined (STM32F722xx) || \
 	defined (STM32F723xx) || defined (STM32F732xx) || defined (STM32F733xx)
@@ -53,8 +74,11 @@
 #endif
 #endif
 
+
 /* 根据芯片的内核频率更改 */
-#ifdef STM32F1
+#ifdef STM32F0 
+#define DEFAULT_SYSTEM_FREQUENCY            48000000U
+#elif defined STM32F1
 #define DEFAULT_SYSTEM_FREQUENCY            72000000U
 #elif defined STM32F4
 #define DEFAULT_SYSTEM_FREQUENCY            168000000U
@@ -64,9 +88,10 @@
 #define DEFAULT_SYSTEM_FREQUENCY            72000000U
 #endif
 
+/* 选择系统时钟，这里目前只能手动选择，因为不同的芯片时钟寄存器不一样，用寄存器方式获取比较困难 */
 #define SYSTEM_FREQUENCY    DEFAULT_SYSTEM_FREQUENCY
 
-#define USE_CUBEMX_CREAT_CODE       0
+#define USING_CUBEMX_CREAT_CODE       1
 
 /* 根据分频要求更改 */
 #define SYSTICK_DIV8        0
@@ -101,7 +126,7 @@
 #else
 
 /* 0为不使用rt-thread系统，1为使用rt-thread系统 */
-#define OS_USE_RTTHREAD         1
+#define OS_USE_RTTHREAD         0
 #if OS_USE_RTTHREAD == 0
 #undef OS_USE_RTTHREAD
 #else
@@ -143,9 +168,9 @@ typedef struct Delay
 }Delay_t;
 
 /* Member method APIs --------------------------------------------------------*/
-void DelayInit(void);
-void Delay_ms(uint16_t nms);
-void Delay_us(uint32_t nus);
+void delay_init(void);
+void delay_ms(uint32_t nms);
+void delay_us(uint32_t nus);
 /* End Member Method APIs ----------------------------------------------------*/
 
 #endif /* __DELAY_H_ */
