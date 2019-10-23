@@ -13,6 +13,7 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include "ustring.h"
+#include "UserConf.h"
 
 #define ZEROPAD     (1 << 0)    /* pad with zero */
 #define SIGN        (1 << 1)    /* unsigned/signed long */
@@ -27,7 +28,7 @@
 
 static char PrintfSendBuf[PRINTF_SEND_BUF_SIZE] = {'\0'};
 
-typedef int             bool_t;
+typedef int             ubool_t;
 
 /**
  * @func    umemset
@@ -332,7 +333,7 @@ uint32_t ustrcasecmp(const char *a, const char *b)
 }
 
 /**
- * @func    zu_strncpy
+ * @func    ustrncpy
  * @brief   This function will copy string no more than n bytes.
  * @param   dst the string to copy
  * @param   src the string to be copied
@@ -1170,7 +1171,7 @@ int32_t usnprintf(char *buf, int32_t size, const char *fmt, ...)
 }
 
 /**
- * @func    zu_sprintf
+ * @func    usprintf
  * @brief   字符串构建函数
  * @param   buf 输出缓存
  * @param   fmt 输入的字符串
@@ -1196,22 +1197,23 @@ int32_t usprintf(char *buf, const char *fmt, ...)
 void (*console_device)(const char * buf, uint32_t size);
 #endif
 /**
- * @func    zu_printf
+ * @func    uprintf
  * @brief   print函数
  * @param   fmt 输入的字符串
  * @retval  字符串的长度
  */
 int32_t uprintf(const char *fmt, ...)
 {
-    long n;
+    long n = 0;
+#ifdef USING_CONSOLE  
     //记录fmt对应的地址
     va_list args;
 
     //得到首个%对应的字符地址
     va_start(args, fmt);
     n = _vsnprintf(PrintfSendBuf, sizeof(PrintfSendBuf) - 1, fmt, args);
-    va_end(args);
-#ifdef USING_CONSOLE    
+    va_end(args);  
+
     if (console_device != UNULL)
     {
         console_device(PrintfSendBuf, n);
