@@ -3,8 +3,8 @@
  * @Copyright       (C) 2017 - 2019 guet-sctc-hardwarepart Team
  * @filename        delay.h
  * @author          ZSY
- * @version         V1.1.3
- * @date            2019-08-08
+ * @version         V1.2.0
+ * @date            2019-08-26
  * @Description     delay文件，包含了是否使用系统的宏定义选择以及使用系统的类型
  * @Others
  * @History
@@ -16,7 +16,8 @@
  * 2018-06-07       ZSY         V1.1.0              修改结构，全采用寄存器的方式编写，兼容寄存器以及各类库函数
  * 2018-06-12       ZSY         V1.1.1              修改部分变量名称，完善对全系列芯片的支持
  * 2018-06-19       ZSY         V1.1.2              修复在不分频的情况下ms级延时不准的BUG
- * 2019-08-08       ZSY         V1.1.3              添加对STM32F0系列的支持，添加对STM32F1系列的HAL库的支持
+ * 2019-08-08       ZSY         V1.1.3              添加对STM32F0系列的支持，添加对STM32F0系列的HAL库的支持
+ * 2019-08-26       ZSY         V1.2.0              添加对FreeRTOS的支持
  * @verbatim  
  */
 	
@@ -91,7 +92,8 @@
 /* 选择系统时钟，这里目前只能手动选择，因为不同的芯片时钟寄存器不一样，用寄存器方式获取比较困难 */
 #define SYSTEM_FREQUENCY    DEFAULT_SYSTEM_FREQUENCY
 
-#define USING_CUBEMX_CREAT_CODE       1
+/* 使用STM32Cube生成代码 */
+#define USING_CUBEMX_CREAT_CODE       0
 
 /* 根据分频要求更改 */
 #define SYSTICK_DIV8        0
@@ -107,33 +109,35 @@
  * 首先是3个宏定义:
  * SYSTEM_SUPPORT_OS            是否使用系统
 	
- * OS_USE_RTTHREAD              是否使用rt-thread
+ * OS_USING_RTTHREAD            是否使用rt-thread
 	
  * OS_CRITICAL_METHOD           是否使用uc/OS-II
 	
  * CPU_CFG_CRITICAL_METHOD      是否使用uc/OS-III
+ 
+ * OS_USING_FREERTOS            是否使用FreeRTOS
 	
 	
  * DELAY_OS_RUNNING             用于表示OS当前是否正在运行,以决定是否可以使用相关函数
- * DELAY_OS_TICK_PERSEC         用于表示OS设定的时钟节拍,delay_init将根据这个参数来初始哈systick
+ * DELAY_OS_TICK_PERSEC         用于表示OS设定的时钟节拍, delay_init将根据这个参数来初始哈systick
  * DELAY_OS_INTNESTING          用于表示OS中断嵌套级别,因为中断里面不可以调度,delay_ms使用该参数来决定如何运行
  */
 
 /* 0为不使用系统，1为使用系统 */
-#define SYSTEM_SUPPORT_OS       0					
+#define SYSTEM_SUPPORT_OS       1			
 #if SYSTEM_SUPPORT_OS == 0
 #undef SYSTEM_SUPPORT_OS
 #else
 
 /* 0为不使用rt-thread系统，1为使用rt-thread系统 */
-#define OS_USE_RTTHREAD         0
-#if OS_USE_RTTHREAD == 0
-#undef OS_USE_RTTHREAD
+#define OS_USING_RTTHREAD         0
+#if OS_USING_RTTHREAD == 0
+#undef OS_USING_RTTHREAD
 #else
 #define DELAY_OS_RUNNING rt_tick_get()
 #define DELAY_OS_TICK_PERSEC RT_TICK_PER_SECOND         //OS时钟节拍,即每秒调度次数
 #define DELAY_OS_INTNESTING rt_interrupt_get_nest()     //中断嵌套级别,即中断嵌套次数
-#endif /* OS_USE_RTTHREAD */
+#endif /* OS_USING_RTTHREAD */
 
 /* 0为不使用uc/OS-II系统，1为使用uc/OS-II系统 */
 #define OS_CRITICAL_METHOD      0
@@ -156,16 +160,25 @@
 #endif /* CPU_CFG_CRITICAL_METHOD */
 #endif /* SYSTEM_SUPPORT_OS */
 
+#define OS_USING_FREERTOS         1
+#if OS_USING_FREERTOS == 0
+#undef OS_USING_FREERTOS
+#else
+#define DELAY_OS_RUNNING xTaskGetSchedulerState()
+#define DELAY_OS_TICK_PERSEC configTICK_RATE_HZ
+#define DELAY_OS_INTNESTING uxCriticalNesting
+#endif
+
 /* End public macro Definition -----------------------------------------------*/
 
 /* UserCode start ------------------------------------------------------------*/
 
 /* 延时属性的结构体 */
-typedef struct Delay
+typedef struct _delay
 {
     uint16_t fac_us;            //us延时倍乘数			   
     uint32_t fac_ms;            //ms延时倍乘数,在os下,代表每个节拍的ms数
-}Delay_t;
+}delay_t;
 
 /* Member method APIs --------------------------------------------------------*/
 void delay_init(void);
