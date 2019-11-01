@@ -2,21 +2,22 @@
  ******************************************************************************
  * @file      CalCrc.c
  * @author    ZSY
- * @version   V1.0.0
- * @date      2018-10-09
+ * @version   V1.0.1
+ * @date      2019-11-01
  * @brief     计算CRC
  * @History
  * Date           Author    version    		Notes
  * 2018-10-08     ZSY       V1.0.0          first version.
+ * 2019-11-01     ZSY       V1.0.1          添加对CRC16/Modbus的支持
  */
 
 /* Includes ------------------------------------------------------------------*/
-#include "CalCrc.h"
+#include "cal_crc.h"
 
 //#define USE_HARD_CRC32
-#define USE_CRC32
-#define USE_CRC16
-#define USE_CRC8
+#define USING_CRC32
+#define USING_CRC16
+#define USING_CRC8
 
 #ifndef uint8_t
 #define uint8_t unsigned char
@@ -31,8 +32,8 @@
 #define __IO volatile
 #endif
 
-#ifdef USE_CRC32
-#ifndef USE_HARD_CRC32 
+#ifdef USING_CRC32
+#ifndef USING_HARD_CRC32 
 static unsigned long crc32_tbl[256] = {
     0x00000000L, 0x77073096L, 0xEE0E612CL, 0x990951BAL, 0x076DC419L,
     0x706AF48FL, 0xE963A535L, 0x9E6495A3L, 0x0EDB8832L, 0x79DCB8A4L,
@@ -89,8 +90,8 @@ static unsigned long crc32_tbl[256] = {
 #endif
 #endif
 
-#ifdef USE_CRC16
-static unsigned short const wCRC16Table[256] = {
+#ifdef USING_CRC16
+static unsigned short const crc16_tbl[256] = {
     0x0000, 0xC0C1, 0xC181, 0x0140, 0xC301, 0x03C0, 0x0280, 0xC241,
     0xC601, 0x06C0, 0x0780, 0xC741, 0x0500, 0xC5C1, 0xC481, 0x0440,
     0xCC01, 0x0CC0, 0x0D80, 0xCD41, 0x0F00, 0xCFC1, 0xCE81, 0x0E40,
@@ -125,108 +126,107 @@ static unsigned short const wCRC16Table[256] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040};
 #endif
 
-#ifdef USE_CRC8
+#ifdef USING_CRC8
 /**
- * @func    CalCrc8_Maxim
+ * @func    cal_crc8_maxim
  * @brief   计算CRC8，Maxim模式
- * @param   pBuf 需要计算的数据
- * @param   pLen 数据的长度
+ * @param   buf 需要计算的数据
+ * @param   len 数据的长度
+ * @param   out 输出的数据
  * @note    
  * @retval  计算结果
  */
-void CalCrc8_Maxim(const void *pBuf, uint16_t pLen, uint8_t *pOut)
+void cal_crc8_maxim(const void *buf, uint16_t len, uint8_t *out)
 {
-    uint8_t *PData = (uint8_t *)pBuf;
+    uint8_t *p_data = (uint8_t *)buf;
 
     __IO uint8_t i;
-    __IO uint8_t pCrcValue = 0;
+    __IO uint8_t crc_value = 0;
 
-    while (pLen--)
+    while (len--)
     {
-        pCrcValue ^= *PData++;
+        crc_value ^= *p_data++;
 
         for (i = 0; i < 8; i++)
         {
-            if (pCrcValue & 0x01)
+            if (crc_value & 0x01)
             {
-                pCrcValue = (pCrcValue >> 1) ^ 0x8c;
+                crc_value = (crc_value >> 1) ^ 0x8c;
             }
             else
             {
-                pCrcValue = pCrcValue >> 1;
+                crc_value = crc_value >> 1;
             }
         }
     }
 
-    *pOut = pCrcValue;
+    *out = crc_value;
 }
 #endif
 
-#ifdef USE_CRC16
+#ifdef USING_CRC16
 /**
- * @func    CalCrc16
+ * @func    cal_crc16
  * @brief   计算CRC16
- * @param   pDataIn 需要计算的数据
- * @param   iLenIn 数据的长度
- * @param   pCRCOut 计算结果
+ * @param   data_in 需要计算的数据
+ * @param   len 数据的长度
+ * @param   out 计算结果
  * @note    
  * @retval  无
  */
-void CalCrc16(const void *pDataIn, int iLenIn, unsigned short *pCRCOut)
+void cal_crc16(const void *data_in, int len, unsigned short *out)
 {
-    uint8_t * pData = (uint8_t *)pDataIn;
-    unsigned short wResult = 0;
-    unsigned short wTableNo = 0;
+    uint8_t * p_data = (uint8_t *)data_in;
+    unsigned short result = 0;
+    unsigned short table_no = 0;
     int i = 0;
-    for (i = 0; i < iLenIn; i++)
+    for (i = 0; i < len; i++)
     {
-        wTableNo = ((wResult & 0xff) ^ (pData[i] & 0xff));
-        wResult = ((wResult >> 8) & 0xff) ^ wCRC16Table[wTableNo];
+        table_no = ((result & 0xff) ^ (p_data[i] & 0xff));
+        result = ((result >> 8) & 0xff) ^ crc16_tbl[table_no];
     }
-    *pCRCOut = wResult;
+    *out = result;
 }
 /**
- * @func    CalCrc16
+ * @func    cal_crc16_modbus
  * @brief   计算CRC16
- * @param   pDataIn 需要计算的数据
- * @param   iLenIn 数据的长度
- * @param   pCRCOut 计算结果
+ * @param   data_in 需要计算的数据
+ * @param   len 数据的长度
+ * @param   out 计算结果
  * @note    
  * @retval  无
  */
-void CalCrc16_Modbus(const void *pDataIn, int iLenIn, unsigned short *pCRCOut)
+void cal_crc16_modbus(const void *data_in, int len, unsigned short *out)
 {
-    uint8_t * pData = (uint8_t *)pDataIn;
-    unsigned short wResult = 0xffff;
-    unsigned short wTableNo = 0;
+    uint8_t * pData = (uint8_t *)data_in;
+    unsigned short result = 0xffff;
+    unsigned short table_no = 0;
     int i = 0;
-    for (i = 0; i < iLenIn; i++)
+    for (i = 0; i < len; i++)
     {
-        wTableNo = ((wResult & 0xff) ^ (pData[i] & 0xff));
-        wResult = ((wResult >> 8) & 0xff) ^ wCRC16Table[wTableNo];
+        table_no = ((result & 0xff) ^ (pData[i] & 0xff));
+        result = ((result >> 8) & 0xff) ^ crc16_tbl[table_no];
     }
-    *pCRCOut = (wResult ^ 0x0000);
+    *out = (result ^ 0x0000);
 }
 #endif
-
-
-#ifdef USE_CRC32
-#ifdef USE_HARD_CRC32
+#ifdef USING_CRC32
+#ifdef USING_HARD_CRC32
 #else
 /**
- * @func    CalCrc32Init
+ * @func    cal_crc32_init
  * @brief   初始化CRC32
  * @param   ctx CRC32指针
  * @note    
  * @retval  无
  */
-void CalCrc32Init(CRC32_CTX_t *ctx)
+void cal_crc32_init(crc32_ctx_t *ctx)
 {
     ctx->crc = 0xFFFFFFFFL;
 }
 
 /**
- * @func    CalCrc32Update
+ * @func    cal_crc32_update
  * @brief   计算CRC32
  * @param   ctx CRC32指针
  * @param   data 需要计算的数据
@@ -234,29 +234,26 @@ void CalCrc32Init(CRC32_CTX_t *ctx)
  * @note    
  * @retval  无
  */
-void CalCrc32Update(CRC32_CTX_t *ctx, const unsigned char *data, size_t len)
+void cal_crc32_update(crc32_ctx_t *ctx, const unsigned char *data, uint32_t len)
 {
-    for (size_t i = 0; i < len; i++)
+    for (uint32_t i = 0; i < len; i++)
     {
         ctx->crc = (ctx->crc >> 8) ^ crc32_tbl[(ctx->crc & 0xFF) ^ *data++];
     }
 }
 
 /**
- * @func    CalCrc32Final
+ * @func    cal_crc32_final
  * @brief   计算CRC32
  * @param   ctx CRC32指针
  * @param   md 计算结果
  * @note    
  * @retval  无
  */
-void CalCrc32Final(CRC32_CTX_t *ctx, unsigned char *md)
+void cal_crc32_final(crc32_ctx_t *ctx, uint32_t *md)
 {
     ctx->crc ^= 0xFFFFFFFFUL;
-    *md++ = (ctx->crc & 0xFF000000UL) >> 24;
-    *md++ = (ctx->crc & 0x00FF0000UL) >> 16;
-    *md++ = (ctx->crc & 0x0000FF00UL) >> 8;
-    *md++ = (ctx->crc & 0x000000FFUL);
+    *md = ctx->crc;
 }
 #endif
 #endif
